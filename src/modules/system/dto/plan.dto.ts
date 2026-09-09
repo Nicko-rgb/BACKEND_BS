@@ -93,7 +93,7 @@ export const updatePlanSchema = Joi.object({
         }),
 
     // Valores conocidos hoy — un nivel nuevo es un cambio de código (agregar acá), nunca una
-    // migración de DB, porque la columna es STRING libre a propósito (ver 045_add_plan_limits...).
+    // migración de DB, porque la columna es STRING libre a propósito (ver 027_baseline_saas_plans).
     notifications_tier: Joi.string().valid('basic', 'automated', 'full').required()
         .messages({
             'string.empty': 'El nivel de notificaciones es requerido',

@@ -48,7 +48,14 @@ const migration: MigrationFile = {
             },
             document_number: { type: DataTypes.STRING(50), allowNull: true },
             phone: { type: DataTypes.STRING(20), allowNull: true },
-            address: { type: DataTypes.TEXT, allowNull: true },
+            // Ubigeo de residencia — no dirección libre: así se puede buscar sucursales cercanas
+            // igual que dsg_bss_company.ubigeo_id. Solo lo usa el portal cliente (booking).
+            ubigeo_id: {
+                type: DataTypes.BIGINT,
+                allowNull: true,
+                references: { model: 'dsg_bss_ubigeo', key: 'ubigeo_id' },
+                onDelete: 'SET NULL'
+            },
             occupation: { type: DataTypes.STRING(100), allowNull: true },
             civil_state: {
                 type: DataTypes.ENUM('SINGLE', 'MARRIED', 'DIVORCED', 'WIDOWED', 'COMMON-LAW'),
@@ -56,7 +63,17 @@ const migration: MigrationFile = {
             },
             sports_preferences: { type: DataTypes.JSON, allowNull: true },
             accept_marketing: { type: DataTypes.BOOLEAN, defaultValue: false },
-            // created_at/updated_at NOT NULL DEFAULT NOW — normalizado (antes nullable, corregido por fix_camelcase_timestamps_booking global) ─
+            // Notificaciones/privacidad/pantalla — settings sueltos sin necesidad relacional, JSONB
+            // (no JSON como sports_preferences) para poder indexar/filtrar más adelante si hace falta.
+            preferences: { type: DataTypes.JSONB, allowNull: true },
+            // FK real (a diferencia de preferences): permite JOIN. ON DELETE SET NULL — si el tipo
+            // de pago se borra, la preferencia se limpia sola en vez de bloquear el borrado.
+            default_payment_type_id: {
+                type: DataTypes.BIGINT,
+                allowNull: true,
+                references: { model: 'dsg_bss_payment_types', key: 'payment_type_id' },
+                onDelete: 'SET NULL'
+            },
             created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
             updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
         });

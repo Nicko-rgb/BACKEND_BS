@@ -33,6 +33,8 @@ const migration: MigrationFile = {
             language: { type: DataTypes.STRING(10), allowNull: false },
             date_format: { type: DataTypes.STRING(20), allowNull: false },
             flag_url: { type: DataTypes.STRING(255), allowNull: false },
+            // Solo los países activos se ofrecen en los selectores públicos de ambos fronts.
+            is_active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
             user_create: { type: DataTypes.BIGINT, allowNull: false },
             user_update: { type: DataTypes.BIGINT, allowNull: true },
             created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },

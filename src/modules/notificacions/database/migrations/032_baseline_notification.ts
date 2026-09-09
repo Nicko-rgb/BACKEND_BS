@@ -42,7 +42,7 @@ const migration: MigrationFile = {
             message: { type: DataTypes.TEXT, allowNull: false },
             notification_type: {
                 type: DataTypes.ENUM(
-                    'BOOKING_CONFIRMATION', 'BOOKING_REMINDER', 'BOOKING_CANCELLATION',
+                    'BOOKING_CONFIRMATION', 'BOOKING_REMINDER', 'BOOKING_CANCELLATION', 'BOOKING_THANK_YOU',
                     'PAYMENT_SUCCESS', 'PAYMENT_FAILED', 'PAYMENT_REMINDER',
                     'FACILITY_UPDATE', 'PROMOTION', 'SYSTEM_MAINTENANCE',
                     'WELCOME', 'PASSWORD_RESET', 'ACCOUNT_VERIFICATION', 'GENERAL'
@@ -56,7 +56,7 @@ const migration: MigrationFile = {
                 defaultValue: 'NORMAL'
             },
             channel: {
-                type: DataTypes.ENUM('IN_APP', 'EMAIL', 'SMS', 'PUSH'),
+                type: DataTypes.ENUM('IN_APP', 'EMAIL', 'SMS', 'PUSH', 'WHATSAPP'),
                 allowNull: false,
                 defaultValue: 'IN_APP'
             },

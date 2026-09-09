@@ -1,5 +1,7 @@
 /**
  * Baseline: crear tabla dsg_bss_saas_subscriptions
+ * Sin company_id — esa relación vive 100% en dsg_bss_saas_subscription_company
+ * (soporta que una suscripción cubra más de una empresa raíz, plan "Multi Empresa").
  */
 import { DataTypes } from 'sequelize';
 import type { MigrationFile } from '../../../../../scripts/migrationRunner';
@@ -18,14 +20,6 @@ const migration: MigrationFile = {
                 autoIncrement: true,
                 primaryKey: true,
                 allowNull: false
-            },
-            company_id: {
-                type: DataTypes.BIGINT,
-                allowNull: false,
-                comment: 'ID del Tenant (Empresa Padre donde parent_company_id es null)',
-                references: { model: 'dsg_bss_company', key: 'company_id' },
-                onUpdate: 'CASCADE',
-                onDelete: 'CASCADE'
             },
             plan_id: {
                 type: DataTypes.BIGINT,
@@ -87,6 +81,11 @@ const migration: MigrationFile = {
                 allowNull: true,
                 comment: 'Email del pagador registrado en MercadoPago'
             },
+            lead_uuid: {
+                type: DataTypes.STRING(36),
+                allowNull: true,
+                comment: 'lead_uuid del seguimiento de checkout — sobrevive hasta que el webhook confirma el pago'
+            },
             created_at: {
                 type: DataTypes.DATE,
                 allowNull: false,
@@ -99,8 +98,6 @@ const migration: MigrationFile = {
             }
         });
 
-        // Crear índice para búsquedas rápidas por Tenant
-        await queryInterface.addIndex('dsg_bss_saas_subscriptions', ['company_id']);
         await queryInterface.addIndex('dsg_bss_saas_subscriptions', ['stripe_subscription_id']);
         // Índice para buscar suscripciones MP por preapproval_id (webhook) ───────────
         await queryInterface.addIndex('dsg_bss_saas_subscriptions', ['mp_preapproval_id'], {

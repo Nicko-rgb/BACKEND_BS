@@ -52,6 +52,30 @@ const migration: MigrationFile = {
                 allowNull: false,
                 comment: 'Límite de empleados. 999 para ilimitado'
             },
+            max_invoices_monthly: {
+                type: DataTypes.INTEGER,
+                allowNull: false,
+                defaultValue: 20,
+                comment: 'Límite de facturas electrónicas por mes. 999 para ilimitado'
+            },
+            notifications_tier: {
+                type: DataTypes.STRING(20),
+                allowNull: false,
+                defaultValue: 'basic',
+                comment: "Nivel de automatización de notificaciones: 'basic' | 'automated' | 'full'"
+            },
+            has_advanced_reports: {
+                type: DataTypes.BOOLEAN,
+                allowNull: false,
+                defaultValue: false,
+                comment: 'Si el plan incluye reportes avanzados, además de los básicos'
+            },
+            allows_multi_company: {
+                type: DataTypes.BOOLEAN,
+                allowNull: false,
+                defaultValue: false,
+                comment: 'Si una suscripción de este plan puede cubrir más de una empresa raíz (ver SaaSSubscriptionCompany)'
+            },
             has_stripe_connect: {
                 type: DataTypes.BOOLEAN,
                 defaultValue: false,
