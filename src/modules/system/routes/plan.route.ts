@@ -1,5 +1,5 @@
 import { createRouter } from '../../../shared/utils/createRouter';
-import { verificarTokenAuth } from '../../../shared/middlewares/verificarTokenAuth';
+import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
 import { verificarPermiso } from '../../../shared/middlewares/verificarPermiso';
 import { validateDTO } from '../../../shared/middlewares/validateDTO';
 import { updatePlanSchema } from '../dto/plan.dto';
@@ -12,7 +12,7 @@ const router = createRouter();
  * @desc  Lista todos los planes (activos e inactivos), sin paginar (catálogo chico)
  * @access system
  */
-router.get('/plans', verificarTokenAuth, verificarPermiso('plan.manage'), list);
+router.get('/plans', resolveAuthorization, verificarPermiso('plan.manage'), list);
 
 /**
  * @route GET /api/system/plans/active
@@ -26,13 +26,13 @@ router.get('/plans/active', listActive);
  * @desc  Actualiza un plan existente
  * @access system
  */
-router.put('/plans/:id', verificarTokenAuth, verificarPermiso('plan.manage'), validateDTO(updatePlanSchema), update);
+router.put('/plans/:id', resolveAuthorization, verificarPermiso('plan.manage'), validateDTO(updatePlanSchema), update);
 
 /**
  * @route DELETE /api/system/plans/:id
  * @desc  Elimina un plan — bloqueado si tiene suscripciones asociadas
  * @access system
  */
-router.delete('/plans/:id', verificarTokenAuth, verificarPermiso('plan.manage'), remove);
+router.delete('/plans/:id', resolveAuthorization, verificarPermiso('plan.manage'), remove);
 
 export default router;

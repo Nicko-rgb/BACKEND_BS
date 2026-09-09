@@ -1,5 +1,5 @@
 import { createRouter } from '../../../shared/utils/createRouter';
-import { verificarTokenAuth } from '../../../shared/middlewares/verificarTokenAuth';
+import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
 import { verificarPermiso } from '../../../shared/middlewares/verificarPermiso';
 import { validateQuery, validateDTO } from '../../../shared/middlewares/validateDTO';
 import { paginationQuerySchema } from '../../../shared/dto/pagination.schema';
@@ -13,7 +13,7 @@ const router = createRouter();
  * @desc  Lista todas las categorías deportivas, paginado
  * @access system
  */
-router.get('/sport-categories', verificarTokenAuth, verificarPermiso('sport_category.manage'), validateQuery(paginationQuerySchema), list);
+router.get('/sport-categories', resolveAuthorization, verificarPermiso('sport_category.manage'), validateQuery(paginationQuerySchema), list);
 
 /**
  * @route GET /api/system/sport-categories/active
@@ -27,20 +27,20 @@ router.get('/sport-categories/active', listActive);
  * @desc  Crea una categoría deportiva nueva
  * @access system
  */
-router.post('/sport-categories', verificarTokenAuth, verificarPermiso('sport_category.manage'), validateDTO(createSportCategorySchema), create);
+router.post('/sport-categories', resolveAuthorization, verificarPermiso('sport_category.manage'), validateDTO(createSportCategorySchema), create);
 
 /**
  * @route PUT /api/system/sport-categories/:id
  * @desc  Actualiza una categoría deportiva existente
  * @access system
  */
-router.put('/sport-categories/:id', verificarTokenAuth, verificarPermiso('sport_category.manage'), validateDTO(updateSportCategorySchema), update);
+router.put('/sport-categories/:id', resolveAuthorization, verificarPermiso('sport_category.manage'), validateDTO(updateSportCategorySchema), update);
 
 /**
  * @route DELETE /api/system/sport-categories/:id
  * @desc  Elimina una categoría deportiva
  * @access system
  */
-router.delete('/sport-categories/:id', verificarTokenAuth, verificarPermiso('sport_category.manage'), remove);
+router.delete('/sport-categories/:id', resolveAuthorization, verificarPermiso('sport_category.manage'), remove);
 
 export default router;

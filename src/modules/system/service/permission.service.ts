@@ -9,37 +9,48 @@ import type { Permission } from '../database/models';
 export interface ListPermissionsQuery extends PaginationQuery {
     search?: string;
     module?: string;
+    group?: string;
 }
 
 /**
  * Todos los permisos del catálogo. Con `search`, busca por key o label en el backend y devuelve
  * todos los resultados sin paginar (catálogo chico, no hace falta recortar). Sin `search`, listado
- * paginado normal, con caché por página. `module` filtra el resultado en ambos casos. `usage` sale
- * de countPermissionUsageInRoutes, memoizado una sola vez por proceso. `referencesCount` se calcula
- * siempre en vivo (nunca cacheado) — cuenta usuarios con el permiso asignado directamente, dato que
- * cambia con más frecuencia que el catálogo mismo.
+ * paginado normal, con caché por página. `module`/`group` filtran el resultado en ambos casos (se
+ * pueden combinar). `usage` sale de countPermissionUsageInRoutes, memoizado una sola vez por
+ * proceso. `referencesCount` se calcula siempre en vivo (nunca cacheado) — cuenta usuarios a los
+ * que el permiso les llega EFECTIVAMENTE (vía su rol o vía una excepción directa, ver
+ * countEffectiveUsersByKeys), no solo los que lo tienen como excepción — dato que cambia con más
+ * frecuencia que el catálogo mismo.
  */
 export const listAll = async (query: ListPermissionsQuery) => {
     const search = query.search?.trim();
     const module = query.module?.trim() || undefined;
+    const group = query.group?.trim() || undefined;
     const usage = countPermissionUsageInRoutes();
 
     if (search) {
-        const rows = await PermissionRepository.search(search, module);
-        const referencesCount = await PermissionRepository.countReferencesByKeys(rows.map((row) => row.key));
+        const rows = await PermissionRepository.search(search, module, group);
+        const referencesCount = await PermissionRepository.countEffectiveUsersByKeys(rows.map((row) => row.key));
         return { rows, count: rows.length, usage, referencesCount };
     }
 
-    const { rows, count } = await cacheUtility.withCache('system:permissions', { page: query.page, limit: query.limit, module }, async () => {
-        return PermissionRepository.findAll(query, module);
+    const { rows, count } = await cacheUtility.withCache('system:permissions', { page: query.page, limit: query.limit, module, group }, async () => {
+        return PermissionRepository.findAll(query, module, group);
     });
-    const referencesCount = await PermissionRepository.countReferencesByKeys(rows.map((row) => row.key));
+    const referencesCount = await PermissionRepository.countEffectiveUsersByKeys(rows.map((row) => row.key));
     return { rows, count, usage, referencesCount };
 };
 
-// Módulos distintos del catálogo — para poblar el filtro por módulo del frontend.
-export const listModules = async (): Promise<string[]> => {
-    return cacheUtility.withCache('system:permissions:modules', {}, () => PermissionRepository.findDistinctModules());
+// Módulos y grupos distintos del catálogo, en una sola llamada — pueblan los dos filtros
+// (módulo/grupo) del frontend con un solo request.
+export const listModules = async (): Promise<{ modules: string[]; groups: string[] }> => {
+    return cacheUtility.withCache('system:permissions:modules', {}, async () => {
+        const [modules, groups] = await Promise.all([
+            PermissionRepository.findDistinctModules(),
+            PermissionRepository.findDistinctGroups(),
+        ]);
+        return { modules, groups };
+    });
 };
 
 // Catálogo completo, sin paginar — para pickers de checkboxes (ej. asignar permisos a un usuario).

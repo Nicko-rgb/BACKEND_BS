@@ -26,7 +26,11 @@ const migration: MigrationFile = {
             key: { type: DataTypes.STRING(100), allowNull: false, unique: true },
             label: { type: DataTypes.STRING(150), allowNull: false },
             description: { type: DataTypes.TEXT, allowNull: true },
-            module: { type: DataTypes.STRING(50), allowNull: false },
+            module: {
+                type: DataTypes.ENUM('bookings', 'companys', 'notificacions', 'saas', 'system', 'users'),
+                allowNull: false,
+            },
+            group_name: { type: DataTypes.STRING(50), allowNull: false },
             app_access: {
                 type: DataTypes.ENUM('booking', 'admin', 'both'),
                 allowNull: false,
@@ -37,6 +41,7 @@ const migration: MigrationFile = {
         });
 
         await queryInterface.addIndex('dsg_bss_permissions', ['module'], { name: 'idx_permission_module' });
+        await queryInterface.addIndex('dsg_bss_permissions', ['group_name'], { name: 'idx_permission_group_name' });
         await queryInterface.addIndex('dsg_bss_permissions', ['app_access'], { name: 'idx_permission_app_access' });
     },
 

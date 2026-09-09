@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import * as UserRepository from '../../users/repository/user.repository';
-import * as CompanyRepository from '../../companys/repository/company.repository';
+import { resolveAuthorization } from './authorizationResolver.service';
 import { UnauthorizedError, ForbiddenError } from '../../../shared/errors/CustomErrors';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
 
@@ -14,11 +14,17 @@ interface LoginAdminInput {
  * Login del panel admin. Bloquea usuarios con role 'cliente' — ese rol es
  * exclusivo del portal de reservas (BOOKING), no tiene acceso a este panel.
  *
- * Arma el JWT con `permissions` (directas del usuario, sin resolver rol acá
- * — user_permissions ya es la fuente única) y `company_ids` ya expandido:
- * para super_admin incluye la(s) empresa(s) raíz asignadas MÁS todas sus
- * sucursales; para administrador/empleado son directamente sus sucursales
- * asignadas (expandir sobre una sucursal no devuelve nada, es un no-op).
+ * El JWT lleva deliberadamente poco: {user_id, role_id, app}. permissions/
+ * company_ids/scope_level NO viajan ahí — se resuelven en caliente en cada
+ * request (ver resolveAuthorization, modules/auth/middlewares) contra
+ * dsg_bss_role_permission/dsg_bss_user_permissions/dsg_bss_user_company, así
+ * que editar los permisos de un rol aplica de inmediato a cualquier usuario
+ * ya logueado, sin esperar a que renueve el token.
+ *
+ * Acá se llama al mismo resolver una vez más, solo para devolver
+ * permissions/companyIds en el BODY de la respuesta — el front los guarda en
+ * sessionStore únicamente para pistas de UI (ocultar botones), nunca como
+ * fuente de autorización real.
  */
 export const loginAdmin = async ({ email, password }: LoginAdminInput) => {
     const user = await UserRepository.findByEmailForLogin(email);
@@ -32,7 +38,7 @@ export const loginAdmin = async ({ email, password }: LoginAdminInput) => {
         throw new UnauthorizedError('Contraseña incorrecta');
     }
 
-    if (user?.role === 'cliente') {
+    if (user.roleRef?.key === 'cliente') {
         throw new ForbiddenError('Este usuario no tiene acceso a esta app');
     }
 
@@ -40,22 +46,14 @@ export const loginAdmin = async ({ email, password }: LoginAdminInput) => {
         throw new ForbiddenError('Usuario deshabilitado');
     }
 
-    const permissions = (user.directPermissions ?? []).map(p => p.permission_key);
+    const userId = Number(user.user_id);
+    const roleId = Number(user.role_id);
 
-    const empresaIds = (user.companyAssignments ?? [])
-        .filter(a => a.is_active)
-        .map(a => a.company_id);
+    const { permissions, companyIds } = await resolveAuthorization(userId, roleId);
 
-    const sucursalIds = await CompanyRepository.findSucursalIdsByParentIds(empresaIds);
-    const companyIds = [...new Set([...empresaIds, ...sucursalIds])];
-
-    const payload: AuthenticatedUser = {
-        user_id: user.user_id,
-        email: user.email ?? undefined,
-        name: [user.first_name, user.last_name].filter(Boolean).join(' ') || undefined,
-        role: user.role ?? 'cliente',
-        permissions,
-        company_ids: companyIds,
+    const payload: Pick<AuthenticatedUser, 'user_id' | 'role_id' | 'app'> = {
+        user_id: userId,
+        role_id: roleId,
         app: 'admin',
     };
 

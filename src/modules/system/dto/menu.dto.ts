@@ -14,16 +14,16 @@ export const toMenuItemDto = (item: MenuItem) => ({
 });
 
 // Forma completa para el admin (system.full_access) — a diferencia de toMenuItemDto, sí expone
-// required_permission/is_active/app_access/sort_order, porque acá se gestiona el catálogo, no se
-// renderiza un menú de navegación.
-export const toMenuItemAdminDto = (item: MenuItem, childrenCount = 0) => ({
+// is_active/app_access/sort_order/roleIds, porque acá se gestiona el catálogo, no se renderiza
+// un menú de navegación. roleIds es lo que controla quién ve el ítem (dsg_bss_role_menu_item).
+export const toMenuItemAdminDto = (item: MenuItem, childrenCount = 0, roleIds: number[] = []) => ({
     id: item.menu_id,
     key: item.key,
     label: item.label,
     icon: item.icon,
     path: item.path,
     parentKey: item.parent_key,
-    requiredPermission: item.required_permission,
+    roleIds,
     appAccess: item.app_access,
     groupTitle: item.group_title,
     sortOrder: item.sort_order,
@@ -71,11 +71,6 @@ export const updateMenuItemSchema = Joi.object({
             'string.max': 'La key del padre no puede superar 50 caracteres',
         }),
 
-    required_permission: Joi.string().max(100).allow('', null)
-        .messages({
-            'string.max': 'El permiso requerido no puede superar 100 caracteres',
-        }),
-
     app_access: Joi.string().valid(...APP_ACCESS_VALUES).required()
         .messages({
             'string.empty': 'El acceso por app es requerido',
@@ -99,6 +94,15 @@ export const updateMenuItemSchema = Joi.object({
         .messages({
             'boolean.base': 'El estado activo debe ser verdadero o falso',
             'any.required': 'El estado activo es requerido',
+        }),
+
+    // Roles que ven este ítem — reemplaza a required_permission como mecanismo de filtrado
+    // (ver menu.service.ts::getMenuForUser). Array vacío es válido: nadie lo ve todavía (salvo
+    // system, que ve todo sin excepción).
+    role_ids: Joi.array().items(Joi.number().integer().positive()).required()
+        .messages({
+            'array.base': 'Los roles deben ser una lista',
+            'any.required': 'Los roles son requeridos',
         }),
 });
 

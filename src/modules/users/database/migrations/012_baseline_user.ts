@@ -1,6 +1,9 @@
 /**
  * Baseline: crear tabla dsg_bss_user
- * Usuarios del sistema con autenticación local y social.
+ * Usuarios del sistema con autenticación local y social. `role_id` (FK a
+ * dsg_bss_role, creada en 011_baseline_role.ts — por eso corre antes, order 11
+ * < 12) es la fuente de verdad para permisos/menú/scope de cada usuario, ver
+ * authorizationResolver.ts.
  */
 import { DataTypes } from 'sequelize';
 import type { MigrationFile } from '../../../../../scripts/migrationRunner';
@@ -29,7 +32,13 @@ const migration: MigrationFile = {
             password: { type: DataTypes.STRING(255), allowNull: true },
             social_id: { type: DataTypes.STRING(255), allowNull: true },
             social_provider: { type: DataTypes.STRING(50), allowNull: true },
-            role: { type: DataTypes.STRING(50), allowNull: true },
+            role_id: {
+                type: DataTypes.BIGINT,
+                allowNull: false,
+                references: { model: 'dsg_bss_role', key: 'role_id' },
+                onUpdate: 'CASCADE',
+                onDelete: 'RESTRICT'
+            },
             is_enabled: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
             user_create: {
                 type: DataTypes.BIGINT,
@@ -44,6 +53,7 @@ const migration: MigrationFile = {
 
         await queryInterface.addIndex('dsg_bss_user', ['social_provider', 'social_id'], { name: 'idx_user_social_provider_id' });
         await queryInterface.addIndex('dsg_bss_user', ['is_enabled'], { name: 'idx_user_is_enabled' });
+        await queryInterface.addIndex('dsg_bss_user', ['role_id'], { name: 'idx_user_role_id' });
     },
 
     async down(queryInterface) {

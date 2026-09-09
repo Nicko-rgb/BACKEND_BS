@@ -1,5 +1,5 @@
 import { createRouter } from '../../../shared/utils/createRouter';
-import { verificarTokenAuth } from '../../../shared/middlewares/verificarTokenAuth';
+import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
 import { verificarPermiso } from '../../../shared/middlewares/verificarPermiso';
 import { validateQuery, validateDTO } from '../../../shared/middlewares/validateDTO';
 import { paginationQuerySchema } from '../../../shared/dto/pagination.schema';
@@ -13,7 +13,7 @@ const router = createRouter();
  * @desc  Lista todos los tipos de deporte, paginado
  * @access system
  */
-router.get('/sport-types', verificarTokenAuth, verificarPermiso('sport_type.manage'), validateQuery(paginationQuerySchema), list);
+router.get('/sport-types', resolveAuthorization, verificarPermiso('sport_type.manage'), validateQuery(paginationQuerySchema), list);
 
 /**
  * @route GET /api/system/sport-types/active
@@ -27,20 +27,20 @@ router.get('/sport-types/active', listActive);
  * @desc  Crea un tipo de deporte nuevo
  * @access system
  */
-router.post('/sport-types', verificarTokenAuth, verificarPermiso('sport_type.manage'), validateDTO(createSportTypeSchema), create);
+router.post('/sport-types', resolveAuthorization, verificarPermiso('sport_type.manage'), validateDTO(createSportTypeSchema), create);
 
 /**
  * @route PUT /api/system/sport-types/:id
  * @desc  Actualiza un tipo de deporte existente
  * @access system
  */
-router.put('/sport-types/:id', verificarTokenAuth, verificarPermiso('sport_type.manage'), validateDTO(updateSportTypeSchema), update);
+router.put('/sport-types/:id', resolveAuthorization, verificarPermiso('sport_type.manage'), validateDTO(updateSportTypeSchema), update);
 
 /**
  * @route DELETE /api/system/sport-types/:id
  * @desc  Elimina un tipo de deporte
  * @access system
  */
-router.delete('/sport-types/:id', verificarTokenAuth, verificarPermiso('sport_type.manage'), remove);
+router.delete('/sport-types/:id', resolveAuthorization, verificarPermiso('sport_type.manage'), remove);
 
 export default router;

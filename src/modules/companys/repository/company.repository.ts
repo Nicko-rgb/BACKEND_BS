@@ -43,7 +43,8 @@ export const findAllPrincipal = async (pagination: PaginationQuery, search?: str
     });
 };
 
-// Ids de las sucursales (parent_company_id) hijas de las empresas dadas — usado para expandir el scope de super_admin al armar el JWT del login.
+// Ids de las sucursales (parent_company_id) hijas de las empresas dadas — usado por
+// authorizationResolver para expandir el scope de super_admin en caliente en cada request.
 export const findSucursalIdsByParentIds = async (parentIds: number[]): Promise<number[]> => {
     if (parentIds.length === 0) return [];
 
@@ -52,7 +53,9 @@ export const findSucursalIdsByParentIds = async (parentIds: number[]): Promise<n
         attributes: ['company_id'],
     });
 
-    return sucursales.map(s => s.company_id);
+    // company_id es BIGINT — Sequelize lo devuelve como string, ver mismo comentario en
+    // userCompany.repository.ts::findActiveCompanyIdsByUserId.
+    return sucursales.map(s => Number(s.company_id));
 };
 
 // Empresa padre por documento — usado para bloquear un alta con RUC ya registrado (las

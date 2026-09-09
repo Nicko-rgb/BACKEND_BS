@@ -1,6 +1,8 @@
 /**
  * Baseline: crear tabla dsg_bss_menu_items
- * Ítems del menú dinámico de la aplicación.
+ * Ítems del menú dinámico de la aplicación. Qué rol ve cada ítem se decide por
+ * dsg_bss_role_menu_item (ver 047_baseline_role_menu_item.ts / menu.service.ts),
+ * no por una columna acá — no hay un `required_permission` legado que arrastrar.
  */
 import { DataTypes } from 'sequelize';
 import type { MigrationFile } from '../../../../../scripts/migrationRunner';
@@ -28,7 +30,6 @@ const migration: MigrationFile = {
             icon: { type: DataTypes.STRING(80), allowNull: true },
             path: { type: DataTypes.STRING(200), allowNull: true },
             parent_key: { type: DataTypes.STRING(50), allowNull: true },
-            required_permission: { type: DataTypes.STRING(100), allowNull: true },
             app_access: {
                 type: DataTypes.ENUM('admin', 'booking', 'both'),
                 allowNull: false,

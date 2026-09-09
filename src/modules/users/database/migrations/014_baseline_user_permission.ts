@@ -1,6 +1,8 @@
 /**
  * Baseline: crear tabla dsg_bss_user_permissions
- * Permisos asignados a usuarios individuales.
+ * Excepciones (grant/revoke) sobre el set de permisos base del rol de cada
+ * usuario (dsg_bss_role_permission) — no es el set completo de permisos del
+ * usuario, ver authorizationResolver.ts.
  */
 import { DataTypes } from 'sequelize';
 import type { MigrationFile } from '../../../../../scripts/migrationRunner';
@@ -31,6 +33,8 @@ const migration: MigrationFile = {
                 onDelete: 'CASCADE'
             },
             permission_key: { type: DataTypes.STRING(100), allowNull: false },
+            // grant = suma este permiso al set del rol; revoke = se lo quita
+            type: { type: DataTypes.ENUM('grant', 'revoke'), allowNull: false, defaultValue: 'grant' },
             granted_by: {
                 type: DataTypes.BIGINT,
                 allowNull: true,

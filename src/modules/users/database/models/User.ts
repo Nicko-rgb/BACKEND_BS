@@ -5,8 +5,9 @@
  * Los usuarios pueden ser clientes que reservan espacios deportivos, administradores
  * de instalaciones, o administradores del sistema.
  *
- * El campo `role` es un clasificador de display (varchar) — no es una FK funcional.
- * Todos los accesos se evalúan exclusivamente por user_permissions.
+ * `role_id` (FK a dsg_bss_role) es la fuente de verdad para permisos/menú/scope — ver
+ * authorizationResolver.ts. No hay columna `role` de texto: el rol se lee siempre vía
+ * el join a `roleRef` (dsg_bss_role).
  */
 import { DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional, NonAttribute } from 'sequelize';
 import sequelize from '../../../../config/db';
@@ -15,7 +16,7 @@ import type { UserFavorite } from './UserFavorite';
 import type { UserCompany } from './UserCompany';
 import type { UserPermission } from './UserPermission';
 import type { UserPageTour } from './UserPageTour';
-import type { Media } from '../../../system/database/models';
+import type { Media, Role } from '../../../system/database/models';
 
 export class User extends Model<InferAttributes<User>, InferCreationAttributes<User>> {
     declare user_id: CreationOptional<number>;
@@ -25,10 +26,8 @@ export class User extends Model<InferAttributes<User>, InferCreationAttributes<U
     declare password: string | null;
     declare social_id: string | null;
     declare social_provider: string | null;
-    // Clasificador de display del usuario — no es FK ni controla acceso.
-    // Los accesos se evalúan exclusivamente por user_permissions.
-    // Valores: 'cliente', 'empleado', 'administrador', 'super_admin', 'system'
-    declare role: string | null;
+    // Fuente de verdad para permisos/menú/scope (ver authorizationResolver.ts).
+    declare role_id: number;
     declare is_enabled: CreationOptional<boolean>;
     declare user_create: number | null;
     declare readonly created_at: CreationOptional<Date>;
@@ -41,6 +40,7 @@ export class User extends Model<InferAttributes<User>, InferCreationAttributes<U
     declare directPermissions?: NonAttribute<UserPermission[]>;
     declare pageTours?: NonAttribute<UserPageTour[]>;
     declare media?: NonAttribute<Media[]>;
+    declare roleRef?: NonAttribute<Role>;
 }
 
 User.init({
@@ -81,10 +81,11 @@ User.init({
         allowNull: true, // 'google', 'facebook', 'apple', etc.
         comment: 'Proveedor de autenticación social (google, facebook, apple, etc.)'
     },
-    role: {
-        type: DataTypes.STRING(50),
-        allowNull: true,
-        comment: 'Clasificador de tipo de usuario (solo display, los accesos van por user_permissions)'
+    role_id: {
+        type: DataTypes.BIGINT,
+        allowNull: false,
+        references: { model: 'dsg_bss_role', key: 'role_id' },
+        comment: 'Rol del usuario — fuente de verdad para permisos/menú/scope'
     },
     is_enabled: {
         type: DataTypes.BOOLEAN,
@@ -142,6 +143,7 @@ export function associateUser(models: {
     UserPermission: typeof UserPermission;
     UserPageTour: typeof UserPageTour;
     Media: typeof Media;
+    Role: typeof Role;
 }): void {
     User.hasOne(models.Person, { foreignKey: 'user_id', as: 'person' });
     User.hasMany(models.UserFavorite, { foreignKey: 'user_id', as: 'favorites' });
@@ -150,4 +152,5 @@ export function associateUser(models: {
     User.hasMany(models.UserPageTour, { foreignKey: 'user_id', as: 'pageTours' });
     User.hasMany(models.Media, { foreignKey: 'medible_id', constraints: false, scope: { medible_type: 'User' }, as: 'media' });
     User.belongsTo(User, { foreignKey: 'user_create', as: 'creator' });
+    User.belongsTo(models.Role, { foreignKey: 'role_id', as: 'roleRef' });
 }

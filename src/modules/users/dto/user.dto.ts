@@ -1,5 +1,9 @@
 import type { User } from '../database/models';
 
+// `roleRef` siempre debe venir incluido (ver user.repository.ts::findAll/findById) — null acá
+// solo indicaría que el caller olvidó ese include, no un dato legítimamente ausente.
+const roleKey = (user: User): string | null => user.roleRef?.key ?? null;
+
 // Forma de un usuario para el frontend — documentType/documentNumber viajan separados
 // (se combinan en una sola columna recién en la página, no acá).
 export const toUserDto = (user: User) => {
@@ -15,7 +19,7 @@ export const toUserDto = (user: User) => {
             flagUrl: person.country.flag_url,
             phoneCode: person.country.phone_code,
         } : null,
-        role: user.role,
+        role: roleKey(user),
         isEnabled: user.is_enabled,
         documentType: person?.document_type ?? null,
         documentNumber: person?.document_number ?? null,
@@ -32,7 +36,8 @@ export const toUserDetailDto = (user: User) => {
         firstName: user.first_name,
         lastName: user.last_name,
         email: user.email,
-        role: user.role,
+        role: roleKey(user),
+        roleId: user.role_id,
         isEnabled: user.is_enabled,
         phone: person?.phone ?? null,
         countryId: person?.country_id ?? null,

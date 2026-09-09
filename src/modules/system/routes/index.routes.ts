@@ -1,6 +1,7 @@
 import { createRouter } from '../../../shared/utils/createRouter';
 import permissionRoutes from './permission.route';
 import menuItemRoutes from './menuItem.route';
+import roleRoutes from './role.route';
 import countryRoutes from './country.route';
 import sportTypeRoutes from './sportType.route';
 import sportCategoryRoutes from './sportCategory.route';
@@ -16,6 +17,7 @@ const router = createRouter();
 // acá con su propio *.route.ts.
 router.use('/system', permissionRoutes);
 router.use('/system', menuItemRoutes);
+router.use('/system', roleRoutes);
 router.use('/system', countryRoutes);
 router.use('/system', sportTypeRoutes);
 router.use('/system', sportCategoryRoutes);

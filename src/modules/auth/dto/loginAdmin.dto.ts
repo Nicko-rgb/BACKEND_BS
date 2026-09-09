@@ -8,8 +8,8 @@ interface LoginAdminResult {
 }
 
 // Da forma a la respuesta del login — nunca expone el password hash ni el modelo Sequelize crudo.
-// permissions/companyIds van también acá (duplicados con lo que ya lleva el
-// JWT) para que el front los pueda leer directo sin decodificar el token.
+// permissions/companyIds van también acá (a diferencia del JWT, que ya no los lleva — ver
+// auth.service.ts) para que el front los pueda usar directo como pistas de UI.
 export const toLoginAdminDto = ({ token, user, permissions, companyIds }: LoginAdminResult) => ({
     token,
     user: {
@@ -17,7 +17,7 @@ export const toLoginAdminDto = ({ token, user, permissions, companyIds }: LoginA
         firstName: user.first_name,
         lastName: user.last_name,
         email: user.email,
-        role: user.role,
+        role: user.roleRef?.key ?? null,
     },
     permissions,
     companyIds,

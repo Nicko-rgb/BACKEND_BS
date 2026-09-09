@@ -1,18 +1,15 @@
 import { Op } from 'sequelize';
 import type { InferAttributes, CreationAttributes, Transaction } from 'sequelize';
-import { User, UserPermission, UserCompany, Person } from '../database/models';
+import { User, Person } from '../database/models';
 import { toSequelizePagination } from '../../../shared/utils/paginate';
 import type { PaginationQuery } from '../../../shared/types/pagination';
 
-// Usuario con sus permisos directos y asignaciones de empresa/sucursal, para armar el JWT del login.
+// Usuario con su role_id y su rol (roleRef.key, para el bloqueo de 'cliente' en el login) — ya
+// no hace falta eager-cargar directPermissions/companyAssignments acá, authorizationResolver los
+// resuelve por su cuenta (con cache) contra dsg_bss_role_permission/dsg_bss_user_permissions/
+// dsg_bss_user_company.
 export const findByEmailForLogin = async (email: string) => {
-    return User.findOne({
-        where: { email },
-        include: [
-            { model: UserPermission, as: 'directPermissions' },
-            { model: UserCompany, as: 'companyAssignments' },
-        ],
-    });
+    return User.findOne({ where: { email }, include: [{ association: 'roleRef' }] });
 };
 
 // Busca por correo — usado para bloquear un alta con un correo ya registrado.
@@ -40,16 +37,17 @@ export interface UserFilters {
 /**
  * Todos los usuarios del sistema, paginado, con su persona (`person`, incluye `country`)
  * — de ahí salen phone, country, document_type y document_number. `search` busca por
- * nombre o correo; `role` y `countryId` filtran exacto. `countryId` va en un `where` sobre
- * el include de `person`, por eso `required: true` en ese caso (si no, con `left join`
- * dejaría pasar usuarios sin persona igual).
+ * nombre o correo; `countryId` filtra exacto. `role` filtra por la key del rol vía el join
+ * a `roleRef` (dsg_bss_role) — no contra la columna legado `role` directo, para que un
+ * usuario recién creado (que puede no tener el string legado escrito) siga apareciendo en
+ * el filtro. `countryId`/`role` van en un `where` sobre el include correspondiente, por eso
+ * `required: true` en esos casos (si no, con `left join` dejaría pasar todos los usuarios igual).
  */
 export const findAll = async (pagination: PaginationQuery, filters: UserFilters = {}) => {
     const { search, role, countryId } = filters;
 
     return User.findAndCountAll({
         where: {
-            ...(role ? { role } : {}),
             ...(search ? {
                 [Op.or]: [
                     { first_name: { [Op.iLike]: `%${search}%` } },
@@ -58,21 +56,28 @@ export const findAll = async (pagination: PaginationQuery, filters: UserFilters 
                 ],
             } : {}),
         },
-        include: [{
-            association: 'person',
-            required: Boolean(countryId),
-            where: countryId ? { country_id: countryId } : undefined,
-            include: [{ association: 'country' }],
-        }],
+        include: [
+            {
+                association: 'person',
+                required: Boolean(countryId),
+                where: countryId ? { country_id: countryId } : undefined,
+                include: [{ association: 'country' }],
+            },
+            {
+                association: 'roleRef',
+                required: Boolean(role),
+                where: role ? { key: role } : undefined,
+            },
+        ],
         order: [['created_at', 'DESC']],
         distinct: true,
         ...toSequelizePagination(pagination),
     });
 };
 
-// Busca por PK, con su persona — usado antes de editar y para devolver el detalle completo.
+// Busca por PK, con su persona y su rol — usado antes de editar y para devolver el detalle completo.
 export const findById = async (id: number) => {
-    return User.findByPk(id, { include: [{ association: 'person' }] });
+    return User.findByPk(id, { include: [{ association: 'person' }, { association: 'roleRef' }] });
 };
 
 // Actualiza parcialmente la instancia ya cargada y devuelve la misma instancia con los datos frescos.

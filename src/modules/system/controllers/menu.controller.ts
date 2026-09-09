@@ -13,21 +13,27 @@ export const getMenu = async (req: Request, res: Response) => {
 
 // Lista todos los menus para administrar system menu
 export const listAdmin = async (req: Request, res: Response) => {
-    const { rows, count, childrenCount } = await MenuService.listAll(req.validatedQuery);
+    const { rows, count, childrenCount, roleIdsByMenuId } = await MenuService.listAll(req.validatedQuery);
     const pagination = toPaginationMeta(count, req.validatedQuery);
-    return ApiResponse.ok(res, rows.map((row) => toMenuItemAdminDto(row, childrenCount[row.key] ?? 0)), 'Menús obtenidos exitosamente', 200, { pagination });
+    return ApiResponse.ok(
+        res,
+        rows.map((row) => toMenuItemAdminDto(row, childrenCount[row.key] ?? 0, roleIdsByMenuId[row.menu_id] ?? [])),
+        'Menús obtenidos exitosamente',
+        200,
+        { pagination }
+    );
 };
 
 // Crea un ítem de menú nuevo
 export const create = async (req: Request, res: Response) => {
-    const result = await MenuService.create(req.validatedData);
-    return ApiResponse.created(res, toMenuItemAdminDto(result), 'Ítem de menú creado exitosamente');
+    const { item, roleIds } = await MenuService.create(req.validatedData);
+    return ApiResponse.created(res, toMenuItemAdminDto(item, 0, roleIds), 'Ítem de menú creado exitosamente');
 };
 
 // Actualiza un ítem de menú existente
 export const update = async (req: Request, res: Response) => {
-    const result = await MenuService.update(Number(req.params.id), req.validatedData);
-    return ApiResponse.ok(res, toMenuItemAdminDto(result), 'Ítem de menú actualizado exitosamente');
+    const { item, roleIds } = await MenuService.update(Number(req.params.id), req.validatedData);
+    return ApiResponse.ok(res, toMenuItemAdminDto(item, 0, roleIds), 'Ítem de menú actualizado exitosamente');
 };
 
 // Elimina un ítem de menú

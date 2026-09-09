@@ -1,5 +1,5 @@
 import { createRouter } from '../../../shared/utils/createRouter';
-import { verificarTokenAuth } from '../../../shared/middlewares/verificarTokenAuth';
+import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
 import { verificarPermiso } from '../../../shared/middlewares/verificarPermiso';
 import { validateDTO, validateQuery } from '../../../shared/middlewares/validateDTO';
 import { listCompaniesQuerySchema, registerCompanySchema } from '../dto/company.schema';
@@ -14,13 +14,13 @@ const router = createRouter();
  *        rol en company.service.ts, no el permiso.
  * @access system, super_admin
  */
-router.get('/', verificarTokenAuth, verificarPermiso('company.view', 'company.manage_own'), validateQuery(listCompaniesQuerySchema), list);
+router.get('/', resolveAuthorization, verificarPermiso('company.view'), validateQuery(listCompaniesQuerySchema), list);
 
 /**
  * @route POST /api/companys/register
  * @desc  Alta de empresa (wizard de 3 pasos: empresa, dueño, plan) — queda pendiente de pago.
  * @access system
  */
-router.post('/register', verificarTokenAuth, verificarPermiso('company.create'), validateDTO(registerCompanySchema), registerCompany);
+router.post('/register', resolveAuthorization, verificarPermiso('company.create'), validateDTO(registerCompanySchema), registerCompany);
 
 export default router;

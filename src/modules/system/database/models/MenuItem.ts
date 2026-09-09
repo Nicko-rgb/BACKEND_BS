@@ -1,10 +1,11 @@
 /**
  * Modelo MenuItem — Ítems del menú de navegación (dinámico)
  *
- * Permite que el menú de AppAdmin se cargue desde la base de datos,
- * filtrando automáticamente los ítems según los permisos del usuario logueado.
+ * Permite que el menú de AppAdmin se cargue desde la base de datos. Qué rol
+ * ve cada ítem se decide por dsg_bss_role_menu_item (modelo RoleMenuItem),
+ * no por una columna acá — ver menu.service.ts::getMenuForUser.
  *
- * Sin asociaciones — tabla de configuración independiente.
+ * Sin asociaciones propias — tabla de configuración independiente.
  */
 import { DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional } from 'sequelize';
 import sequelize from '../../../../config/db';
@@ -18,7 +19,6 @@ export class MenuItem extends Model<InferAttributes<MenuItem>, InferCreationAttr
     declare icon: string | null;
     declare path: string | null;
     declare parent_key: string | null;
-    declare required_permission: string | null;
     declare app_access: CreationOptional<AppAccess>;
     declare group_title: string | null;
     declare sort_order: CreationOptional<number>;
@@ -58,12 +58,6 @@ MenuItem.init({
         type: DataTypes.STRING(50),
         allowNull: true,
         comment: 'Clave del ítem padre (NULL = menú raíz)',
-    },
-    required_permission: {
-        type: DataTypes.STRING(100),
-        allowNull: true,
-        references: { model: 'dsg_bss_permissions', key: 'key' },
-        comment: 'Permiso necesario para ver este ítem (NULL = solo requiere estar logueado)',
     },
     app_access: {
         type: DataTypes.ENUM('admin', 'booking', 'both'),

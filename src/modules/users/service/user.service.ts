@@ -1,6 +1,7 @@
 import type { InferAttributes } from 'sequelize';
 import * as UserRepository from '../repository/user.repository';
-import { NotFoundError } from '../../../shared/errors/CustomErrors';
+import * as RoleRepository from '../../system/repository/role.repository';
+import { NotFoundError, ValidationError } from '../../../shared/errors/CustomErrors';
 import type { PaginationQuery } from '../../../shared/types/pagination';
 import type { User, Person } from '../database/models';
 
@@ -25,27 +26,37 @@ export const getById = async (id: number) => {
     return user;
 };
 
-// Payload de edición — combina campos de User y de Person; nunca incluye password.
-export type UpdateUserData = Partial<Pick<InferAttributes<User>, 'first_name' | 'last_name' | 'email' | 'role' | 'is_enabled'>>
-    & Partial<Pick<InferAttributes<Person>, 'phone' | 'country_id' | 'document_type' | 'document_number' | 'date_birth'>>;
+// Payload de edición — combina campos de User y de Person; nunca incluye password. `role` es la
+// key del rol (string), no una columna real de User — se resuelve a role_id acá, el service es
+// quien conoce el catálogo de roles.
+export type UpdateUserData = Partial<Pick<InferAttributes<User>, 'first_name' | 'last_name' | 'email' | 'is_enabled'>>
+    & Partial<Pick<InferAttributes<Person>, 'phone' | 'country_id' | 'document_type' | 'document_number' | 'date_birth'>>
+    & { role?: string };
 
 /**
  * Actualiza los datos de un usuario — todo menos password. Separa el payload combinado en
  * los campos que van a `User` y los que van a `Person` (creándola si todavía no existe, ver
- * upsertPersonForUser) y devuelve el usuario recargado con su persona ya fresca.
+ * upsertPersonForUser) y devuelve el usuario recargado con su persona y su rol ya frescos.
  */
 export const update = async (id: number, data: UpdateUserData) => {
     const user = await UserRepository.findById(id);
     if (!user) throw new NotFoundError('Usuario no encontrado');
 
-    const { phone, country_id, document_type, document_number, date_birth, ...userFields } = data;
+    const { phone, country_id, document_type, document_number, date_birth, role, ...userFields } = data;
 
     // '' -> null: dos usuarios con email '' chocarían contra el índice único (a diferencia de
     // NULL, que Postgres nunca considera igual a otro NULL). Habrá usuarios invitados sin correo.
     if (userFields.email === '') userFields.email = null;
 
-    if (Object.keys(userFields).length > 0) {
-        await UserRepository.update(user, userFields);
+    const resolvedFields: Partial<InferAttributes<User>> = { ...userFields };
+    if (role !== undefined) {
+        const roleRow = await RoleRepository.findByKey(role);
+        if (!roleRow) throw new ValidationError(`El rol "${role}" no existe`);
+        resolvedFields.role_id = roleRow.role_id;
+    }
+
+    if (Object.keys(resolvedFields).length > 0) {
+        await UserRepository.update(user, resolvedFields);
     }
 
     const personFields: Partial<InferAttributes<Person>> = {};

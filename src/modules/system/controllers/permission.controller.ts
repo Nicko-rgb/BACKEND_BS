@@ -14,10 +14,10 @@ export const listAdmin = async (req: Request, res: Response) => {
     return ApiResponse.ok(res, rows.map((row) => toPermissionDto(row, usage[row.key] ?? 0, referencesCount[row.key] ?? 0)), 'Permisos obtenidos exitosamente', 200, { pagination });
 };
 
-// Módulos distintos del catálogo — para el filtro por módulo del frontend
+// Módulos y grupos distintos del catálogo, en un solo request — para los filtros del frontend
 export const listModules = async (_req: Request, res: Response) => {
-    const modules = await PermissionService.listModules();
-    return ApiResponse.ok(res, modules, 'Módulos obtenidos exitosamente');
+    const result = await PermissionService.listModules();
+    return ApiResponse.ok(res, result, 'Módulos y grupos obtenidos exitosamente');
 };
 
 // Catálogo completo, sin paginar — para pickers de checkboxes (ej. asignar permisos a un usuario)

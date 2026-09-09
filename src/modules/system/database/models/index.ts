@@ -11,6 +11,9 @@
  */
 import { Permission } from './Permission';
 import { MenuItem } from './MenuItem';
+import { Role } from './Role';
+import { RolePermission } from './RolePermission';
+import { RoleMenuItem } from './RoleMenuItem';
 import { Country, associateCountry } from './Country';
 import { Department, associateDepartment } from './Department';
 import { Province, associateProvince } from './Province';
@@ -26,6 +29,7 @@ import { SeedMeta, runOnce } from './SeedMeta';
 
 export {
     Permission, MenuItem,
+    Role, RolePermission, RoleMenuItem,
     Country, Department, Province, District, Ubigeo,
     PaymentType, SportType, SportCategory, SurfaceType,
     Media, associateMedia,

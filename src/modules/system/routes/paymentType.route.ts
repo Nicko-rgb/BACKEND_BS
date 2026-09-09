@@ -1,5 +1,5 @@
 import { createRouter } from '../../../shared/utils/createRouter';
-import { verificarTokenAuth } from '../../../shared/middlewares/verificarTokenAuth';
+import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
 import { verificarPermiso } from '../../../shared/middlewares/verificarPermiso';
 import { validateQuery, validateDTO } from '../../../shared/middlewares/validateDTO';
 import { paginationQuerySchema } from '../../../shared/dto/pagination.schema';
@@ -13,7 +13,7 @@ const router = createRouter();
  * @desc  Lista todos los tipos de pago, paginado
  * @access system
  */
-router.get('/payment-types', verificarTokenAuth, verificarPermiso('payment_type.manage'), validateQuery(paginationQuerySchema), list);
+router.get('/payment-types', resolveAuthorization, verificarPermiso('payment_type.manage'), validateQuery(paginationQuerySchema), list);
 
 /**
  * @route GET /api/system/payment-types/active
@@ -27,20 +27,20 @@ router.get('/payment-types/active', listActive);
  * @desc  Crea un tipo de pago nuevo
  * @access system
  */
-router.post('/payment-types', verificarTokenAuth, verificarPermiso('payment_type.manage'), validateDTO(createPaymentTypeSchema), create);
+router.post('/payment-types', resolveAuthorization, verificarPermiso('payment_type.manage'), validateDTO(createPaymentTypeSchema), create);
 
 /**
  * @route PUT /api/system/payment-types/:id
  * @desc  Actualiza un tipo de pago existente
  * @access system
  */
-router.put('/payment-types/:id', verificarTokenAuth, verificarPermiso('payment_type.manage'), validateDTO(updatePaymentTypeSchema), update);
+router.put('/payment-types/:id', resolveAuthorization, verificarPermiso('payment_type.manage'), validateDTO(updatePaymentTypeSchema), update);
 
 /**
  * @route DELETE /api/system/payment-types/:id
  * @desc  Elimina un tipo de pago
  * @access system
  */
-router.delete('/payment-types/:id', verificarTokenAuth, verificarPermiso('payment_type.manage'), remove);
+router.delete('/payment-types/:id', resolveAuthorization, verificarPermiso('payment_type.manage'), remove);
 
 export default router;

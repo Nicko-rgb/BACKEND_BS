@@ -1,12 +1,26 @@
 import { Op } from 'sequelize';
-import type { Transaction } from 'sequelize';
 import sequelize from '../../../config/db';
 import { UserPermission } from '../database/models';
 
-// Keys de los permisos directos de un usuario.
+// Keys de las excepciones de un usuario (ambos tipos juntos) — usado por el picker de
+// ManageUserPermissions.tsx, que hoy solo escribe 'grant' (ver replaceForUser).
 export const findKeysByUserId = async (userId: number): Promise<string[]> => {
     const rows = await UserPermission.findAll({ where: { user_id: userId }, attributes: ['permission_key'] });
     return rows.map((row) => row.permission_key);
+};
+
+export interface PermissionOverrides {
+    grant: string[];
+    revoke: string[];
+}
+
+// Excepciones de un usuario, separadas por tipo — usado por authorizationResolver para
+// computar los permisos efectivos (permisos_del_rol ∪ grant − revoke).
+export const findOverridesByUserId = async (userId: number): Promise<PermissionOverrides> => {
+    const rows = await UserPermission.findAll({ where: { user_id: userId }, attributes: ['permission_key', 'type'] });
+    const overrides: PermissionOverrides = { grant: [], revoke: [] };
+    rows.forEach((row) => { overrides[row.type as 'grant' | 'revoke'].push(row.permission_key); });
+    return overrides;
 };
 
 /**
@@ -37,15 +51,4 @@ export const replaceForUser = async (userId: number, keys: string[], grantedBy: 
             await UserPermission.bulkCreate(toCreate, { transaction });
         }
     });
-};
-
-// Otorga un set de permisos a un usuario recién creado, dentro de una transacción — a diferencia
-// de replaceForUser (edición, borra lo que sobra), acá no hay permisos previos que limpiar.
-export const grantDefaults = async (userId: number, keys: string[], grantedBy: number, transaction: Transaction): Promise<void> => {
-    if (keys.length === 0) return;
-
-    await UserPermission.bulkCreate(
-        keys.map((key) => ({ user_id: userId, permission_key: key, granted_by: grantedBy })),
-        { transaction }
-    );
 };

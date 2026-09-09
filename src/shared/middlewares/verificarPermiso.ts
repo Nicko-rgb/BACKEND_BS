@@ -2,12 +2,13 @@
  * Middleware verificarPermiso
  *
  * Valida que el usuario autenticado tenga TODOS los permisos indicados.
- * system.full_access en el token bypasea cualquier chequeo.
- * Debe usarse DESPUÉS de verificarTokenAuth (necesita req.user ya seteado).
+ * system.full_access bypasea cualquier chequeo.
+ * Debe usarse DESPUÉS de resolveAuthorization (modules/auth/middlewares) —
+ * necesita req.user.permissions ya resuelto.
  *
  * Uso:
- *   router.put('/confirm', verificarTokenAuth, verificarPermiso('booking.confirm'), handler);
- *   router.get('/stats',   verificarTokenAuth, verificarPermiso('statistics.view'), handler);
+ *   router.put('/confirm', resolveAuthorization, verificarPermiso('booking.confirm'), handler);
+ *   router.get('/stats',   resolveAuthorization, verificarPermiso('statistics.view'), handler);
  */
 import type { Request, Response, NextFunction } from 'express';
 import { UnauthorizedError, ForbiddenError } from '../errors/CustomErrors';

@@ -9,13 +9,17 @@ import { DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOpt
 import sequelize from '../../../../config/db';
 
 type AppAccess = 'booking' | 'admin' | 'both';
+export type PermissionModule = 'bookings' | 'companys' | 'notificacions' | 'saas' | 'system' | 'users';
 
 export class Permission extends Model<InferAttributes<Permission>, InferCreationAttributes<Permission>> {
     declare permission_id: CreationOptional<number>;
     declare key: string;
     declare label: string;
     declare description: string | null;
-    declare module: string;
+    // Módulo real del código (carpeta bajo src/modules/) al que pertenece el permiso.
+    declare module: PermissionModule;
+    // Agrupación funcional dentro de ese módulo (booking, payment, space, sucursal, company...).
+    declare group_name: string;
     declare app_access: CreationOptional<AppAccess>;
     declare readonly created_at: CreationOptional<Date>;
     declare readonly updated_at: CreationOptional<Date>;
@@ -44,9 +48,14 @@ Permission.init({
         comment: 'Descripción detallada de qué permite hacer este permiso',
     },
     module: {
+        type: DataTypes.ENUM('bookings', 'companys', 'notificacions', 'saas', 'system', 'users'),
+        allowNull: false,
+        comment: 'Módulo real del código (carpeta bajo src/modules/) al que pertenece el permiso',
+    },
+    group_name: {
         type: DataTypes.STRING(50),
         allowNull: false,
-        comment: 'Módulo al que pertenece (booking, companys, users, reports, system)',
+        comment: 'Agrupación funcional dentro del módulo (booking, payment, space, sucursal, company...)',
     },
     app_access: {
         type: DataTypes.ENUM('booking', 'admin', 'both'),
@@ -73,6 +82,7 @@ Permission.init({
     comment: 'Catálogo de permisos disponibles en el sistema',
     indexes: [
         { name: 'idx_permission_module', fields: ['module'] },
+        { name: 'idx_permission_group_name', fields: ['group_name'] },
         { name: 'idx_permission_app_access', fields: ['app_access'] }
     ]
 });

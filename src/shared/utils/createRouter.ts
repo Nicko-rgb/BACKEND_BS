@@ -9,13 +9,13 @@
  * clase de bug de raíz: no depende de que cada desarrollador se acuerde de
  * envolver cada ruta.
  *
- * Los middlewares síncronos (verificarTokenAuth, validateDTO, etc.) no
- * cambian de comportamiento al quedar envueltos — Express 4 ya atrapa sus
- * throws síncronos, y pasarlos por asyncHandler es un no-op seguro.
+ * Los middlewares síncronos (validateDTO, etc.) no cambian de comportamiento
+ * al quedar envueltos — Express 4 ya atrapa sus throws síncronos, y pasarlos
+ * por asyncHandler es un no-op seguro.
  *
  * Uso: igual que un Router normal.
  *   const router = createRouter();
- *   router.post('/ruta', verificarTokenAuth, verificarPermiso('booking.confirm'), validateDTO(dto), miController);
+ *   router.post('/ruta', resolveAuthorization, verificarPermiso('booking.confirm'), validateDTO(dto), miController);
  */
 import { Router } from 'express';
 import type { RequestHandler } from 'express';

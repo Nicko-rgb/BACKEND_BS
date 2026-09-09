@@ -10,10 +10,9 @@ import * as SaaSCheckoutService from '../../saas/service/saasCheckout.service';
 import * as NotificationService from '../../notificacions/service/notification.service';
 import { NotificationEvents } from '../../notificacions/constants/notificationEvents';
 import * as UserRepository from '../../users/repository/user.repository';
-import * as UserPermissionRepository from '../../users/repository/userPermission.repository';
 import * as UserCompanyRepository from '../../users/repository/userCompany.repository';
 import * as CountryRepository from '../../system/repository/country.repository';
-import { DEFAULT_PERMISSIONS } from '../../system/constants/permissionsConstants';
+import * as RoleRepository from '../../system/repository/role.repository';
 import { hasFullCompanyAccess } from '../../../shared/utils/accessScope';
 import { BadRequestError, ConflictError } from '../../../shared/errors/CustomErrors';
 import type { PaginationQuery } from '../../../shared/types/pagination';
@@ -85,6 +84,9 @@ export const register = async (payload: RegisterCompanyInput, user: Authenticate
     if (!country) throw new BadRequestError('El país seleccionado no existe.');
     if (!country.is_active) throw new BadRequestError('El país seleccionado no está disponible actualmente.');
 
+    const superAdminRole = await RoleRepository.findByKey('super_admin');
+    if (!superAdminRole) throw new BadRequestError('El rol "super_admin" no está configurado en el sistema.');
+
     const tenantId = crypto.randomUUID();
     const hashedPassword = await bcrypt.hash(owner.password, 10);
 
@@ -96,7 +98,7 @@ export const register = async (payload: RegisterCompanyInput, user: Authenticate
             password: hashedPassword,
             social_id: null,
             social_provider: null,
-            role: 'super_admin',
+            role_id: superAdminRole.role_id,
             is_enabled: false,
             user_create: user.user_id,
         }, transaction);
@@ -118,7 +120,8 @@ export const register = async (payload: RegisterCompanyInput, user: Authenticate
             default_payment_type_id: null,
         }, transaction);
 
-        await UserPermissionRepository.grantDefaults(newUser.user_id, DEFAULT_PERMISSIONS.super_admin ?? [], user.user_id, transaction);
+        // Sin grantDefaults: los permisos del dueño nuevo ya "son" los de dsg_bss_role_permission
+        // para super_admin, resueltos en caliente por role_id — nada que copiar por usuario.
 
         const newCompany = await CompanyRepository.create({
             name: company.name,

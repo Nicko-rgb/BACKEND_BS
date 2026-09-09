@@ -9,13 +9,14 @@ import { hasFullCompanyAccess } from '../utils/accessScope';
  * PUEDE hacer la acción (eso es verificarPermiso), sino sobre QUÉ empresa o
  * sucursal la puede hacer. Aplica a super_admin, administrador y empleado;
  * system queda exento (allowSystem, acceso total sin restricción).
- * Debe usarse DESPUÉS de verificarTokenAuth y verificarPermiso.
+ * Debe usarse DESPUÉS de resolveAuthorization y verificarPermiso.
  *
- * company_ids del JWT ya viene expandido desde el login (AuthService): para
- * super_admin incluye la(s) empresa(s) raíz asignadas MÁS todas sus
- * sucursales; para administrador/empleado son directamente sus sucursales
- * asignadas. Este middleware no resuelve jerarquía en runtime — solo
- * verifica membresía plana contra ese array ya resuelto.
+ * company_ids ya viene expandido por resolveAuthorization (ver
+ * authorizationResolver.service.ts), resuelto en caliente en cada request,
+ * no desde el JWT: para super_admin incluye la(s) empresa(s) raíz asignadas
+ * MÁS todas sus sucursales; para administrador/empleado son directamente sus
+ * sucursales asignadas. Este middleware no resuelve jerarquía en runtime —
+ * solo verifica membresía plana contra ese array ya resuelto.
  *
  * El company_id solicitado se lee de (en orden de prioridad):
  *   1. req.params.companyId
@@ -37,7 +38,6 @@ export const verificarScope = (options: VerificarScopeOptions = {}) => {
             return;
         }
 
-        // role es string en el JWT post-migración (ya no existe roles[] array)
         const { company_ids = [] } = req.user;
 
         if (allowSystem && hasFullCompanyAccess(req.user)) {
