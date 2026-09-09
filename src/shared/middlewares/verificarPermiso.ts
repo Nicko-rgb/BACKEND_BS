@@ -1,0 +1,39 @@
+/**
+ * Middleware verificarPermiso
+ *
+ * Valida que el usuario autenticado tenga TODOS los permisos indicados.
+ * system.full_access en el token bypasea cualquier chequeo.
+ * Debe usarse DESPUÉS de verificarTokenAuth (necesita req.user ya seteado).
+ *
+ * Uso:
+ *   router.put('/confirm', verificarTokenAuth, verificarPermiso('booking.confirm'), handler);
+ *   router.get('/stats',   verificarTokenAuth, verificarPermiso('statistics.view'), handler);
+ */
+import type { Request, Response, NextFunction } from 'express';
+import { UnauthorizedError, ForbiddenError } from '../errors/CustomErrors';
+
+export const verificarPermiso = (...requiredPerms: string[]) => (req: Request, _res: Response, next: NextFunction): void => {
+    if (!req.user) {
+        next(new UnauthorizedError('Token de autenticación requerido'));
+        return;
+    }
+
+    const userPerms = req.user.permissions || [];
+
+    // system.full_access bypasea cualquier chequeo de permiso
+    if (userPerms.includes('system.full_access')) {
+        next();
+        return;
+    }
+
+    const missing = requiredPerms.filter(p => !userPerms.includes(p));
+    if (missing.length > 0) {
+        next(new ForbiddenError(
+            'No tienes los permisos necesarios para esta acción',
+            { required: requiredPerms, missing }
+        ));
+        return;
+    }
+
+    next();
+};
