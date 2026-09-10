@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import * as CompanyService from '../service/company.service';
-import { toCompanyListDto } from '../dto/company.dto';
+import { toCompanyListDto, toCompanyDetailDto } from '../dto/company.dto';
 import ApiResponse from '../../../shared/utils/ApiResponse';
 import { toPaginationMeta } from '../../../shared/utils/paginate';
 
@@ -13,9 +13,15 @@ export const list = async (req: Request, res: Response) => {
     return ApiResponse.ok( res, data, 'Empresas obtenidas', 200, { pagination } );
 };
 
-// Alta de empresa (wizard de 3 pasos) — crea Company+User+Person+UserCompany+permisos+
-// SaaSSubscription en estado pendiente de pago (ver company.service.ts → register).
+// Detalle de una empresa — busca por tenant_id, no por company_id (ver company.service.ts → getByTenantId).
+export const getByTenantId = async (req: Request, res: Response) => {
+    const company = await CompanyService.getByTenantId(String(req.params.tenantId), req.user!);
+    return ApiResponse.ok(res, toCompanyDetailDto(company), 'Empresa obtenida');
+};
+
+// Alta de empresa (wizard de 3 pasos) — crea Company+User+Person+UserCompany+SaaSSubscription
+// ya activa, sin comunicarse con MercadoPago (ver company.service.ts → register).
 export const registerCompany = async (req: Request, res: Response) => {
-    const { company, plan, paymentUrl } = await CompanyService.register(req.validatedData, req.user!);
-    return ApiResponse.created(res, toCompanyListDto(company, plan), 'Empresa registrada — pendiente de pago', { paymentUrl });
+    const { company, plan } = await CompanyService.register(req.validatedData, req.user!);
+    return ApiResponse.created(res, toCompanyListDto(company, plan), 'Empresa registrada exitosamente');
 };

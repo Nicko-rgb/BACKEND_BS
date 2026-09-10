@@ -90,3 +90,33 @@ export const findByIdWithOwner = async (companyId: number) => {
         ],
     });
 };
+
+/**
+ * Empresa principal por `tenant_id` (UUID) — se usa como identificador público en vez del
+ * `company_id` secuencial, para no exponer el id real ni el orden de alta en la URL del
+ * frontend. Trae país, dueño, el ubigeo con su cadena de padres completa (distrito → provincia
+ * → departamento, para poder mostrarlo formateado) y sus sucursales (`subsidiaries`, solo
+ * `name` — la vista de detalle de sucursal todavía no existe).
+ */
+export const findByTenantId = async (tenantId: string) => {
+    return Company.findOne({
+        where: { tenant_id: tenantId, parent_company_id: null },
+        include: [
+            { association: 'country' },
+            {
+                association: 'ubigeo',
+                include: [{ association: 'parent', include: [{ association: 'parent' }] }],
+            },
+            {
+                association: 'userAssignments',
+                where: { role: 'super_admin', is_active: true },
+                required: false,
+                include: [{ association: 'user', include: [{ association: 'person', include: [{ association: 'country' }] }] }],
+            },
+            {
+                association: 'subsidiaries',
+                attributes: ['company_id', 'name'],
+            },
+        ],
+    });
+};

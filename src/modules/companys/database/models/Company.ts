@@ -51,6 +51,8 @@ export class Company extends Model<InferAttributes<Company>, InferCreationAttrib
     // Asociaciones (poblado por include, no columnas propias) ─────────────────
     declare userAssignments?: NonAttribute<UserCompany[]>;
     declare country?: NonAttribute<Country>;
+    declare ubigeo?: NonAttribute<Ubigeo>;
+    declare subsidiaries?: NonAttribute<Company[]>;
 }
 
 Company.init({

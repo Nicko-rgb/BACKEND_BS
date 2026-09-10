@@ -6,7 +6,6 @@ import logger from '../../../config/logger';
 import * as CompanyRepository from '../repository/company.repository';
 import * as SaaSSubscriptionRepository from '../../saas/repository/saasSubscription.repository';
 import * as SaaSPlanRepository from '../../saas/repository/saasPlan.repository';
-import * as SaaSCheckoutService from '../../saas/service/saasCheckout.service';
 import * as NotificationService from '../../notificacions/service/notification.service';
 import { NotificationEvents } from '../../notificacions/constants/notificationEvents';
 import * as UserRepository from '../../users/repository/user.repository';
@@ -14,7 +13,7 @@ import * as UserCompanyRepository from '../../users/repository/userCompany.repos
 import * as CountryRepository from '../../system/repository/country.repository';
 import * as RoleRepository from '../../system/repository/role.repository';
 import { hasFullCompanyAccess } from '../../../shared/utils/accessScope';
-import { BadRequestError, ConflictError } from '../../../shared/errors/CustomErrors';
+import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { PaginationQuery } from '../../../shared/types/pagination';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
 import type { Person } from '../../users/database/models';
@@ -47,18 +46,40 @@ export const list = async (query: ListCompaniesQuery, user: AuthenticatedUser) =
     return { rows, count, plans };
 };
 
+/**
+ * Detalle de una empresa por `tenant_id` (identificador público, no el `company_id`
+ * secuencial — ver nota en company.repository.ts::findByTenantId). Mismo criterio de
+ * alcance que `list`: `system` entra a cualquiera, otro rol solo si la empresa está en su
+ * `company_ids` — acá no se puede usar `verificarScope` (compara contra un `company_id`
+ * numérico en la ruta, y acá el param de la URL es el `tenant_id`), así que el chequeo se
+ * hace a mano, después de resolver la empresa.
+ */
+export const getByTenantId = async (tenantId: string, user: AuthenticatedUser) => {
+    const company = await CompanyRepository.findByTenantId(tenantId);
+    if (!company) throw new NotFoundError('Empresa no encontrada');
+
+    if (!hasFullCompanyAccess(user) && !(user.company_ids ?? []).includes(company.company_id)) {
+        throw new ForbiddenError('No tenés acceso a esta empresa');
+    }
+
+    return company;
+};
+
 // Payload del wizard de alta — un objeto por paso del frontend (empresa, dueño, plan).
 export interface RegisterCompanyInput {
-    company: { name: string; document: string; country_id: number; ubigeo_id: number; address: string; phone_cell: string; phone?: string | null; website?: string | null; };
+    company: { name: string; document: string; country_id: number; ubigeo_id: number; address: string; phone_cell: string; phone?: string | null; };
     owner: { first_name: string; last_name: string; email: string; password: string; phone: string; country_id: number; document_type: InferAttributes<Person>['document_type']; document_number: string; date_birth?: string | null; };
     plan: { plan_id: number; billing_period: 'monthly' | 'yearly'; };
 }
 
 /**
  * Alta de empresa — crea Company + User (dueño, rol super_admin) + Person + UserCompany +
- * permisos por defecto + SaaSSubscription en una sola transacción, todo en estado "pendiente
- * de pago": `company.is_enabled: 'P'`, `user.is_enabled: false`, `subscription.status:
- * 'PENDING'`.
+ * SaaSSubscription en una sola transacción, activa de una: `company.is_enabled: 'A'`,
+ * `user.is_enabled: true`, `subscription.status: 'ACTIVE'`, `gateway: 'MANUAL'` — sin
+ * comunicarse con MercadoPago. La integración de cobro (link de pago + trial + webhook,
+ * ver saas/service/saasCheckout.service.ts y saasWebhook.service.ts, ya construida y
+ * probada en sandbox) queda deshabilitada hasta que la app esté en un servidor real con
+ * credenciales de producción — ver docs/pendiente-integracion-pagos-mercadopago.md.
  *
  * `user_create`/`created_by` de todo lo creado apunta al `system` que ejecuta el alta, nunca
  * al dueño nuevo — quien registra la empresa acá no es el dueño.
@@ -90,7 +111,7 @@ export const register = async (payload: RegisterCompanyInput, user: Authenticate
     const tenantId = crypto.randomUUID();
     const hashedPassword = await bcrypt.hash(owner.password, 10);
 
-    const { newCompany, newUser, subscription } = await sequelize.transaction(async (transaction) => {
+    const { newCompany, newUser } = await sequelize.transaction(async (transaction) => {
         const newUser = await UserRepository.create({
             first_name: owner.first_name,
             last_name: owner.last_name,
@@ -99,7 +120,7 @@ export const register = async (payload: RegisterCompanyInput, user: Authenticate
             social_id: null,
             social_provider: null,
             role_id: superAdminRole.role_id,
-            is_enabled: false,
+            is_enabled: true,
             user_create: user.user_id,
         }, transaction);
 
@@ -129,7 +150,7 @@ export const register = async (payload: RegisterCompanyInput, user: Authenticate
             document: company.document,
             phone_cell: company.phone_cell,
             phone: company.phone || null,
-            website: company.website || null,
+            website: null,
             country_id: company.country_id,
             ubigeo_id: company.ubigeo_id,
             tenant_id: tenantId,
@@ -144,7 +165,7 @@ export const register = async (payload: RegisterCompanyInput, user: Authenticate
             closing_time: null,
             min_price: null,
             features: null,
-            is_enabled: 'P',
+            is_enabled: 'A',
             user_create: user.user_id,
             user_update: null,
         }, transaction);
@@ -160,9 +181,9 @@ export const register = async (payload: RegisterCompanyInput, user: Authenticate
 
         const subscription = await SaaSSubscriptionRepository.create({
             plan_id: plan.plan_id,
-            status: 'PENDING',
+            status: 'ACTIVE',
             billing_period: planInput.billing_period,
-            gateway: 'MERCADOPAGO',
+            gateway: 'MANUAL',
             stripe_customer_id: null,
             stripe_subscription_id: null,
             mp_payment_id: null,
@@ -183,35 +204,21 @@ export const register = async (payload: RegisterCompanyInput, user: Authenticate
     const companyWithOwner = await CompanyRepository.findByIdWithOwner(newCompany.company_id);
     const plans = await SaaSSubscriptionRepository.findPlansByCompanyIds([newCompany.company_id]);
 
-    // Fuera de la transacción — es una llamada de red a MercadoPago, no debe sostener el lock
-    // de la DB. Si falla, la empresa ya quedó creada (pendiente de pago); se loguea y el link
-    // se puede regenerar después, no revierte el alta.
-    let paymentUrl: string | null = null;
+    // Fuera de la transacción — un fallo del email no debe revertir el alta, ya está activa.
     try {
-        paymentUrl = await SaaSCheckoutService.createPaymentLink(subscription, plan, planInput.billing_period, ownerEmail, country);
+        await NotificationService.notify(NotificationEvents.COMPANY_REGISTERED, {
+            ownerId: newUser.user_id,
+            ownerEmail,
+            ownerName: `${owner.first_name} ${owner.last_name}`,
+            companyId: newCompany.company_id,
+            companyName: company.name,
+            planName: plan.name,
+            tenantId,
+            createdBy: user.user_id,
+        });
     } catch (err) {
-        logger.error(`[CompanyService.register] No se pudo generar el link de pago para la empresa ${newCompany.company_id}`, { error: err });
+        logger.error(`[CompanyService.register] No se pudo enviar el email de bienvenida para la empresa ${newCompany.company_id}`, { error: err });
     }
 
-    // Sin link de pago no hay nada que mandarle al dueño todavía — si falló arriba, el email
-    // queda pendiente para cuando alguien regenere el link a mano.
-    if (paymentUrl) {
-        try {
-            await NotificationService.notify(NotificationEvents.COMPANY_PENDING_PAYMENT, {
-                ownerId: newUser.user_id,
-                ownerEmail,
-                ownerName: `${owner.first_name} ${owner.last_name}`,
-                companyId: newCompany.company_id,
-                companyName: company.name,
-                planName: plan.name,
-                paymentUrl,
-                tenantId: tenantId,
-                createdBy: user.user_id,
-            });
-        } catch (err) {
-            logger.error(`[CompanyService.register] No se pudo enviar el email de pago pendiente para la empresa ${newCompany.company_id}`, { error: err });
-        }
-    }
-
-    return { company: companyWithOwner!, plan: plans[newCompany.company_id] ?? null, paymentUrl };
+    return { company: companyWithOwner!, plan: plans[newCompany.company_id] ?? null };
 };

@@ -19,8 +19,7 @@ export const listCompaniesQuerySchema = paginationQuerySchema.keys({
 const DOCUMENT_TYPE_VALUES = ['IDENTITY_CARD', 'PASSPORT', 'LICENSE', 'OTHER'];
 
 // Alta de empresa (wizard de 3 pasos) — payload anidado, un objeto por paso del frontend.
-// `system` es el único rol que llega a este endpoint; el dueño (owner) nace sin acceso
-// habilitado hasta que confirme el pago (ver company.service.ts → register).
+// `system` es el único rol que llega a este endpoint — ver company.service.ts → register.
 export const registerCompanySchema = Joi.object({
     company: Joi.object({
         name: Joi.string().trim().min(2).max(200).required()
@@ -34,17 +33,15 @@ export const registerCompanySchema = Joi.object({
         address: Joi.string().trim().min(5).max(255).required(),
         phone_cell: Joi.string().trim().max(20).required(),
         phone: Joi.string().trim().max(20).allow('', null),
-        website: Joi.string().trim().uri().max(255).allow('', null)
-            .messages({ 'string.uri': 'El sitio web no es una URL válida' }),
     }).required(),
 
     owner: Joi.object({
         first_name: Joi.string().trim().min(2).max(100).required(),
         last_name: Joi.string().trim().min(2).max(100).required(),
-        // Requerido acá (a diferencia de la edición de usuario) — el link de pago de
-        // MercadoPago se le manda por correo, sin email no hay forma de activar la empresa.
+        // Requerido acá (a diferencia de la edición de usuario) — es el usuario de acceso del
+        // dueño nuevo, a diferencia de un usuario invitado que ya existe y puede no tener correo.
         email: Joi.string().trim().email().required()
-            .messages({ 'string.email': 'El correo no es válido', 'any.required': 'El correo del dueño es requerido para enviarle el link de pago' }),
+            .messages({ 'string.email': 'El correo no es válido' }),
         password: Joi.string().min(8).max(100).required()
             .messages({ 'string.min': 'La contraseña debe tener al menos 8 caracteres' }),
         phone: Joi.string().trim().max(20).required(),

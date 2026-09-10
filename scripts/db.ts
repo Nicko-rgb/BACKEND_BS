@@ -150,10 +150,12 @@ module.exports = migration;
 /**
  * Genera un archivo de seeder con boilerplate en el módulo indicado.
  * Uso: npm run seed:create <modulo> <nombre>
- * Nombrado del archivo: NNN_<nombre>.ts, donde NNN = posición del seeder DENTRO
- * de ese módulo (a diferencia de las migraciones, acá el prefijo del archivo es
- * solo para lectura — el orden real de ejecución lo define `order` en el
- * SeederConfig, ver scripts/seederRunner.ts).
+ * Nombrado del archivo: NNN_<nombre>.ts, donde NNN = `order` global (mismo criterio
+ * que migrate:create) — el prefijo del archivo y el `order` del SeederConfig son
+ * siempre el mismo número, para que el nombre del archivo ya diga en qué posición
+ * corre. El `order` de un seeder depende de sus dependencias de DATOS con otros
+ * seeders (ej. necesita el systemUserId, o una fila que crea otro seed) — nunca del
+ * `order` de ninguna migración, son dos numeraciones independientes.
  */
 async function createSeed(): Promise<void> {
     // Argumentos posicionales: seed:create <modulo> <nombre> ──────────────────
@@ -183,18 +185,18 @@ async function createSeed(): Promise<void> {
     const seedersDir = path.join(moduleDir, 'database', 'seeders');
     fs.mkdirSync(seedersDir, { recursive: true });
 
-    // Prefijo del archivo: posición dentro del módulo (no es el order global) ─
-    const existingInModule = fs.readdirSync(seedersDir).filter(f => f.endsWith('.ts'));
-    const paddedIndex = String(existingInModule.length + 1).padStart(3, '0');
-    const fileName = `${paddedIndex}_${seedFileName}.ts`;
-
-    // order sugerido: el más alto de TODO el árbol de seeders + 1 — si este seed
-    // puebla una tabla con baseline propio, lo ideal es igualarlo al order de esa
-    // migración (ver 001_saas_plans.ts como referencia), ajustar a mano si aplica ─
+    // Order global siguiente (el más alto de TODO el árbol de seeders + 1) — se usa
+    // tanto para el prefijo del archivo como para `order` en el SeederConfig. Ajustar
+    // a mano el `order` generado si este seed depende de datos de otro seed que no sea
+    // necesariamente el último (ver 006_country.ts: depende de systemUserSeed, no del
+    // último seed creado) — ahí también hay que renombrar el archivo para que siga
+    // coincidiendo con el `order` final.
     const { discoverSeeders } = await import('./seederRunner');
     const existingSeeders = discoverSeeders();
     const maxOrder = existingSeeders.reduce((max, s) => Math.max(max, s.config.order || 0), 0);
     const nextOrder = maxOrder + 1;
+    const paddedOrder = String(nextOrder).padStart(3, '0');
+    const fileName = `${paddedOrder}_${seedFileName}.ts`;
 
     // seedName: camelCase + sufijo Seed (ej. permission_catalog -> permissionCatalogSeed) ─
     const seedName = seedFileName
@@ -218,7 +220,7 @@ const config: SeederConfig = {
     seedName: '${seedName}',
     seedFn,
     environment: 'essential', // 'essential' corre siempre | 'demo' se salta en producción
-    order: ${nextOrder}, // si este seed puebla una tabla con baseline propio, usar el mismo order que esa migración
+    order: ${nextOrder}, // ajustar a mano según de qué otros seeds dependa esta data — si cambia, renombrar el archivo para que el prefijo siga coincidiendo
 };
 
 module.exports = config;

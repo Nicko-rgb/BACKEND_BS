@@ -1,5 +1,6 @@
 import type { InferAttributes } from 'sequelize';
 import { companyPendingPaymentTemplate } from '../templates/email/companyPendingPayment';
+import { companyRegisteredTemplate } from '../templates/email/companyRegistered';
 import { NotificationEvents } from '../constants/notificationEvents';
 import type { NotificationEvent, NotificationPayloads } from '../constants/notificationEvents';
 import type { Notification } from '../database/models';
@@ -35,6 +36,22 @@ export const EMAIL_EVENT_CONFIG: Partial<{ [E in NotificationEvent]: EmailEventC
         html: (p) => companyPendingPaymentTemplate({ ownerName: p.ownerName, companyName: p.companyName, planName: p.planName, paymentUrl: p.paymentUrl }),
         actionUrl: (p) => p.paymentUrl,
         actionText: () => 'Activar mi empresa',
+        dbFields: (p) => ({ clientId: p.ownerId, companyId: p.companyId, tenantId: p.tenantId, createdBy: p.createdBy }),
+    },
+    [NotificationEvents.COMPANY_REGISTERED]: {
+        channel: 'EMAIL',
+        notificationType: 'WELCOME',
+        relatedEntityType: 'FACILITY',
+        to: (p) => p.ownerEmail,
+        subject: (p) => `¡Bienvenido a Booking Sport! Tu empresa ${p.companyName} ya está activa`,
+        html: (p) => companyRegisteredTemplate({
+            ownerName: p.ownerName,
+            companyName: p.companyName,
+            planName: p.planName,
+            adminPanelUrl: process.env.FRONT_ADMIN_BOOKING || 'http://localhost:3000',
+        }),
+        actionUrl: () => null,
+        actionText: () => null,
         dbFields: (p) => ({ clientId: p.ownerId, companyId: p.companyId, tenantId: p.tenantId, createdBy: p.createdBy }),
     },
 };

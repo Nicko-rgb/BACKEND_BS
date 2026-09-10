@@ -15,6 +15,21 @@ const billingPeriodToRecurring = (billingPeriod: string) => (
 );
 
 /**
+ * En desarrollo, MercadoPago solo acepta como `payer_email` una cuenta de prueba propia
+ * (rechaza cualquier email real con "Both payer and collector must be real or test users",
+ * porque el `MP_ACCESS_TOKEN` de sandbox es una cuenta de prueba) — `MP_TEST_PAYER_EMAIL`
+ * la reemplaza solo para esta llamada. El dueño real igual recibe el mail de aviso a su
+ * propio correo (ver notification.service.ts) — son dos destinatarios distintos a propósito.
+ * En producción nunca se reemplaza, sea cual sea el valor de esta env var.
+ */
+const resolvePayerEmail = (ownerEmail: string): string => {
+    if (process.env.NODE_ENV === 'development' && process.env.MP_TEST_PAYER_EMAIL) {
+        return process.env.MP_TEST_PAYER_EMAIL;
+    }
+    return ownerEmail;
+};
+
+/**
  * Crea la suscripción (Preapproval) en MercadoPago con 7 días de prueba gratis — no cobra
  * nada hasta que el trial termina, recién ahí empieza a cobrar solo según `auto_recurring`.
  * Sin `card_token_id`: MercadoPago devuelve un `init_point`, la URL de un checkout propio
@@ -42,20 +57,27 @@ export const createPaymentLink = async (
         free_trial: { frequency: 7, frequency_type: 'days' },
     };
 
+    const mpPayerEmail = resolvePayerEmail(payerEmail);
+
     let response;
     try {
         response = await new PreApproval(mpClient).create({
             body: {
                 reason: `${plan.name} — ${billingPeriod === 'yearly' ? 'Anual' : 'Mensual'}`,
-                payer_email: payerEmail,
+                payer_email: mpPayerEmail,
                 external_reference: String(subscription.subscription_id),
                 back_url: process.env.FRONT_ADMIN_BOOKING || 'http://localhost:3000',
                 auto_recurring: autoRecurring as any,
             },
         });
     } catch (mpError: any) {
-        const cause = mpError?.cause ?? mpError?.message ?? mpError;
-        logger.error(`[MP Preapproval] Error creando link de pago para subscription_id=${subscription.subscription_id}`, { error: cause });
+        logger.error(`[MP Preapproval] Error creando link de pago para subscription_id=${subscription.subscription_id}`, {
+            status: mpError?.status,
+            message: mpError?.message,
+            cause: mpError?.cause,
+            apiResponse: mpError?.apiResponse,
+            requestSent: { payer_email: mpPayerEmail, auto_recurring: autoRecurring },
+        });
         throw new BadRequestError('No se pudo generar el link de pago con MercadoPago.');
     }
 
