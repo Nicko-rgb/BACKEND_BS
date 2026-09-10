@@ -16,6 +16,7 @@ import path from 'path';
 import crypto from 'crypto';
 import * as Sentry from '@sentry/node';
 import logger from './config/logger';
+import { runWithRequestContext, getCacheEvents } from './shared/utils/requestContext';
 import ApiResponse from './shared/utils/ApiResponse';
 import GlobalErrorHandler from './shared/handlers/GlobalErrorHandler';
 import authRoutes from './modules/auth/routes/index.routes';
@@ -36,6 +37,11 @@ export function createApp(): Express {
     // Confiar en el primer proxy (Nginx) para leer la IP real del cliente ─────────
     // Sin esto, req.ip siempre sería 127.0.0.1 (Nginx → Node)
     app.set('trust proxy', 1);
+
+    // Contexto por-request (AsyncLocalStorage)
+    app.use((_req: Request, _res: Response, next: NextFunction) => {
+        runWithRequestContext(() => next());
+    });
 
     // Seguridad — headers HTTP protectores (XSS, clickjacking, MIME sniffing, etc.)
     app.use(helmet());
@@ -91,9 +97,25 @@ export function createApp(): Express {
         next();
     });
 
-    // Log de cada request entrante ────────────────────────────────────────────────
-    app.use((req: Request, _res: Response, next: NextFunction) => {
-        logger.info(`${req.method} ${req.path}`, { requestId: req.id, ip: req.ip });
+    // Log de cada request — se emite al terminar (evento 'finish' de la response),
+    // no al entrar, para poder incluir el status code final, la duración y si los
+    // datos salieron de Redis o se recalcularon contra la DB (cacheUtility.withCache,
+    // anotado vía requestContext durante el manejo del request).
+    app.use((req: Request, res: Response, next: NextFunction) => {
+        const startedAt = process.hrtime.bigint();
+
+        res.on('finish', () => {
+            const durationMs = Number(process.hrtime.bigint() - startedAt) / 1e6;
+            const cache = getCacheEvents();
+
+            logger.info(`${req.method} ${req.path} - ${res.statusCode}`, {
+                requestId: req.id,
+                ip: req.ip,
+                durationMs: Math.round(durationMs),
+                ...(cache.length > 0 && { cache })
+            });
+        });
+
         next();
     });
 

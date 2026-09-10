@@ -1,4 +1,5 @@
 import redisClient from '../../config/redisConfig';
+import { recordCacheEvent } from './requestContext';
 
 /**
  * Utilidad para manejar operaciones de cache con Redis.
@@ -67,6 +68,7 @@ class CacheUtility {
      */
     async withCache<T>(prefix: string, params: object, fetchFn: () => Promise<T>, ttl: number = this.defaultTTL): Promise<T> {
         if (!this.isEnabled) {
+            recordCacheEvent({ prefix, source: 'db' });
             return await fetchFn();
         }
 
@@ -74,11 +76,13 @@ class CacheUtility {
         const cachedData = await this.get<T>(key);
 
         if (cachedData) {
+            recordCacheEvent({ prefix, source: 'redis' });
             return cachedData;
         }
 
         const data = await fetchFn();
         await this.set(key, data, ttl);
+        recordCacheEvent({ prefix, source: 'db' });
 
         return data;
     }

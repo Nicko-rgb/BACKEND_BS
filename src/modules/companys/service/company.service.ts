@@ -58,7 +58,7 @@ export const getByTenantId = async (tenantId: string, user: AuthenticatedUser) =
     const company = await CompanyRepository.findByTenantId(tenantId);
     if (!company) throw new NotFoundError('Empresa no encontrada');
 
-    if (!hasFullCompanyAccess(user) && !(user.company_ids ?? []).includes(company.company_id)) {
+    if (!hasFullCompanyAccess(user) && !(user.company_ids ?? []).includes(Number(company.company_id))) {
         throw new ForbiddenError('No tenés acceso a esta empresa');
     }
 
