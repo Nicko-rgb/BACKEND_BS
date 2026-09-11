@@ -80,7 +80,7 @@ SaaSPlan.init({
         type: DataTypes.STRING(20),
         allowNull: false,
         defaultValue: 'basic',
-        comment: "Nivel de automatización de notificaciones: 'basic' | 'automated' | 'full'"
+        comment: "Nivel de notificaciones: 'basic' (solo email) | 'full' (todos los canales)"
     },
     has_advanced_reports: {
         type: DataTypes.BOOLEAN,

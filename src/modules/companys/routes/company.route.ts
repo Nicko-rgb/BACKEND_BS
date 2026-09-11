@@ -2,8 +2,8 @@ import { createRouter } from '../../../shared/utils/createRouter';
 import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
 import { verificarPermiso } from '../../../shared/middlewares/verificarPermiso';
 import { validateDTO, validateQuery } from '../../../shared/middlewares/validateDTO';
-import { listCompaniesQuerySchema, registerCompanySchema } from '../dto/company.schema';
-import { list, registerCompany, getByTenantId } from '../controllers/company.controller';
+import { listCompaniesQuerySchema, registerCompanySchema, updateCompanySchema } from '../dto/company.schema';
+import { list, registerCompany, getByTenantId, updateByTenantId } from '../controllers/company.controller';
 
 const router = createRouter();
 
@@ -44,6 +44,19 @@ router.get('/:tenantId',
     resolveAuthorization,
     verificarPermiso('company.view'),
     getByTenantId
+);
+
+/**
+ * @route PUT /api/companys/:tenantId
+ * @desc  Autoedición de la propia empresa (nombre, teléfonos, dirección, país, ubigeo) — sin
+ *        `document` (RUC), no se edita desde acá.
+ * @access system, super_admin (solo su propia empresa — chequeo manual en el service)
+ */
+router.put('/:tenantId',
+    resolveAuthorization,
+    verificarPermiso('company.manage_own'),
+    validateDTO(updateCompanySchema),
+    updateByTenantId
 );
 
 export default router;

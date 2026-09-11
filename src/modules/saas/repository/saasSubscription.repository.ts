@@ -2,13 +2,20 @@ import { Op } from 'sequelize';
 import type { CreationAttributes, InferAttributes, Transaction } from 'sequelize';
 import { SaaSSubscription, SaaSSubscriptionCompany } from '../database/models';
 
-// Forma resumida del plan/suscripción de una empresa — usada en el listado de companys.
+// Forma resumida del plan/suscripción de una empresa — usada en el listado de companys y en la
+// validación de límites de plan (planLimits.service.ts). Los `max*` van en su unidad cruda
+// (número), no formateados — quien los use decide cómo mostrarlos ("∞" a partir de 999, ver
+// convención del frontend en RegisterCompany.tsx).
 export interface CompanyPlanSummary {
     subscriptionId: number;
     status: string;
     planId: number;
     planName: string;
     planCode: string;
+    maxSubsidiaries: number;
+    maxSpaces: number;
+    maxUsers: number;
+    maxInvoicesMonthly: number;
 }
 
 /**
@@ -47,10 +54,22 @@ export const findPlansByCompanyIds = async (companyIds: number[]): Promise<Recor
             planId: plan.plan_id,
             planName: plan.name,
             planCode: plan.code,
+            maxSubsidiaries: plan.max_subsidiaries,
+            maxSpaces: plan.max_spaces,
+            maxUsers: plan.max_users,
+            maxInvoicesMonthly: plan.max_invoices_monthly,
         };
     });
 
     return result;
+};
+
+// Plan/suscripción de una sola empresa — mismo criterio que findPlansByCompanyIds (queda la
+// más reciente si hubiera más de una fila), para no repetir el join en cada lugar que solo
+// necesita una empresa puntual (ej. planLimits.service.ts).
+export const findPlanByCompanyId = async (companyId: number): Promise<CompanyPlanSummary | null> => {
+    const result = await findPlansByCompanyIds([companyId]);
+    return result[companyId] ?? null;
 };
 
 // Crea la suscripción dentro de una transacción — usado por el alta de empresa.

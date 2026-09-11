@@ -36,7 +36,6 @@ export class Company extends Model<InferAttributes<Company>, InferCreationAttrib
     declare longitude: string | null;
     declare status: CompanyStatus | null;
     declare description: string | null;
-    declare parking_available: CreationOptional<boolean>;
     declare opening_time: string | null;
     declare closing_time: string | null;
     declare min_price: string | null;
@@ -53,6 +52,7 @@ export class Company extends Model<InferAttributes<Company>, InferCreationAttrib
     declare country?: NonAttribute<Country>;
     declare ubigeo?: NonAttribute<Ubigeo>;
     declare subsidiaries?: NonAttribute<Company[]>;
+    declare parentCompany?: NonAttribute<Company>;
 }
 
 Company.init({
@@ -133,11 +133,6 @@ Company.init({
         type: DataTypes.TEXT,
         allowNull: true,
         comment: 'Descripción de la compañía'
-    },
-    parking_available: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: false,
-        comment: 'Indica si tiene estacionamiento disponible'
     },
     opening_time: {
         type: DataTypes.TIME,

@@ -65,6 +65,53 @@ export const getByTenantId = async (tenantId: string, user: AuthenticatedUser) =
     return company;
 };
 
+// Payload de autoedición de la propia empresa — todo opcional, incluye `document` (RUC) para
+// poder corregir un dato mal cargado al registrar.
+export interface UpdateCompanyInput {
+    name?: string;
+    document?: string;
+    country_id?: number;
+    ubigeo_id?: number;
+    address?: string;
+    phone_cell?: string;
+    phone?: string | null;
+}
+
+/**
+ * Actualiza los datos de la propia empresa — mismo lookup y chequeo de alcance manual que
+ * `getByTenantId` (acá tampoco aplica `verificarScope`, compara contra `tenant_id` en vez del
+ * `company_id` numérico de la ruta). Si viene `country_id`, revalida que el país exista y esté
+ * activo, mismo criterio que `register`. Si viene `document`, revalida que no choque con el de
+ * otra empresa (mismo `findByDocument` que usa `register`, acá excluyendo a la propia empresa
+ * del chequeo — de lo contrario dejarlo tal cual siempre "chocaría" contra sí misma).
+ */
+export const updateByTenantId = async (tenantId: string, data: UpdateCompanyInput, user: AuthenticatedUser) => {
+    const company = await CompanyRepository.findByTenantId(tenantId);
+    if (!company) throw new NotFoundError('Empresa no encontrada');
+
+    if (!hasFullCompanyAccess(user) && !(user.company_ids ?? []).includes(Number(company.company_id))) {
+        throw new ForbiddenError('No tenés acceso a esta empresa');
+    }
+
+    if (data.country_id !== undefined) {
+        const country = await CountryRepository.findById(data.country_id);
+        if (!country) throw new BadRequestError('El país seleccionado no existe.');
+        if (!country.is_active) throw new BadRequestError('El país seleccionado no está disponible actualmente.');
+    }
+
+    if (data.document !== undefined) {
+        const existing = await CompanyRepository.findByDocument(data.document);
+        if (existing && Number(existing.company_id) !== Number(company.company_id)) {
+            throw new ConflictError('Ya existe una empresa registrada con este número de documento.');
+        }
+    }
+
+    await CompanyRepository.update(company, { ...data, user_update: user.user_id });
+
+    const updated = await CompanyRepository.findByTenantId(tenantId);
+    return updated!;
+};
+
 // Payload del wizard de alta — un objeto por paso del frontend (empresa, dueño, plan).
 export interface RegisterCompanyInput {
     company: { name: string; document: string; country_id: number; ubigeo_id: number; address: string; phone_cell: string; phone?: string | null; };
@@ -160,7 +207,6 @@ export const register = async (payload: RegisterCompanyInput, user: Authenticate
             latitude: null,
             longitude: null,
             description: null,
-            parking_available: false,
             opening_time: null,
             closing_time: null,
             min_price: null,

@@ -11,6 +11,12 @@ import type { SeederConfig } from '../../../../../scripts/seederRunner';
 import sequelize from '../../../../config/db';
 import { Permission, Role, RolePermission } from '../models';
 
+// Permiso que tiene TODO rol, sin excepción — cualquier usuario autenticado puede cargar y
+// editar sus propios datos (GET/PUT /api/users/me), sin importar su rol ni sus demás permisos.
+// Se agrega una sola vez para todos al construir `rows`, en vez de repetirlo a mano en cada
+// lista de abajo (ver seedFn).
+const UNIVERSAL_PERMISSIONS = ['user.profile_edit'];
+
 const ROLE_PERMISSIONS: Record<string, string[]> = {
     cliente: [
         'booking.create',
@@ -18,7 +24,6 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
         'booking.cancel',
         'payment.create',
         'sucursal.rating_create',
-        'user.profile_edit',
     ],
     empleado: [
         'booking.create',
@@ -77,7 +82,7 @@ const seedFn = async (): Promise<void> => {
     // actualizar acá, esto corta con un mensaje claro en vez de reventar como violación de FK al
     // hacer el bulkCreate (que además tumba TODO db:reset, no solo este seed).
     const catalogKeys = new Set((await Permission.findAll({ attributes: ['key'] })).map((p) => p.key));
-    const allReferencedKeys = new Set(Object.values(ROLE_PERMISSIONS).flat());
+    const allReferencedKeys = new Set([...Object.values(ROLE_PERMISSIONS).flat(), ...UNIVERSAL_PERMISSIONS]);
     const missingKeys = [...allReferencedKeys].filter((key) => !catalogKeys.has(key));
     if (missingKeys.length > 0) {
         throw new Error(
@@ -89,7 +94,7 @@ const seedFn = async (): Promise<void> => {
     const rows = Object.entries(ROLE_PERMISSIONS).flatMap(([roleKey, keys]) => {
         const roleId = roleIdByKey.get(roleKey);
         if (!roleId) return [];
-        return keys.map((permission_key) => ({ role_id: roleId, permission_key }));
+        return [...keys, ...UNIVERSAL_PERMISSIONS].map((permission_key) => ({ role_id: roleId, permission_key }));
     });
 
     const t = await sequelize.transaction();

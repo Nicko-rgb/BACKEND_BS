@@ -64,8 +64,15 @@ export const findByDocument = async (document: string) => {
     return Company.findOne({ where: { document, parent_company_id: null } });
 };
 
-// Crea la empresa (o sucursal) dentro de una transacción — usado por el alta de empresa.
-export const create = async (data: CreationAttributes<Company>, transaction: Transaction) => {
+// Cuántas sucursales tiene ya una empresa — usado por sucursal.service.ts::register para
+// validar contra `max_subsidiaries` del plan antes de crear una más (ver saas/service/planLimits.service.ts).
+export const countSucursalesByParentId = async (parentCompanyId: number): Promise<number> => {
+    return Company.count({ where: { parent_company_id: parentCompanyId } });
+};
+
+// Crea la empresa (o sucursal) — usado por el alta de empresa (dentro de una transacción, ver
+// company.service.ts::register) y por el alta de sucursal (sin transacción, un solo insert).
+export const create = async (data: CreationAttributes<Company>, transaction?: Transaction) => {
     return Company.create(data, { transaction });
 };
 
@@ -95,8 +102,9 @@ export const findByIdWithOwner = async (companyId: number) => {
  * Empresa principal por `tenant_id` (UUID) — se usa como identificador público en vez del
  * `company_id` secuencial, para no exponer el id real ni el orden de alta en la URL del
  * frontend. Trae país, dueño, el ubigeo con su cadena de padres completa (distrito → provincia
- * → departamento, para poder mostrarlo formateado) y sus sucursales (`subsidiaries`, solo
- * `name` — la vista de detalle de sucursal todavía no existe).
+ * → departamento, para poder mostrarlo formateado) y sus sucursales (`subsidiaries`, con su
+ * propio ubigeo también con la cadena de padres — lo que hace falta para la card de la grilla
+ * de sucursales, no el detalle completo de edición, eso lo trae sucursal.service.ts aparte).
  */
 export const findByTenantId = async (tenantId: string) => {
     return Company.findOne({
@@ -115,8 +123,34 @@ export const findByTenantId = async (tenantId: string) => {
             },
             {
                 association: 'subsidiaries',
-                attributes: ['company_id', 'name'],
+                attributes: ['company_id', 'tenant_id', 'name', 'address'],
+                include: [
+                    {
+                        association: 'ubigeo',
+                        include: [{ association: 'parent', include: [{ association: 'parent' }] }],
+                    },
+                ],
             },
+        ],
+    });
+};
+
+/**
+ * Sucursal por `tenant_id` (UUID propio, distinto del de su empresa padre — mismo criterio de
+ * no exponer ids reales que `findByTenantId`). Trae país, el ubigeo con su cadena de padres
+ * completa y la empresa padre (`parentCompany`, solo `tenant_id` — para armar el breadcrumb
+ * "volver a la empresa" en el frontend sin otra consulta).
+ */
+export const findSucursalByTenantId = async (tenantId: string) => {
+    return Company.findOne({
+        where: { tenant_id: tenantId, parent_company_id: { [Op.ne]: null } },
+        include: [
+            { association: 'country' },
+            {
+                association: 'ubigeo',
+                include: [{ association: 'parent', include: [{ association: 'parent' }] }],
+            },
+            { association: 'parentCompany', attributes: ['company_id', 'tenant_id'] },
         ],
     });
 };

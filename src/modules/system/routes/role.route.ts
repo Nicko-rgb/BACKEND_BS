@@ -12,7 +12,7 @@ const router = createRouter();
  * @desc  Catálogo completo de roles, sin paginar
  * @access system
  */
-router.get('/roles', resolveAuthorization, verificarPermiso('system.full_access'), listAll);
+router.get('/roles', resolveAuthorization, verificarPermiso('system.full_access', 'user.administrator_manage', 'user.employee_manage'), listAll);
 
 /**
  * @route POST /api/system/roles

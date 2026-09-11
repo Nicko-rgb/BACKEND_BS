@@ -19,6 +19,12 @@ export const getByTenantId = async (req: Request, res: Response) => {
     return ApiResponse.ok(res, toCompanyDetailDto(company), 'Empresa obtenida');
 };
 
+// Autoedición de la propia empresa — sin `document` (RUC), ver company.service.ts → updateByTenantId.
+export const updateByTenantId = async (req: Request, res: Response) => {
+    const company = await CompanyService.updateByTenantId(String(req.params.tenantId), req.validatedData, req.user!);
+    return ApiResponse.ok(res, toCompanyDetailDto(company), 'Empresa actualizada exitosamente');
+};
+
 // Alta de empresa (wizard de 3 pasos) — crea Company+User+Person+UserCompany+SaaSSubscription
 // ya activa, sin comunicarse con MercadoPago (ver company.service.ts → register).
 export const registerCompany = async (req: Request, res: Response) => {

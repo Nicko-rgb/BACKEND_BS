@@ -22,3 +22,15 @@ export const update = async (req: Request, res: Response) => {
     const user = await UserService.update(Number(req.params.id), req.validatedData);
     return ApiResponse.ok(res, toUserDetailDto(user), 'Usuario actualizado exitosamente');
 };
+
+// Detalle del propio perfil — el id siempre es el del usuario autenticado, nunca uno de req.params
+export const getOwnProfile = async (req: Request, res: Response) => {
+    const user = await UserService.getById(req.user!.user_id);
+    return ApiResponse.ok(res, toUserDetailDto(user), 'Perfil obtenido exitosamente');
+};
+
+// Autoedición del propio perfil — el id siempre es el del usuario autenticado, nunca uno de req.params
+export const updateOwnProfile = async (req: Request, res: Response) => {
+    const user = await UserService.update(req.user!.user_id, req.validatedData);
+    return ApiResponse.ok(res, toUserDetailDto(user), 'Perfil actualizado exitosamente');
+};

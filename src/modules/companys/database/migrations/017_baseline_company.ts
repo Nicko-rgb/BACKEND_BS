@@ -52,7 +52,6 @@ const migration: MigrationFile = {
                 defaultValue: null
             },
             description: { type: DataTypes.TEXT, allowNull: true },
-            parking_available: { type: DataTypes.BOOLEAN, defaultValue: false },
             opening_time: { type: DataTypes.TIME, allowNull: true },
             closing_time: { type: DataTypes.TIME, allowNull: true },
             min_price: { type: DataTypes.DECIMAL(10, 2), allowNull: true },
