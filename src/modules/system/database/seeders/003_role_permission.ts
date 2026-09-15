@@ -35,6 +35,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
         'payment.confirmed',
         'payment.refused',
         'space.view',
+        'user.client_manage',
     ],
     administrador: [
         'sucursal.view',
@@ -50,6 +51,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
         'booking.cancel',
         'payment.reorder',
         'user.employee_manage',
+        'user.client_manage',
         'reports.view',
         'statistics.view',
     ],
@@ -64,6 +66,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
         'payment.account_manage',
         'user.employee_manage',
         'user.administrator_manage',
+        'user.client_manage',
         'reports.view',
         'statistics.view',
     ],

@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-// verificarPermiso es variádico (exige TODOS los permisos indicados) — matchea la llamada completa
+// verificarPermiso es variádico (exige al menos uno de los permisos indicados) — matchea la llamada completa
 // y después cada literal entre comillas dentro de ella, así cuenta multi-arg (`verificarPermiso('a', 'b')`)
 // igual que single-arg. Análisis estático de texto, no ejecuta nada.
 const PERMISSION_CALL_PATTERN = /verificarPermiso\(([^)]*)\)/g;

@@ -14,8 +14,8 @@ const router = createRouter();
  *        rol en company.service.ts, no el permiso.
  * @access system, super_admin
  */
-router.get('/', 
-    resolveAuthorization, 
+router.get('/',
+    resolveAuthorization,
     verificarPermiso('company.view'),
     validateQuery(listCompaniesQuerySchema),
     list

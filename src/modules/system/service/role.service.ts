@@ -4,6 +4,8 @@ import * as RolePermissionRepository from '../repository/rolePermission.reposito
 import * as PermissionRepository from '../repository/permission.repository';
 import { invalidateRoleAuthCache } from '../../../shared/utils/authorizationCache';
 import { countReferences } from '../../../shared/utils/checkReferences';
+import { canAssignRole } from '../../../shared/utils/roleHierarchy';
+import type { AuthenticatedUser } from '../../../shared/types/auth';
 import { NotFoundError, ConflictError, ValidationError } from '../../../shared/errors/CustomErrors';
 import type { Role } from '../database/models';
 
@@ -12,6 +14,11 @@ import type { Role } from '../database/models';
 // momento dado no tengan ningún usuario asignado.
 const RESERVED_ROLE_KEYS = ['cliente', 'empleado', 'administrador', 'super_admin', 'system'];
 
+// Alcance total y bypass de permisos — exclusivos del rol `system` (que solo otro system asigna,
+// ver users/service/userManage.service.ts). Ningún otro rol puede recibirlos desde System > Roles.
+const SYSTEM_SCOPE_LEVEL = 1;
+const SYSTEM_FULL_ACCESS = 'system.full_access';
+
 // dsg_bss_user vive en el módulo `users` — `system` no puede importar su modelo sin crear una
 // dependencia circular (`users` ya importa `system`), así que el chequeo de uso cruza módulos
 // solo con el nombre de tabla/columna real, vía countReferences (mismo criterio que
@@ -19,8 +26,13 @@ const RESERVED_ROLE_KEYS = ['cliente', 'empleado', 'administrador', 'super_admin
 const USER_REFERENCE_CHECK = [{ table: 'dsg_bss_user', column: 'role_id' }];
 
 // Catálogo completo de roles — chico, sin paginar.
-export const listAll = async () => {
-    return RoleRepository.findAll();
+// Catálogo completo para system (incluye roles creados desde System > Roles); para el resto, solo
+// los roles que puede asignar.
+export const listAll = async (user: AuthenticatedUser) => {
+    const roles = await RoleRepository.findAll();
+    if (user.permissions.includes('system.full_access')) return roles;
+
+    return roles.filter((role) => canAssignRole(user, role.key));
 };
 
 export const getById = async (id: number) => {
@@ -34,6 +46,10 @@ export const create = async (data: InferCreationAttributes<Role>) => {
     const existing = await RoleRepository.findByKey(data.key);
     if (existing) throw new ConflictError(`Ya existe un rol con la key "${data.key}"`);
 
+    if (data.scope_level === SYSTEM_SCOPE_LEVEL) {
+        throw new ValidationError('El nivel de alcance 1 es exclusivo del rol system');
+    }
+
     return RoleRepository.create(data);
 };
 
@@ -45,6 +61,10 @@ export const create = async (data: InferCreationAttributes<Role>) => {
 export const update = async (id: number, data: Partial<InferAttributes<Role>>) => {
     const role = await RoleRepository.findById(id);
     if (!role) throw new NotFoundError('Rol no encontrado');
+
+    if (data.scope_level === SYSTEM_SCOPE_LEVEL && role.key !== 'system') {
+        throw new ValidationError('El nivel de alcance 1 es exclusivo del rol system');
+    }
 
     const updated = await RoleRepository.update(role, data);
     await invalidateRoleAuthCache(id);
@@ -87,6 +107,10 @@ export const getPermissionKeys = async (id: number): Promise<string[]> => {
 export const replacePermissions = async (id: number, keys: string[]): Promise<string[]> => {
     const role = await RoleRepository.findById(id);
     if (!role) throw new NotFoundError('Rol no encontrado');
+
+    if (role.key !== 'system' && keys.includes(SYSTEM_FULL_ACCESS)) {
+        throw new ValidationError(`El permiso "${SYSTEM_FULL_ACCESS}" es exclusivo del rol system`);
+    }
 
     if (keys.length > 0) {
         const found = await PermissionRepository.findByKeys(keys);

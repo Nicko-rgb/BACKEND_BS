@@ -67,6 +67,7 @@ const PERMISSIONS: PermissionSeed[] = [
     // ── user — usuarios del sistema (users) ─────────────────────────────────
     { key: 'user.employee_manage', label: 'Gestionar empleados', description: 'Alta, edición y baja de empleados', module: 'users', app_access: 'admin' },
     { key: 'user.administrator_manage', label: 'Gestionar administradores', description: 'Alta, edición y baja de administradores', module: 'users', app_access: 'admin' },
+    { key: 'user.client_manage', label: 'Gestionar clientes', description: 'Alta y edición de clientes (ej. registrar un cliente para una reserva)', module: 'users', app_access: 'admin' },
     { key: 'user.manage_all', label: 'Gestionar todos los usuarios', description: 'Acceso completo al catálogo de usuarios del sistema, sin importar su rol', module: 'users', app_access: 'admin' },
     { key: 'user.profile_edit', label: 'Editar perfil', description: 'Editar los datos del propio perfil', module: 'users', app_access: 'booking' },
 

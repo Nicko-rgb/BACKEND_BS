@@ -1,36 +1,10 @@
 import Joi from 'joi';
-import { paginationQuerySchema } from '../../../shared/dto/pagination.schema';
-
-// Roles válidos — clasificador de display, ver comentario en el modelo User.
-const ROLE_VALUES = ['cliente', 'empleado', 'administrador', 'super_admin', 'system'];
-
-// Query del listado de usuarios — page/limit de paginationQuerySchema + search (nombre o correo) +
-// filtros exactos opcionales por rol y país.
-export const listUsersQuerySchema = paginationQuerySchema.keys({
-    search: Joi.string().trim().max(150).allow('')
-        .messages({
-            'string.max': 'La búsqueda no puede superar 100 caracteres',
-        }),
-
-    role: Joi.string().valid(...ROLE_VALUES).allow('')
-        .messages({
-            'any.only': 'El rol debe ser uno de: ' + ROLE_VALUES.join(', '),
-        }),
-
-    countryId: Joi.number().integer().positive()
-        .messages({
-            'number.base': 'El país seleccionado no es válido',
-            'number.integer': 'El país seleccionado no es válido',
-            'number.positive': 'El país seleccionado no es válido',
-        }),
-});
 
 const DOCUMENT_TYPE_VALUES = ['IDENTITY_CARD', 'PASSPORT', 'LICENSE', 'OTHER'];
 
-// Campos de User (menos role/is_enabled) y de Person compartidos entre la edición de usuario
-// (system, cualquier usuario) y la autoedición de perfil (el propio usuario) — así ninguna de
-// las dos declara reglas por su cuenta ni queda desalineada con la otra.
-const PROFILE_FIELDS = {
+// Campos de User y de Person editables, todos opcionales — base de la autoedición de perfil y
+// de los schemas de gestión de usuarios (userManage.schema.ts).
+export const PROFILE_FIELDS = {
     first_name: Joi.string().trim().min(2).max(100)
         .messages({
             'string.min': 'El nombre debe tener al menos 2 caracteres',
@@ -79,24 +53,7 @@ const PROFILE_FIELDS = {
         }),
 };
 
-// Edición de usuario (system, cualquier usuario) — todo opcional (PUT parcial), nunca incluye
-// password. Combina campos de User (first_name/last_name/email/role/is_enabled) y de Person
-// (phone/country_id/document_type/document_number) en un solo payload; el Service decide a qué
-// tabla va cada uno.
-export const updateUserSchema = Joi.object({
-    ...PROFILE_FIELDS,
-
-    role: Joi.string().valid(...ROLE_VALUES)
-        .messages({ 'any.only': 'El rol debe ser uno de: ' + ROLE_VALUES.join(', ') }),
-
-    is_enabled: Joi.boolean()
-        .messages({ 'boolean.base': 'Habilitado debe ser verdadero o falso' }),
-}).min(1).messages({
-    'object.min': 'Debe enviar al menos un campo para actualizar',
-});
-
-// Autoedición del propio perfil — mismos campos que updateUserSchema salvo `role` e
-// `is_enabled` (esas son administrativas, nunca las toca el propio usuario).
+// Autoedición del propio perfil — sin `role` ni `is_enabled` (administrativos).
 export const updateOwnProfileSchema = Joi.object(PROFILE_FIELDS).min(1).messages({
     'object.min': 'Debe enviar al menos un campo para actualizar',
 });

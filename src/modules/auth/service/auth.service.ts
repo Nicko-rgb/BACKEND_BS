@@ -49,7 +49,7 @@ export const loginAdmin = async ({ email, password }: LoginAdminInput) => {
     const userId = Number(user.user_id);
     const roleId = Number(user.role_id);
 
-    const { permissions, companyIds } = await resolveAuthorization(userId, roleId);
+    const { permissions, companyIds } = await resolveAuthorization(userId);
 
     const payload: Pick<AuthenticatedUser, 'user_id' | 'role_id' | 'app'> = {
         user_id: userId,

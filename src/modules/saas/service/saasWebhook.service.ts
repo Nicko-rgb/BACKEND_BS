@@ -4,6 +4,7 @@ import { PreApproval, client as mpClient } from '../../../config/mercadopago';
 import * as SaaSSubscriptionRepository from '../repository/saasSubscription.repository';
 import * as CompanyRepository from '../../companys/repository/company.repository';
 import * as UserRepository from '../../users/repository/user.repository';
+import { invalidateUserAuthCache } from '../../../shared/utils/authorizationCache';
 import { UnauthorizedError } from '../../../shared/errors/CustomErrors';
 import logger from '../../../config/logger';
 
@@ -58,6 +59,8 @@ const activateTrialFromPreapproval = async (preapprovalId: string): Promise<void
         return;
     }
 
+    const owner = company.userAssignments?.[0]?.user;
+
     await sequelize.transaction(async (transaction) => {
         const now = new Date();
         const trialEnd = new Date(now);
@@ -71,11 +74,12 @@ const activateTrialFromPreapproval = async (preapprovalId: string): Promise<void
 
         await CompanyRepository.update(company, { is_enabled: 'A' }, transaction);
 
-        const owner = company.userAssignments?.[0]?.user;
         if (owner) {
             await UserRepository.update(owner, { is_enabled: true }, transaction);
         }
     });
+
+    if (owner) await invalidateUserAuthCache(Number(owner.user_id));
 
     logger.info(`[MP Webhook] Suscripción ${subscription.subscription_id} activada (trial hasta ${TRIAL_DAYS} días) por preapproval ${preapprovalId}`);
 };

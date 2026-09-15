@@ -154,3 +154,24 @@ export const findSucursalByTenantId = async (tenantId: string) => {
         ],
     });
 };
+
+// Sucursales por tenant_id, con el tenant_id de su empresa padre.
+export const findSucursalesByTenantIds = async (tenantIds: string[]) => {
+    if (tenantIds.length === 0) return [];
+
+    return Company.findAll({
+        where: { tenant_id: { [Op.in]: tenantIds }, parent_company_id: { [Op.ne]: null } },
+        attributes: ['company_id', 'tenant_id', 'name'],
+        include: [{ association: 'parentCompany', attributes: ['company_id', 'tenant_id'] }],
+    });
+};
+
+// Empresas o sucursales por id — solo su identificación (tenant_id y nombre).
+export const findByIds = async (ids: number[]) => {
+    if (ids.length === 0) return [];
+
+    return Company.findAll({
+        where: { company_id: { [Op.in]: ids } },
+        attributes: ['company_id', 'tenant_id', 'name'],
+    });
+};

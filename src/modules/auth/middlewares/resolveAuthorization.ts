@@ -37,7 +37,8 @@ export const resolveAuthorization = (req: Request, res: Response, next: NextFunc
         }
 
         try {
-            const resolved = await resolve(req.user.user_id, req.user.role_id);
+            const resolved = await resolve(req.user.user_id);
+            req.user.role_id = resolved.roleId;
             req.user.role = resolved.roleKey;
             req.user.scope_level = resolved.scopeLevel;
             req.user.permissions = resolved.permissions;

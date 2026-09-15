@@ -9,10 +9,11 @@ const router = createRouter();
 
 /**
  * @route GET /api/system/roles
- * @desc  Catálogo completo de roles, sin paginar
- * @access system
+ * @desc  Roles visibles para el usuario autenticado, sin paginar — system ve el catálogo completo;
+ *        el resto, solo los roles que puede asignar (ver roleHierarchy.ts)
+ * @access cualquier usuario autenticado
  */
-router.get('/roles', resolveAuthorization, verificarPermiso('system.full_access', 'user.administrator_manage', 'user.employee_manage'), listAll);
+router.get('/roles', resolveAuthorization, listAll);
 
 /**
  * @route POST /api/system/roles

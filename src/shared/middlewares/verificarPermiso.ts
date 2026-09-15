@@ -1,7 +1,7 @@
 /**
  * Middleware verificarPermiso
  *
- * Valida que el usuario autenticado tenga TODOS los permisos indicados.
+ * Valida que el usuario autenticado tenga AL MENOS UNO de los permisos indicados.
  * system.full_access bypasea cualquier chequeo.
  * Debe usarse DESPUÉS de resolveAuthorization (modules/auth/middlewares) —
  * necesita req.user.permissions ya resuelto.
@@ -27,11 +27,10 @@ export const verificarPermiso = (...requiredPerms: string[]) => (req: Request, _
         return;
     }
 
-    const missing = requiredPerms.filter(p => !userPerms.includes(p));
-    if (missing.length > 0) {
+    if (!requiredPerms.some(p => userPerms.includes(p))) {
         next(new ForbiddenError(
             'No tienes los permisos necesarios para esta acción',
-            { required: requiredPerms, missing }
+            { required: requiredPerms }
         ));
         return;
     }

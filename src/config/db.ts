@@ -3,9 +3,15 @@
  * por variables de entorno.
  */
 import { Sequelize } from 'sequelize';
+import pg from 'pg';
 import dotenv from 'dotenv';
 
 dotenv.config();
+
+// BIGINT (OID 20, int8) llega por defecto como string para no perder precisión más allá de 2^53 —
+// los ids autoincrementales nunca se acercan a ese límite, así que se parsean a number y la API los
+// expone como números.
+pg.types.setTypeParser(20, (value: string) => Number(value));
 
 const isProduction = process.env.NODE_ENV === 'production';
 

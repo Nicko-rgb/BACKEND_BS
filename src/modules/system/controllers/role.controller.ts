@@ -3,9 +3,9 @@ import * as RoleService from '../service/role.service';
 import { toRoleDto } from '../dto/role.dto';
 import ApiResponse from '../../../shared/utils/ApiResponse';
 
-// Catálogo completo de roles
-export const listAll = async (_req: Request, res: Response) => {
-    const roles = await RoleService.listAll();
+// Roles visibles para el usuario autenticado
+export const listAll = async (req: Request, res: Response) => {
+    const roles = await RoleService.listAll(req.user!);
     return ApiResponse.ok(res, roles.map(toRoleDto), 'Roles obtenidos exitosamente');
 };
 

@@ -80,6 +80,11 @@ export const findById = async (id: number) => {
     return User.findByPk(id, { include: [{ association: 'person' }, { association: 'roleRef' }] });
 };
 
+// Rol y estado de un usuario — lo mínimo para resolver su autorización en cada request.
+export const findAuthStateById = async (id: number) => {
+    return User.findByPk(id, { attributes: ['user_id', 'role_id', 'is_enabled'] });
+};
+
 // Actualiza parcialmente la instancia ya cargada y devuelve la misma instancia con los datos frescos.
 export const update = async (user: User, data: Partial<InferAttributes<User>>, transaction?: Transaction) => {
     return user.update(data, { transaction });
@@ -91,10 +96,10 @@ export const update = async (user: User, data: Partial<InferAttributes<User>>, t
  * que si hay que crear una fila nueva y no vino, no se crea — el caller decide qué hacer con eso
  * (hoy, simplemente no se persisten los demás campos hasta que se mande country_id también).
  */
-export const upsertPersonForUser = async (userId: number, data: Partial<InferAttributes<Person>>) => {
-    const existing = await Person.findOne({ where: { user_id: userId } });
-    if (existing) return existing.update(data);
+export const upsertPersonForUser = async (userId: number, data: Partial<InferAttributes<Person>>, transaction?: Transaction) => {
+    const existing = await Person.findOne({ where: { user_id: userId }, transaction });
+    if (existing) return existing.update(data, { transaction });
 
     if (!data.country_id) return null;
-    return Person.create({ user_id: userId, country_id: data.country_id, ...data });
+    return Person.create({ user_id: userId, country_id: data.country_id, ...data }, { transaction });
 };

@@ -26,6 +26,11 @@ export const replaceForUser = async (userId: number, keys: string[], grantedBy: 
     const user = await UserRepository.findById(userId);
     if (!user) throw new NotFoundError('Usuario no encontrado');
 
+    // system.full_access solo lo tiene el rol system — nunca se otorga como excepción por usuario.
+    if (keys.includes('system.full_access')) {
+        throw new ValidationError('El permiso "system.full_access" es exclusivo del rol system');
+    }
+
     if (keys.length > 0) {
         const found = await PermissionRepository.findByKeys(keys);
         const foundKeys = new Set(found.map((permission) => permission.key));
