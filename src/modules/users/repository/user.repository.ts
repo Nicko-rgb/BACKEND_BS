@@ -85,6 +85,14 @@ export const findAuthStateById = async (id: number) => {
     return User.findByPk(id, { attributes: ['user_id', 'role_id', 'is_enabled'] });
 };
 
+// Cambia la contraseña y registra el momento del cambio.
+export const updatePassword = async (userId: number, hashedPassword: string, transaction: Transaction) => {
+    return User.update(
+        { password: hashedPassword, password_changed_at: new Date() },
+        { where: { user_id: userId }, transaction }
+    );
+};
+
 // Actualiza parcialmente la instancia ya cargada y devuelve la misma instancia con los datos frescos.
 export const update = async (user: User, data: Partial<InferAttributes<User>>, transaction?: Transaction) => {
     return user.update(data, { transaction });

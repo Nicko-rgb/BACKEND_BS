@@ -8,15 +8,15 @@ import logger from '../../../config/logger';
  * Punto de entrada único para mandar cualquier notificación — el caller solo indica el
  * evento y su data. Acá se busca la config del evento en el mapa de su canal
  * (`EMAIL_EVENT_CONFIG` hoy, un `WHATSAPP_EVENT_CONFIG` análogo a futuro), se manda por el
- * cliente que corresponda y siempre se deja el registro en `Notification` — con
- * `delivery_status: 'FAILED'` si el envío no salió, nunca lanza por eso.
+ * cliente que corresponda y, si el evento define `dbFields`, se deja el registro en `Notification` —
+ * con `delivery_status: 'FAILED'` si el envío no salió, nunca lanza por eso. Devuelve si el envío salió.
  */
-export const notify = async <E extends NotificationEvent>(event: E, payload: NotificationPayloads[E]): Promise<void> => {
+export const notify = async <E extends NotificationEvent>(event: E, payload: NotificationPayloads[E]): Promise<boolean> => {
     const emailConfig = EMAIL_EVENT_CONFIG[event];
 
     if (!emailConfig) {
         logger.error(`[NotificationService] Evento sin config de ningún canal: ${event}`);
-        return;
+        return false;
     }
 
     let deliveryStatus: 'SENT' | 'FAILED' = 'SENT';
@@ -27,7 +27,10 @@ export const notify = async <E extends NotificationEvent>(event: E, payload: Not
         deliveryStatus = 'FAILED';
     }
 
-    const dbFields = emailConfig.dbFields(payload);
+    const isSent = deliveryStatus === 'SENT';
+    const dbFields = emailConfig.dbFields?.(payload);
+    if (!dbFields) return isSent;
+
     const subject = emailConfig.subject(payload);
 
     await NotificationRepository.create({
@@ -43,7 +46,9 @@ export const notify = async <E extends NotificationEvent>(event: E, payload: Not
         action_url: emailConfig.actionUrl(payload),
         action_text: emailConfig.actionText(payload),
         delivery_status: deliveryStatus,
-        sent_at: deliveryStatus === 'SENT' ? new Date() : null,
+        sent_at: isSent ? new Date() : null,
         user_create: dbFields.createdBy,
     });
+
+    return isSent;
 };

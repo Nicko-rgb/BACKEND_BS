@@ -30,6 +30,7 @@ const migration: MigrationFile = {
             last_name: { type: DataTypes.STRING(100), allowNull: true },
             email: { type: DataTypes.STRING(100), allowNull: true, unique: true },
             password: { type: DataTypes.STRING(255), allowNull: true },
+            password_changed_at: { type: DataTypes.DATE, allowNull: true },
             social_id: { type: DataTypes.STRING(255), allowNull: true },
             social_provider: { type: DataTypes.STRING(50), allowNull: true },
             role_id: {

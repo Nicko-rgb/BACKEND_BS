@@ -32,24 +32,17 @@ const migration: MigrationFile = {
             },
             company_id: {
                 type: DataTypes.BIGINT,
-                allowNull: false,
+                allowNull: true,
                 references: { model: 'dsg_bss_company', key: 'company_id' },
                 onUpdate: 'CASCADE',
                 onDelete: 'CASCADE'
             },
-            tenant_id: { type: DataTypes.STRING(36), allowNull: false },
+            tenant_id: { type: DataTypes.STRING(36), allowNull: true },
             title: { type: DataTypes.STRING(255), allowNull: false },
             message: { type: DataTypes.TEXT, allowNull: false },
-            notification_type: {
-                type: DataTypes.ENUM(
-                    'BOOKING_CONFIRMATION', 'BOOKING_REMINDER', 'BOOKING_CANCELLATION', 'BOOKING_THANK_YOU',
-                    'PAYMENT_SUCCESS', 'PAYMENT_FAILED', 'PAYMENT_REMINDER',
-                    'FACILITY_UPDATE', 'PROMOTION', 'SYSTEM_MAINTENANCE',
-                    'WELCOME', 'PASSWORD_RESET', 'ACCOUNT_VERIFICATION', 'GENERAL'
-                ),
-                allowNull: false,
-                defaultValue: 'GENERAL'
-            },
+            // VARCHAR y no ENUM: los valores válidos los define el tipo NotificationType del
+            // modelo, así un tipo nuevo no necesita migración.
+            notification_type: { type: DataTypes.STRING(50), allowNull: false, defaultValue: 'GENERAL' },
             priority: {
                 type: DataTypes.ENUM('LOW', 'NORMAL', 'HIGH', 'URGENT'),
                 allowNull: false,

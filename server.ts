@@ -4,9 +4,6 @@
  * Orquesta el arranque: Sentry, guards globales de proceso, validación de
  * entorno, base de datos (migraciones/seeders), Redis, Socket.IO, y el
  * ciclo de vida del proceso (listen + graceful shutdown).
- *
- * La configuración del Express app (seguridad, rate limiting, rutas, manejo
- * de errores) vive en src/app.ts — acá solo se crea y se monta.
  */
 
 // Sentry debe inicializarse antes que todo lo demás para capturar errores desde el arranque
@@ -18,7 +15,11 @@ if (process.env.SENTRY_DSN) {
         // Captura el 100% de transacciones en desarrollo, ajustar en producción
         tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.2 : 1.0,
     });
+    console.log(chalk.green('✅ Sentry: inicializado'));
+} else {
+    console.log(chalk.yellow('⚠️ Sentry: no configurado'));
 }
+
 
 import http from 'http';
 import chalk from 'chalk';
@@ -60,6 +61,7 @@ process.on('unhandledRejection', (reason) => {
 const REQUIRED_ENV_VARS = [
     'DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'MAIL_FROM',
     'JWT_SECRET', 'JWT_EXPIRES_BOOKING', 'CORS_ORIGIN', 'PORT', 'NODE_ENV', 'MP_CREDENTIALS_ENCRYPTION_KEY',
+    'FRONT_ADMIN_BOOKING', 'FRONT_BOOKING_APP',
 ];
 const missingVars = REQUIRED_ENV_VARS.filter(v => !process.env[v]);
 if (missingVars.length > 0) {
@@ -73,21 +75,17 @@ const isDev = process.env.NODE_ENV === 'development';
 const app = createApp();
 const server = http.createServer(app);
 
-/**
- * Función para inicializar la base de datos
- */
-async function inicializarBaseDatos(): Promise<boolean> {
+/** Verifica la conexión a la base de datos y corre las migraciones pendientes */
+async function inicializarBaseDatos(): Promise<void> {
     try {
-        // ── 1. Ejecutar migraciones pendientes (reemplaza sequelize.sync) ────
-        // En desarrollo se omiten acá — tsx watch reinicia el proceso en cada
-        // guardado, y correrlas automáticamente en cada restart multiplica los
-        // intentos (contra la tabla de tracking un archivo renombrado/nuevo
-        // queda "pendiente" en cada reinicio). Correrlas a mano con `npm run
-        // migrate` cuando corresponda, igual que `migrate:status`/`seed`.
+        await sequelize.authenticate();
+        console.log(chalk.green('✅ Base de datos: conectada (PostgreSQL)'));
+
+        // ── 1. Ejecutar migraciones pendientes ────
         if (isDev) {
-            logger.info('Entorno de desarrollo — se omiten migraciones automáticas (correr "npm run migrate" a mano si hace falta)');
+            console.log(chalk.yellow('📦 Migraciones: omitidas en desarrollo'));
         } else {
-            logger.info('Verificando migraciones pendientes...');
+            console.log(chalk.cyan('📦 Migraciones: verificando pendientes...'));
             const { applied, failed } = await runPendingMigrations();
 
             if (failed) {
@@ -95,21 +93,18 @@ async function inicializarBaseDatos(): Promise<boolean> {
             }
 
             if (applied > 0) {
-                logger.info(`${applied} migración(es) aplicada(s)`);
+                console.log(chalk.green(`📦 Migraciones: ${applied} aplicada(s)`));
             } else {
-                logger.info('Esquema de BD actualizado — sin migraciones pendientes');
+                console.log(chalk.green('📦 Migraciones: esquema al día, sin pendientes'));
             }
         }
 
-        // ── 2. Seeders — siempre manuales, nunca automáticos al arrancar ─────
-        // Correr "npm run seed" a mano cuando corresponda, igual que "migrate".
-        logger.info('Seeders no se ejecutan automáticamente — correr "npm run seed" a mano si hace falta');
+        // ── 2. Seeders — siempre manuales ─────
+        console.log(chalk.yellow('🌱 Seeders: no se ejecutan automáticamente'));
 
         // Los jobs en segundo plano (expiración de holds, suscripciones, emails,
         // reconciliación) vuelven cuando se porten `bookings`/`saas` completos
         // (routes/controller/service/repository + jobs/), no solo su capa database/.
-
-        return true;
     } catch (error: any) {
         logger.error('Error al inicializar la base de datos', { error: error.message });
         throw error;
@@ -121,18 +116,11 @@ async function inicializarBaseDatos(): Promise<boolean> {
  */
 async function iniciarServidor(): Promise<void> {
     try {
-        // Inicializar base de datos
+        console.log(chalk.bgBlue('\n🔌 CONEXIONES A DB'));
         await inicializarBaseDatos();
-
-        // Conectar a Redis
         await redisClient.connect();
-
-        // Inicializar Socket.IO (async para poder conectar el Redis adapter)
         await initSocket(server);
-
-        // Configurar puerto y host
         const PORT = process.env.PORT;
-        // En desarrollo, escuchamos en 0.0.0.0 para permitir acceso desde la red local (celulares)
         const HOST = isDev ? '0.0.0.0' : (process.env.HOST);
 
         // Iniciar servidor
@@ -140,7 +128,6 @@ async function iniciarServidor(): Promise<void> {
             console.log(chalk.bgBlue('\n🎉 SERVIDOR INICIADO EXITOSAMENTE'));
 
             if (HOST === '0.0.0.0') {
-                // Obtener la IP local para mostrarla en la consola
                 const os = require('os');
                 const interfaces = os.networkInterfaces();
                 let localIP = 'localhost';
@@ -169,9 +156,6 @@ async function iniciarServidor(): Promise<void> {
          * Graceful shutdown — cierra conexiones en orden correcto:
          * 1. Deja de aceptar nuevas conexiones (server.close)
          * 2. Espera que las queries en vuelo terminen (pool de DB)
-         * 3. Cierra el pool de PostgreSQL
-         * 4. Cierra la conexión de Redis
-         * Garantiza que no se pierdan datos ni queden transacciones abiertas.
          */
         const gracefulShutdown = async (signal: string) => {
             logger.info(`Señal ${signal} recibida — iniciando graceful shutdown...`);
@@ -180,10 +164,8 @@ async function iniciarServidor(): Promise<void> {
                 try {
                     await sequelize.close();
                     logger.info('Pool de base de datos cerrado');
-
                     await redisClient.disconnect();
                     logger.info('Conexión Redis cerrada');
-
                     logger.info('Servidor cerrado correctamente');
                     process.exit(0);
                 } catch (err: any) {

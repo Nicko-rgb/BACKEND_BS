@@ -1,6 +1,8 @@
 import type { InferAttributes } from 'sequelize';
 import { companyPendingPaymentTemplate } from '../templates/email/companyPendingPayment';
 import { companyRegisteredTemplate } from '../templates/email/companyRegistered';
+import { forgotPasswordTemplate } from '../templates/email/forgotPassword';
+import { passwordChangedTemplate } from '../templates/email/passwordChanged';
 import { NotificationEvents } from '../constants/notificationEvents';
 import type { NotificationEvent, NotificationPayloads } from '../constants/notificationEvents';
 import type { Notification } from '../database/models';
@@ -17,7 +19,8 @@ export interface EmailEventConfig<P> {
     html: (payload: P) => string;
     actionUrl: (payload: P) => string | null;
     actionText: (payload: P) => string | null;
-    dbFields: (payload: P) => { clientId: number; companyId: number; tenantId: string; createdBy: number };
+    // Sin dbFields el envío no se registra en Notification
+    dbFields?: (payload: P) => { clientId: number; companyId: number | null; tenantId: string | null; createdBy: number };
 }
 
 /**
@@ -53,5 +56,25 @@ export const EMAIL_EVENT_CONFIG: Partial<{ [E in NotificationEvent]: EmailEventC
         actionUrl: () => null,
         actionText: () => null,
         dbFields: (p) => ({ clientId: p.ownerId, companyId: p.companyId, tenantId: p.tenantId, createdBy: p.createdBy }),
+    },
+    [NotificationEvents.FORGOT_PASSWORD]: {
+        channel: 'EMAIL',
+        notificationType: 'PASSWORD_RESET',
+        relatedEntityType: 'USER',
+        to: (p) => p.email,
+        subject: () => 'Recupera tu contraseña de Booking Sport',
+        html: (p) => forgotPasswordTemplate({ name: p.name, resetUrl: p.resetUrl, expiresInMinutes: p.expiresInMinutes }),
+        actionUrl: () => null,
+        actionText: () => null,
+    },
+    [NotificationEvents.PASSWORD_CHANGED]: {
+        channel: 'EMAIL',
+        notificationType: 'PASSWORD_RESET',
+        relatedEntityType: 'USER',
+        to: (p) => p.email,
+        subject: () => 'Tu contraseña de Booking Sport fue cambiada',
+        html: (p) => passwordChangedTemplate({ name: p.name, loginUrl: p.loginUrl }),
+        actionUrl: () => null,
+        actionText: () => null,
     },
 };

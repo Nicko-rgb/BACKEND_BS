@@ -9,11 +9,13 @@ import sequelize from '../../../../config/db';
 import type { User } from '../../../users/database/models';
 import type { Company } from '../../../companys/database/models';
 
+// Única fuente de verdad de los tipos de notificación — en la base es un VARCHAR, así que sumar
+// uno nuevo no necesita migración.
 type NotificationType =
     | 'BOOKING_CONFIRMATION' | 'BOOKING_REMINDER' | 'BOOKING_CANCELLATION'
     | 'PAYMENT_SUCCESS' | 'PAYMENT_FAILED' | 'PAYMENT_REMINDER'
     | 'FACILITY_UPDATE' | 'PROMOTION' | 'SYSTEM_MAINTENANCE'
-    | 'WELCOME' | 'PASSWORD_RESET' | 'ACCOUNT_VERIFICATION' | 'GENERAL'
+    | 'WELCOME' | 'WELCOME_USER' | 'PASSWORD_RESET' | 'ACCOUNT_VERIFICATION' | 'GENERAL'
     | 'BOOKING_THANK_YOU';
 type Priority = 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
 type Channel = 'IN_APP' | 'EMAIL' | 'SMS' | 'PUSH' | 'WHATSAPP';
@@ -23,8 +25,8 @@ type DeliveryStatus = 'PENDING' | 'SENT' | 'DELIVERED' | 'FAILED' | 'BOUNCED';
 export class Notification extends Model<InferAttributes<Notification>, InferCreationAttributes<Notification>> {
     declare notification_id: CreationOptional<number>;
     declare client_id: number;
-    declare company_id: number;
-    declare tenant_id: string;
+    declare company_id: number | null;
+    declare tenant_id: string | null;
     declare title: string;
     declare message: string;
     declare notification_type: CreationOptional<NotificationType>;
@@ -63,14 +65,14 @@ Notification.init({
     },
     company_id: {
         type: DataTypes.BIGINT,
-        allowNull: false,
-        comment: 'ID de la compañía que envía la notificación',
+        allowNull: true,
+        comment: 'ID de la compañía que envía la notificación — null si no pertenece a una empresa',
         references: { model: 'dsg_bss_company', key: 'company_id' }
     },
     tenant_id: {
         type: DataTypes.STRING(36),
-        allowNull: false,
-        comment: 'Identificador del tenant para multi-tenancy'
+        allowNull: true,
+        comment: 'Identificador del tenant para multi-tenancy — null si no pertenece a una empresa'
     },
     title: {
         type: DataTypes.STRING(255),
@@ -83,16 +85,10 @@ Notification.init({
         comment: 'Contenido del mensaje de la notificación'
     },
     notification_type: {
-        type: DataTypes.ENUM(
-            'BOOKING_CONFIRMATION', 'BOOKING_REMINDER', 'BOOKING_CANCELLATION',
-            'PAYMENT_SUCCESS', 'PAYMENT_FAILED', 'PAYMENT_REMINDER',
-            'FACILITY_UPDATE', 'PROMOTION', 'SYSTEM_MAINTENANCE',
-            'WELCOME', 'PASSWORD_RESET', 'ACCOUNT_VERIFICATION', 'GENERAL',
-            'BOOKING_THANK_YOU'
-        ),
+        type: DataTypes.STRING(50),
         allowNull: false,
         defaultValue: 'GENERAL',
-        comment: 'Tipo de notificación'
+        comment: 'Tipo de notificación — valores válidos en el tipo NotificationType'
     },
     priority: {
         type: DataTypes.ENUM('LOW', 'NORMAL', 'HIGH', 'URGENT'),

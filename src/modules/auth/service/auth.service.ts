@@ -10,32 +10,19 @@ interface LoginAdminInput {
     password: string;
 }
 
+// Hash de relleno para comparar cuando el correo no existe
+const DUMMY_PASSWORD_HASH = bcrypt.hashSync('dummy-password', 10);
+
 /**
  * Login del panel admin. Bloquea usuarios con role 'cliente' — ese rol es
  * exclusivo del portal de reservas (BOOKING), no tiene acceso a este panel.
- *
- * El JWT lleva deliberadamente poco: {user_id, role_id, app}. permissions/
- * company_ids/scope_level NO viajan ahí — se resuelven en caliente en cada
- * request (ver resolveAuthorization, modules/auth/middlewares) contra
- * dsg_bss_role_permission/dsg_bss_user_permissions/dsg_bss_user_company, así
- * que editar los permisos de un rol aplica de inmediato a cualquier usuario
- * ya logueado, sin esperar a que renueve el token.
- *
- * Acá se llama al mismo resolver una vez más, solo para devolver
- * permissions/companyIds en el BODY de la respuesta — el front los guarda en
- * sessionStore únicamente para pistas de UI (ocultar botones), nunca como
- * fuente de autorización real.
  */
 export const loginAdmin = async ({ email, password }: LoginAdminInput) => {
     const user = await UserRepository.findByEmailForLogin(email);
 
-    if (!user || !user.password) {
-        throw new UnauthorizedError('Credenciales requeridas');
-    }
-
-    const passwordMatches = await bcrypt.compare(password, user.password);
-    if (!passwordMatches) {
-        throw new UnauthorizedError('Contraseña incorrecta');
+    const passwordMatches = await bcrypt.compare(password, user?.password ?? DUMMY_PASSWORD_HASH);
+    if (!user || !passwordMatches) {
+        throw new UnauthorizedError('Credenciales inválidas');
     }
 
     if (user.roleRef?.key === 'cliente') {
@@ -58,7 +45,7 @@ export const loginAdmin = async ({ email, password }: LoginAdminInput) => {
     };
 
     const token = jwt.sign(payload, process.env.JWT_SECRET as string, {
-        expiresIn: (process.env.JWT_EXPIRES || '12h') as jwt.SignOptions['expiresIn'],
+        expiresIn: (process.env.JWT_EXPIRES) as jwt.SignOptions['expiresIn'],
     });
 
     return { token, user, permissions, companyIds };

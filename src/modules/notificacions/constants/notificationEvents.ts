@@ -4,6 +4,8 @@
 export const NotificationEvents = {
     COMPANY_PENDING_PAYMENT: 'COMPANY_PENDING_PAYMENT',
     COMPANY_REGISTERED: 'COMPANY_REGISTERED',
+    FORGOT_PASSWORD: 'FORGOT_PASSWORD',
+    PASSWORD_CHANGED: 'PASSWORD_CHANGED',
 } as const;
 
 export type NotificationEvent = typeof NotificationEvents[keyof typeof NotificationEvents];
@@ -32,8 +34,25 @@ export interface CompanyRegisteredPayload {
     createdBy: number;
 }
 
+// Enlace de recuperación de contraseña — resetUrl lleva el token en claro, nunca se persiste ni se loguea.
+export interface ForgotPasswordPayload {
+    email: string;
+    name: string;
+    resetUrl: string;
+    expiresInMinutes: number;
+}
+
+// Aviso posterior al cambio de contraseña — para que el dueño detecte un acceso que no hizo.
+export interface PasswordChangedPayload {
+    email: string;
+    name: string;
+    loginUrl: string;
+}
+
 // Payload de cada evento — uno nuevo agrega su interface arriba y una entrada acá.
 export interface NotificationPayloads {
     [NotificationEvents.COMPANY_PENDING_PAYMENT]: CompanyPendingPaymentPayload;
     [NotificationEvents.COMPANY_REGISTERED]: CompanyRegisteredPayload;
+    [NotificationEvents.FORGOT_PASSWORD]: ForgotPasswordPayload;
+    [NotificationEvents.PASSWORD_CHANGED]: PasswordChangedPayload;
 }

@@ -24,6 +24,7 @@ export class User extends Model<InferAttributes<User>, InferCreationAttributes<U
     declare last_name: string | null;
     declare email: string | null;
     declare password: string | null;
+    declare password_changed_at: Date | null;
     declare social_id: string | null;
     declare social_provider: string | null;
     // Fuente de verdad para permisos/menú/scope (ver authorizationResolver.ts).
@@ -70,6 +71,11 @@ User.init({
         type: DataTypes.STRING(255),
         allowNull: true, // Permitir null para usuarios de redes sociales
         comment: 'Contraseña del usuario (encriptada)'
+    },
+    password_changed_at: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: 'Último cambio de contraseña — invalida los JWT emitidos antes de esta fecha'
     },
     social_id: {
         type: DataTypes.STRING(255),

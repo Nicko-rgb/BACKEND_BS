@@ -1,11 +1,6 @@
 /**
  * Configuración del Express app: seguridad, rate limiting, parsing de body,
  * archivos estáticos, rutas y manejo de errores.
- *
- * No incluye el arranque del servidor HTTP ni la orquestación de conexiones
- * (DB/Redis/Socket.IO) — eso vive en server.ts, el entrypoint. Separarlo así
- * deja `createApp()` testeable con supertest sin necesidad de levantar un
- * puerto real.
  */
 import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
@@ -17,7 +12,6 @@ import crypto from 'crypto';
 import * as Sentry from '@sentry/node';
 import logger from './config/logger';
 import { runWithRequestContext, getCacheEvents } from './shared/utils/requestContext';
-import ApiResponse from './shared/utils/ApiResponse';
 import GlobalErrorHandler from './shared/handlers/GlobalErrorHandler';
 import authRoutes from './modules/auth/routes/index.routes';
 import systemRoutes from './modules/system/routes/index.routes';
@@ -27,15 +21,10 @@ import saasRoutes from './modules/saas/routes/index.routes';
 
 export function createApp(): Express {
     const app = express();
-
-    // Se calculan acá adentro (no a nivel de módulo) para que corran recién
-    // cuando server.ts llama a createApp() — después de que ya validó que
-    // las variables de entorno requeridas existen.
     const isDev = process.env.NODE_ENV === 'development';
     const corsOrigins = (process.env.CORS_ORIGIN as string).split(',').map(origin => origin.trim());
 
     // Confiar en el primer proxy (Nginx) para leer la IP real del cliente ─────────
-    // Sin esto, req.ip siempre sería 127.0.0.1 (Nginx → Node)
     app.set('trust proxy', 1);
 
     // Contexto por-request (AsyncLocalStorage)
@@ -47,7 +36,6 @@ export function createApp(): Express {
     app.use(helmet());
 
     // Compresión gzip/deflate — reduce el tamaño de las respuestas JSON hasta un 80%
-    // Solo comprime respuestas mayores a 1KB; threshold evita overhead en respuestas pequeñas
     app.use(compression({ level: 6, threshold: 1024 }));
 
     // CORS — múltiples frontends permitidos vía variable de entorno
@@ -60,7 +48,7 @@ export function createApp(): Express {
 
     /**
      * Rate limiting — límite general para toda la API.
-     * 200 requests por IP cada 15 minutos.
+     * 100 requests por IP cada 15 minutos.
      */
     const generalLimiter = rateLimit({
         windowMs: 15 * 60 * 1000,
@@ -83,9 +71,23 @@ export function createApp(): Express {
         message: { error: 'Demasiados intentos de autenticación, intenta en 15 minutos.' }
     });
 
+    /**
+     * Rate limiting para recuperación de contraseña.
+     * 5 solicitudes por IP cada 15 minutos — evita el abuso del envío de correos.
+     */
+    const passwordResetLimiter = rateLimit({
+        windowMs: 15 * 60 * 1000,
+        max: 5,
+        standardHeaders: true,
+        legacyHeaders: false,
+        message: { error: 'Demasiadas solicitudes de recuperación, intenta en 15 minutos.' }
+    });
+
     app.use('/api/', generalLimiter);
     app.use('/api/auth/login', authLimiter);
     app.use('/api/auth/register', authLimiter);
+    app.use('/api/auth/password-request', passwordResetLimiter);
+    app.use('/api/auth/password-reset', passwordResetLimiter);
 
     /**
      * Request ID — asigna un ID único a cada request para correlacionar logs.
@@ -97,10 +99,7 @@ export function createApp(): Express {
         next();
     });
 
-    // Log de cada request — se emite al terminar (evento 'finish' de la response),
-    // no al entrar, para poder incluir el status code final, la duración y si los
-    // datos salieron de Redis o se recalcularon contra la DB (cacheUtility.withCache,
-    // anotado vía requestContext durante el manejo del request).
+    // Log de cada request — se emite al terminar (evento 'finish' de la response)
     app.use((req: Request, res: Response, next: NextFunction) => {
         const startedAt = process.hrtime.bigint();
 
@@ -125,8 +124,7 @@ export function createApp(): Express {
 
     // Servir archivos estáticos (uploads)
     // Cross-Origin-Resource-Policy: cross-origin — permite que frontends en otros puertos
-    // carguen imágenes directamente (necesario cuando helmet() setea same-origin por defecto)
-    app.use('/uploads', (_req: Request, res: Response, next: NextFunction) => {
+    app.use('/uploads', (_req, res: Response, next: NextFunction) => {
         res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
         next();
     }, express.static(path.join(__dirname, '..', 'uploads')));
@@ -137,25 +135,16 @@ export function createApp(): Express {
 
     // Ruta de salud del servidor
     app.get('/health', (_req: Request, res: Response) => {
-        res.json({
-            status: 'OK',
-            timestamp: new Date().toISOString(),
-            version: process.env.npm_package_version
-        });
+        res.json({ status: 'OK', timestamp: new Date().toISOString(), version: process.env.npm_package_version });
     });
 
     // Cada índice de rutas se agrega acá a medida que su módulo completa la
-    // capa routes/controller/service/repository, siguiendo el mismo patrón
-    // del backend anterior: cada índice declara sus propios sub-prefijos
-    // (/auth, /users, /companies, etc.) y se monta bajo /api.
+    // capa routes/controller/service/repository
     app.use('/api', authRoutes);
     app.use('/api', systemRoutes);
     app.use('/api', companysRoutes);
     app.use('/api', usersRoutes);
     app.use('/api', saasRoutes);
-    //
-    // app.use('/api', bookingsRoutes);
-    // app.use('/api', notificacionsRoutes);
 
     // Manejo de 404 y errores globales
     app.use(GlobalErrorHandler.notFound);

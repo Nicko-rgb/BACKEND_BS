@@ -5,6 +5,7 @@
  * (fail-open), para que la app siga funcionando sin caching.
  */
 import { createClient } from 'redis';
+import chalk from 'chalk';
 import logger from './logger';
 
 type RedisClientInstance = ReturnType<typeof createClient>;
@@ -49,7 +50,7 @@ class RedisClient {
             });
 
             this.client.on('connect', () => {
-                logger.info('Conectado a Redis');
+                console.log(chalk.green('✅ Redis: conectado'));
                 this.isConnected = true;
             });
 
