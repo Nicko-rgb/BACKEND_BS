@@ -15,14 +15,14 @@ export const list = async (req: Request, res: Response) => {
 
 // Detalle de una empresa — busca por tenant_id, no por company_id (ver company.service.ts → getByTenantId).
 export const getByTenantId = async (req: Request, res: Response) => {
-    const company = await CompanyService.getByTenantId(String(req.params.tenantId), req.user!);
-    return ApiResponse.ok(res, toCompanyDetailDto(company), 'Empresa obtenida');
+    const { company, assignments } = await CompanyService.getByTenantId(String(req.params.tenantId), req.user!);
+    return ApiResponse.ok(res, toCompanyDetailDto(company, assignments), 'Empresa obtenida');
 };
 
 // Autoedición de la propia empresa — sin `document` (RUC), ver company.service.ts → updateByTenantId.
 export const updateByTenantId = async (req: Request, res: Response) => {
-    const company = await CompanyService.updateByTenantId(String(req.params.tenantId), req.validatedData, req.user!);
-    return ApiResponse.ok(res, toCompanyDetailDto(company), 'Empresa actualizada exitosamente');
+    const { company, assignments } = await CompanyService.updateByTenantId(String(req.params.tenantId), req.validatedData, req.user!);
+    return ApiResponse.ok(res, toCompanyDetailDto(company, assignments), 'Empresa actualizada exitosamente');
 };
 
 // Alta de empresa (wizard de 3 pasos) — crea Company+User+Person+UserCompany+SaaSSubscription

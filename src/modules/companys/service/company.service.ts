@@ -16,7 +16,17 @@ import { hasFullCompanyAccess } from '../../../shared/utils/accessScope';
 import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { PaginationQuery } from '../../../shared/types/pagination';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
+import type { Company } from '../database/models';
 import type { Person } from '../../users/database/models';
+
+/**
+ * Detalle completo de una empresa — le suma los usuarios asignados a ella y a sus sucursales
+ * (el repository vive en el módulo de usuarios, dueño de `user_companies`).
+ */
+const withAssignments = async (company: Company) => {
+    const companyIds = [Number(company.company_id), ...(company.subsidiaries ?? []).map((s) => Number(s.company_id))];
+    return { company, assignments: await UserCompanyRepository.findActiveByCompanyIds(companyIds) };
+};
 
 export interface ListCompaniesQuery extends PaginationQuery {
     search?: string;
@@ -62,7 +72,7 @@ export const getByTenantId = async (tenantId: string, user: AuthenticatedUser) =
         throw new ForbiddenError('No tenés acceso a esta empresa');
     }
 
-    return company;
+    return withAssignments(company);
 };
 
 // Payload de autoedición de la propia empresa — todo opcional, incluye `document` (RUC) para
@@ -109,7 +119,7 @@ export const updateByTenantId = async (tenantId: string, data: UpdateCompanyInpu
     await CompanyRepository.update(company, { ...data, user_update: user.user_id });
 
     const updated = await CompanyRepository.findByTenantId(tenantId);
-    return updated!;
+    return withAssignments(updated!);
 };
 
 // Payload del wizard de alta — un objeto por paso del frontend (empresa, dueño, plan).

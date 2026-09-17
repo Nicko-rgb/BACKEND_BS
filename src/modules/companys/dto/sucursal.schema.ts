@@ -59,6 +59,12 @@ const SUCURSAL_FIELDS = {
         .messages({
             'string.max': 'La descripción no puede superar 2000 caracteres',
         }),
+    website: Joi.string().trim().uri({ scheme: ['http', 'https'] }).max(255).allow('', null)
+        .messages({
+            'string.uri': 'El sitio web debe ser una URL válida (https://...)',
+            'string.uriCustomScheme': 'El sitio web debe empezar con http:// o https://',
+            'string.max': 'El sitio web no puede superar 255 caracteres',
+        }),
 };
 
 // Alta de sucursal — campos operativos (horario, precio mínimo) quedan para "Configurar" más
@@ -74,6 +80,7 @@ export const registerSucursalSchema = Joi.object({
     latitude: SUCURSAL_FIELDS.latitude,
     longitude: SUCURSAL_FIELDS.longitude,
     description: SUCURSAL_FIELDS.description,
+    website: SUCURSAL_FIELDS.website,
 });
 
 // Edición de sucursal — todo opcional (PUT parcial), mismos campos que el alta.

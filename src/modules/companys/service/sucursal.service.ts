@@ -20,6 +20,7 @@ export interface RegisterSucursalInput {
     latitude?: number | null;
     longitude?: number | null;
     description?: string | null;
+    website?: string | null;
 }
 
 export type UpdateSucursalInput = Partial<RegisterSucursalInput>;
@@ -55,7 +56,7 @@ export const register = async (companyTenantId: string, data: RegisterSucursalIn
         document: parent.document,
         phone_cell: data.phone_cell,
         phone: data.phone || null,
-        website: null,
+        website: data.website || null,
         country_id: data.country_id,
         ubigeo_id: data.ubigeo_id,
         tenant_id: tenantId,
@@ -115,6 +116,7 @@ export const updateByTenantId = async (tenantId: string, data: UpdateSucursalInp
     if (data.latitude !== undefined) updateFields.latitude = data.latitude != null ? String(data.latitude) : null;
     if (data.longitude !== undefined) updateFields.longitude = data.longitude != null ? String(data.longitude) : null;
     if (data.description !== undefined) updateFields.description = data.description;
+    if (data.website !== undefined) updateFields.website = data.website || null;
 
     await CompanyRepository.update(sucursal, updateFields);
 

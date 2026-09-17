@@ -1,4 +1,5 @@
 import type { Company } from '../database/models';
+import type { UserCompany } from '../../users/database/models';
 import type { Ubigeo } from '../../system/database/models';
 import type { CompanyPlanSummary } from '../../saas/repository/saasSubscription.repository';
 
@@ -9,6 +10,48 @@ const formatUbigeo = (ubigeo?: Ubigeo): string | null => {
     const province = ubigeo.parent ?? null;
     const department = province?.parent ?? null;
     return [ubigeo.name, province?.name, department?.name].filter(Boolean).join(', ');
+};
+
+/**
+ * Una entrada por usuario con todas las sucursales donde está asignado — en `user_companies`
+ * hay una fila por sucursal, así que un mismo usuario puede venir repetido. El nombre sale de
+ * `nameByCompanyId`, armado con la empresa y las sucursales ya cargadas.
+ */
+const toCompanyUsersDto = (assignments: UserCompany[], nameByCompanyId: Map<number, string>) => {
+    const byUserId = new Map<number, {
+        id: number;
+        firstName: string | null;
+        lastName: string | null;
+        email: string | null;
+        phone: string | null;
+        role: string;
+        sucursales: { tenantId: string; name: string | null }[];
+    }>();
+
+    assignments.forEach((assignment) => {
+        const user = assignment.user;
+        if (!user) return;
+
+        const userId = Number(user.user_id);
+        if (!byUserId.has(userId)) {
+            byUserId.set(userId, {
+                id: userId,
+                firstName: user.first_name,
+                lastName: user.last_name,
+                email: user.email,
+                phone: user.person?.phone ?? null,
+                role: assignment.role,
+                sucursales: [],
+            });
+        }
+
+        byUserId.get(userId)!.sucursales.push({
+            tenantId: assignment.tenant_id,
+            name: nameByCompanyId.get(Number(assignment.company_id)) ?? null,
+        });
+    });
+
+    return [...byUserId.values()];
 };
 
 /**
@@ -59,11 +102,16 @@ export const toCompanyListDto = (company: Company, plan: CompanyPlanSummary | nu
  * `country.id` y los ids de `ubigeo` van además de los nombres para poder precargar el
  * formulario de edición sin otro request.
  */
-export const toCompanyDetailDto = (company: Company) => {
+export const toCompanyDetailDto = (company: Company, assignments: UserCompany[] = []) => {
     const owner = company.userAssignments?.[0]?.user ?? null;
     const district = company.ubigeo ?? null;
     const province = district?.parent ?? null;
     const department = province?.parent ?? null;
+
+    const nameByCompanyId = new Map<number, string>([
+        [Number(company.company_id), company.name],
+        ...(company.subsidiaries ?? []).map((s) => [Number(s.company_id), s.name] as [number, string]),
+    ]);
 
     return {
         id: company.company_id,
@@ -100,6 +148,7 @@ export const toCompanyDetailDto = (company: Company) => {
             address: s.address,
             ubigeo: formatUbigeo(s.ubigeo),
         })),
+        users: toCompanyUsersDto(assignments, nameByCompanyId),
         createdAt: company.created_at,
     };
 };
