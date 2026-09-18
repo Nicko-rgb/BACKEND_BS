@@ -42,6 +42,17 @@ export const findActiveByCompanyIds = async (companyIds: number[]) => {
     });
 };
 
+// Usuarios distintos con asignación activa en esas empresas/sucursales — el dueño incluido.
+export const countActiveUsersByCompanyIds = async (companyIds: number[]): Promise<number> => {
+    if (companyIds.length === 0) return 0;
+
+    return UserCompany.count({
+        where: { company_id: { [Op.in]: companyIds }, is_active: true },
+        distinct: true,
+        col: 'user_id',
+    });
+};
+
 // Asignaciones activas de un usuario, con su rol contextual.
 export const findActiveByUserId = async (userId: number) => {
     return UserCompany.findAll({

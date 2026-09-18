@@ -1,15 +1,12 @@
 import type { InferAttributes } from 'sequelize';
-import * as SaaSPlanRepository from '../../saas/repository/saasPlan.repository';
+import * as SaaSPlanRepository from '../repository/saasPlan.repository';
 import cacheUtility from '../../../shared/utils/cacheUtility';
 import { NotFoundError, ConflictError } from '../../../shared/errors/CustomErrors';
-import type { SaaSPlan } from '../../saas/database/models';
+import type { SaaSPlan } from '../database/models';
 
-/**
- * Todos los planes(activos e inactivos), sin paginar — catálogo chico, 
- * Listado de administración
- * */
+// Todos los planes (activos e inactivos), sin paginar — listado de administración
 export const list = async () => {
-    return cacheUtility.withCache('system:plans', {}, async () => {
+    return cacheUtility.withCache('saas:plans', {}, async () => {
         const rows = await SaaSPlanRepository.findAll();
         const referencesCount = await SaaSPlanRepository.countReferencesByIds(rows.map((row) => row.plan_id));
         return { rows, referencesCount };
@@ -18,16 +15,16 @@ export const list = async () => {
 
 // Solo planes activos — endpoint público, sin paginar, para selects/lógica de negocio
 export const listActive = async () => {
-    return cacheUtility.withCache('system:plans:active', {}, () => SaaSPlanRepository.findAllActive());
+    return cacheUtility.withCache('saas:plans:active', {}, () => SaaSPlanRepository.findAllActive());
 };
 
-// Actualiza un plan existente y limpia el cache de listados ───
+// Actualiza un plan existente y limpia el cache de listados
 export const update = async (id: number, data: Partial<InferAttributes<SaaSPlan>>) => {
     const plan = await SaaSPlanRepository.findById(id);
     if (!plan) throw new NotFoundError('Plan no encontrado');
 
     const updated = await SaaSPlanRepository.update(plan, data);
-    await cacheUtility.delByPattern('system:plans:*');
+    await cacheUtility.delByPattern('saas:plans:*');
     return updated;
 };
 
@@ -42,5 +39,5 @@ export const remove = async (id: number) => {
     }
 
     await SaaSPlanRepository.remove(plan);
-    await cacheUtility.delByPattern('system:plans:*');
+    await cacheUtility.delByPattern('saas:plans:*');
 };

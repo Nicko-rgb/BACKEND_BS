@@ -70,6 +70,11 @@ export const countSucursalesByParentId = async (parentCompanyId: number): Promis
     return Company.count({ where: { parent_company_id: parentCompanyId } });
 };
 
+// Empresa principal por tenant_id — solo su id, para quien no necesita el detalle completo.
+export const findRootIdByTenantId = async (tenantId: string) => {
+    return Company.findOne({ where: { tenant_id: tenantId, parent_company_id: null }, attributes: ['company_id'] });
+};
+
 // Crea la empresa (o sucursal) — usado por el alta de empresa (dentro de una transacción, ver
 // company.service.ts::register) y por el alta de sucursal (sin transacción, un solo insert).
 export const create = async (data: CreationAttributes<Company>, transaction?: Transaction) => {

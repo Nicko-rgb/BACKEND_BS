@@ -1,6 +1,11 @@
 import * as SaaSSubscriptionRepository from '../repository/saasSubscription.repository';
-import { ConflictError, NotFoundError } from '../../../shared/errors/CustomErrors';
+import * as CompanyRepository from '../../companys/repository/company.repository';
+import * as UserCompanyRepository from '../../users/repository/userCompany.repository';
+import { isUnlimitedLimit } from '../utils/planLimits';
+import { hasFullCompanyAccess } from '../../../shared/utils/accessScope';
+import { ConflictError, ForbiddenError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { CompanyPlanSummary } from '../repository/saasSubscription.repository';
+import type { AuthenticatedUser } from '../../../shared/types/auth';
 
 // Los 4 límites numéricos que trae un plan — quien registra un recurso limitado (sucursal,
 // espacio, usuario, factura) pasa cuál le corresponde a assertPlanLimit.
@@ -31,7 +36,30 @@ export const assertPlanLimit = async (companyId: number, field: PlanLimitField, 
     if (!plan) throw new NotFoundError('La empresa no tiene un plan activo.');
 
     const limit = plan[field];
+    if (isUnlimitedLimit(limit)) return;
     if (currentCount >= limit) {
         throw new ConflictError(`Esta empresa alcanzó el límite de ${LIMIT_LABELS[field]} de su plan (${plan.planName}: ${limit}).`);
     }
+};
+
+/**
+ * Plan de una empresa raíz y lo que ya consume de cada límite, con los mismos conteos que
+ * valida assertPlanLimit. Espacios y facturas todavía no tienen alta: su uso es 0.
+ */
+export const getPlanUsage = async (tenantId: string, user: AuthenticatedUser) => {
+    const company = await CompanyRepository.findRootIdByTenantId(tenantId);
+    if (!company) throw new NotFoundError('Empresa no encontrada');
+
+    const companyId = Number(company.company_id);
+    if (!hasFullCompanyAccess(user) && !(user.company_ids ?? []).includes(companyId)) {
+        throw new ForbiddenError('No tenés acceso a esta empresa');
+    }
+
+    const plan = await getActivePlanForCompany(companyId);
+    if (!plan) throw new NotFoundError('La empresa no tiene un plan activo.');
+
+    const sucursalIds = await CompanyRepository.findSucursalIdsByParentIds([companyId]);
+    const users = await UserCompanyRepository.countActiveUsersByCompanyIds([companyId, ...sucursalIds]);
+
+    return { plan, usage: { subsidiaries: sucursalIds.length, users, spaces: 0, invoicesMonthly: 0 } };
 };

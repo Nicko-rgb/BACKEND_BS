@@ -5,6 +5,7 @@ import * as UserRepository from '../repository/user.repository';
 import * as UserCompanyRepository from '../repository/userCompany.repository';
 import * as RoleRepository from '../../system/repository/role.repository';
 import * as CompanyRepository from '../../companys/repository/company.repository';
+import * as PlanLimitsService from '../../saas/service/planLimits.service';
 import { applyProfileChanges, assertCountryAvailable } from './user.service';
 import { canAssignRole, isManagedRole } from '../../../shared/utils/roleHierarchy';
 import { hasFullCompanyAccess } from '../../../shared/utils/accessScope';
@@ -39,6 +40,7 @@ export type UpdateManagedUserInput = ManagedProfileInput & {
 interface CompanyAssignment {
     company_id: number;
     tenant_id: string;
+    root_company_id: number;
 }
 
 // Roles asignados a sucursales — los únicos entre los que se puede cambiar el rol al editar.
@@ -68,6 +70,7 @@ const resolveSucursalAssignments = async (user: AuthenticatedUser, tenantIds: st
     return sucursales.map((sucursal) => ({
         company_id: Number(sucursal.company_id),
         tenant_id: sucursal.parentCompany!.tenant_id,
+        root_company_id: Number(sucursal.parentCompany!.company_id),
     }));
 };
 
@@ -77,7 +80,23 @@ const resolveOwnerAssignment = async (user: AuthenticatedUser, tenantId: string)
     if (!company) throw new NotFoundError('Empresa no encontrada');
     if (!inScope(user, Number(company.company_id))) throw new ForbiddenError('No tenés acceso a esta empresa');
 
-    return [{ company_id: Number(company.company_id), tenant_id: company.tenant_id }];
+    return [{ company_id: Number(company.company_id), tenant_id: company.tenant_id, root_company_id: Number(company.company_id) }];
+};
+
+/**
+ * Cupo de usuarios del plan en cada empresa raíz a la que se suma el usuario: cuenta los usuarios
+ * distintos de la empresa y sus sucursales, dueño incluido. Si ya pertenece a esa empresa, no suma.
+ */
+const assertUserLimit = async (assignments: CompanyAssignment[], existingUserId?: number) => {
+    const currentCompanyIds = existingUserId ? await UserCompanyRepository.findActiveCompanyIdsByUserId(existingUserId) : [];
+
+    for (const rootId of new Set(assignments.map((assignment) => assignment.root_company_id))) {
+        const companyIds = [rootId, ...await CompanyRepository.findSucursalIdsByParentIds([rootId])];
+        if (companyIds.some((companyId) => currentCompanyIds.includes(companyId))) continue;
+
+        const currentUsers = await UserCompanyRepository.countActiveUsersByCompanyIds(companyIds);
+        await PlanLimitsService.assertPlanLimit(rootId, 'maxUsers', currentUsers);
+    }
 };
 
 // Alcance sobre un usuario existente — por sus asignaciones de empresa/sucursal; un cliente, por
@@ -164,6 +183,7 @@ export const create = async (roleParam: string, data: CreateManagedUserInput, us
     let assignments: CompanyAssignment[] = [];
     if (SUCURSAL_ROLES.includes(role)) assignments = await resolveSucursalAssignments(user, data.sucursales ?? []);
     if (role === 'super_admin') assignments = await resolveOwnerAssignment(user, data.company_tenant_id!);
+    await assertUserLimit(assignments);
 
     const hashedPassword = data.password ? await bcrypt.hash(data.password, 10) : null;
 
@@ -236,9 +256,10 @@ export const update = async (roleParam: string, id: number, data: UpdateManagedU
         nextRoleId = roleRow.role_id;
     }
 
-    const assignments = sucursales ? await resolveSucursalAssignments(user, sucursales) : null;
-    const assignedRole = nextRoleId !== undefined ? nextRole! : role;
     const targetId = Number(target.user_id);
+    const assignments = sucursales ? await resolveSucursalAssignments(user, sucursales) : null;
+    if (assignments) await assertUserLimit(assignments, targetId);
+    const assignedRole = nextRoleId !== undefined ? nextRole! : role;
 
     await sequelize.transaction(async (transaction) => {
         await applyProfileChanges(target, nextRoleId !== undefined ? { ...profile, role_id: nextRoleId } : profile, transaction);

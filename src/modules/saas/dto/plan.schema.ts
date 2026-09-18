@@ -1,29 +1,7 @@
 import Joi from 'joi';
-import type { SaaSPlan } from '../../saas/database/models';
-
-export const toPlanDto = (plan: SaaSPlan, referencesCount = 0) => ({
-    id: plan.plan_id,
-    name: plan.name,
-    code: plan.code,
-    priceMonthly: plan.price_monthly,
-    priceYearly: plan.price_yearly,
-    maxSubsidiaries: plan.max_subsidiaries,
-    maxSpaces: plan.max_spaces,
-    maxUsers: plan.max_users,
-    hasStripeConnect: plan.has_stripe_connect,
-    maxInvoicesMonthly: plan.max_invoices_monthly,
-    notificationsTier: plan.notifications_tier,
-    hasAdvancedReports: plan.has_advanced_reports,
-    allowsMultiCompany: plan.allows_multi_company,
-    features: plan.features,
-    isActive: plan.is_active,
-    referencesCount,
-    createdAt: plan.created_at,
-    updatedAt: plan.updated_at,
-});
 
 // PUT reemplaza el registro completo — todos los campos son requeridos. Los IDs de MercadoPago
-// quedan fuera de este formulario por su complejidad/no exposición en el DTO de lectura.
+// quedan fuera de este formulario.
 export const updatePlanSchema = Joi.object({
     name: Joi.string().min(2).max(100).required()
         .messages({
@@ -92,8 +70,7 @@ export const updatePlanSchema = Joi.object({
             'any.required': 'El máximo de facturas mensuales es requerido',
         }),
 
-    // Valores conocidos hoy — un nivel nuevo es un cambio de código (agregar acá), nunca una
-    // migración de DB, porque la columna es STRING libre a propósito (ver 027_baseline_saas_plans).
+    // Valores conocidos hoy — la columna es STRING libre, un nivel nuevo se agrega acá sin migración.
     notifications_tier: Joi.string().valid('basic', 'full').required()
         .messages({
             'string.empty': 'El nivel de notificaciones es requerido',
