@@ -43,14 +43,13 @@ export const assertPlanLimit = async (companyId: number, field: PlanLimitField, 
 };
 
 /**
- * Plan de una empresa raíz y lo que ya consume de cada límite, con los mismos conteos que
- * valida assertPlanLimit. Espacios y facturas todavía no tienen alta: su uso es 0.
+ * Plan de una empresa raíz, su empresa primaria (la titular de la suscripción, puede ser ella misma)
+ * y lo que ya consume de cada límite, con los mismos conteos que valida assertPlanLimit.
  */
-export const getPlanUsage = async (tenantId: string, user: AuthenticatedUser) => {
-    const company = await CompanyRepository.findRootIdByTenantId(tenantId);
+export const getPlanUsage = async (companyId: number, user: AuthenticatedUser) => {
+    const company = await CompanyRepository.findRootById(companyId);
     if (!company) throw new NotFoundError('Empresa no encontrada');
 
-    const companyId = Number(company.company_id);
     if (!hasFullCompanyAccess(user) && !(user.company_ids ?? []).includes(companyId)) {
         throw new ForbiddenError('No tenés acceso a esta empresa');
     }
@@ -58,8 +57,10 @@ export const getPlanUsage = async (tenantId: string, user: AuthenticatedUser) =>
     const plan = await getActivePlanForCompany(companyId);
     if (!plan) throw new NotFoundError('La empresa no tiene un plan activo.');
 
+    const primaryCompany = await SaaSSubscriptionRepository.findPrimaryCompany(plan.subscriptionId);
     const sucursalIds = await CompanyRepository.findSucursalIdsByParentIds([companyId]);
     const users = await UserCompanyRepository.countActiveUsersByCompanyIds([companyId, ...sucursalIds]);
 
-    return { plan, usage: { subsidiaries: sucursalIds.length, users, spaces: 0, invoicesMonthly: 0 } };
+    // Espacios y facturas todavía no tienen alta: su uso es 0.
+    return { plan, primaryCompany, usage: { subsidiaries: sucursalIds.length, users, spaces: 0, invoicesMonthly: 0 } };
 };

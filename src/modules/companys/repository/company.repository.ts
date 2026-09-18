@@ -70,9 +70,9 @@ export const countSucursalesByParentId = async (parentCompanyId: number): Promis
     return Company.count({ where: { parent_company_id: parentCompanyId } });
 };
 
-// Empresa principal por tenant_id — solo su id, para quien no necesita el detalle completo.
-export const findRootIdByTenantId = async (tenantId: string) => {
-    return Company.findOne({ where: { tenant_id: tenantId, parent_company_id: null }, attributes: ['company_id'] });
+// Empresa principal por id — solo su id, para quien no necesita el detalle completo.
+export const findRootById = async (companyId: number) => {
+    return Company.findOne({ where: { company_id: companyId, parent_company_id: null }, attributes: ['company_id'] });
 };
 
 // Crea la empresa (o sucursal) — usado por el alta de empresa (dentro de una transacción, ver

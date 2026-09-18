@@ -4,6 +4,6 @@ import { toPlanUsageDto } from '../dto/planUsage.dto';
 import ApiResponse from '../../../shared/utils/ApiResponse';
 
 export const getPlanUsage = async (req: Request, res: Response) => {
-    const { plan, usage } = await PlanLimitsService.getPlanUsage(String(req.params.tenantId), req.user!);
-    return ApiResponse.ok(res, toPlanUsageDto(plan, usage), 'Uso del plan obtenido exitosamente');
+    const { plan, primaryCompany, usage } = await PlanLimitsService.getPlanUsage(Number(req.params.companyId), req.user!);
+    return ApiResponse.ok(res, toPlanUsageDto(plan, primaryCompany, usage), 'Uso del plan obtenido exitosamente');
 };

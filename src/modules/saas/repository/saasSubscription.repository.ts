@@ -72,6 +72,16 @@ export const findPlanByCompanyId = async (companyId: number): Promise<CompanyPla
     return result[companyId] ?? null;
 };
 
+// Empresa titular (is_primary) de una suscripción — solo su id, tenant y nombre.
+export const findPrimaryCompany = async (subscriptionId: number) => {
+    const row = await SaaSSubscriptionCompany.findOne({
+        where: { subscription_id: subscriptionId, is_primary: true },
+        include: [{ association: 'company', attributes: ['company_id', 'tenant_id', 'name'] }],
+    });
+
+    return row?.company ?? null;
+};
+
 // Crea la suscripción dentro de una transacción — usado por el alta de empresa.
 export const create = async (data: CreationAttributes<SaaSSubscription>, transaction: Transaction) => {
     return SaaSSubscription.create(data, { transaction });
