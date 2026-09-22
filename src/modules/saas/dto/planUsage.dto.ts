@@ -14,6 +14,7 @@ const toLimitUsage = (used: number, max: number) => ({ used, max: isUnlimitedLim
 
 export const toPlanUsageDto = (plan: CompanyPlanSummary, primaryCompany: Company | null, usage: PlanUsageCounts) => ({
     planName: plan.planName,
+    notificationsTier: plan.notificationsTier,
     primaryCompany: primaryCompany ? {
         companyId: Number(primaryCompany.company_id),
         tenantId: primaryCompany.tenant_id,

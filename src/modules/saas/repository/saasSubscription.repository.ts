@@ -16,6 +16,7 @@ export interface CompanyPlanSummary {
     maxSpaces: number;
     maxUsers: number;
     maxInvoicesMonthly: number;
+    notificationsTier: string;
 }
 
 /**
@@ -58,6 +59,7 @@ export const findPlansByCompanyIds = async (companyIds: number[]): Promise<Recor
             maxSpaces: plan.max_spaces,
             maxUsers: plan.max_users,
             maxInvoicesMonthly: plan.max_invoices_monthly,
+            notificationsTier: plan.notifications_tier,
         };
     });
 
