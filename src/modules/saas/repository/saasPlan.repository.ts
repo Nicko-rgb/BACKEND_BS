@@ -20,7 +20,12 @@ export const findAllActive = async () => {
     });
 };
 
-// Busca por PK — usado antes de update/delete para confirmar existencia.
+// Busca por public_id — lo único expuesto en URLs. Uso interno sigue por plan_id numérico.
+export const findByPublicId = async (publicId: string) => {
+    return SaaSPlan.findOne({ where: { public_id: publicId } });
+};
+
+// Busca por PK — SOLO uso interno (nunca exponer).
 export const findById = async (id: number) => {
     return SaaSPlan.findByPk(id);
 };

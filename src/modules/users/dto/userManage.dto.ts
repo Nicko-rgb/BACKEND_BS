@@ -1,9 +1,9 @@
 import { toUserDetailDto } from './user.dto';
 import type { User } from '../database/models';
 
-// Empresa o sucursal a la que está asignado un usuario gestionado.
+// Empresa o sucursal a la que está asignado un usuario gestionado — solo public_id, nunca ids internos ni tenant.
 export interface ManagedAssignment {
-    tenantId: string;
+    publicId: string;
     name: string;
     role: string;
 }

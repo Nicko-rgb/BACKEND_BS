@@ -18,6 +18,7 @@ export class Space extends Model<InferAttributes<Space>, InferCreationAttributes
     declare space_id: CreationOptional<number>;
     declare sucursal_id: number;
     declare tenant_id: string;
+    declare public_id: CreationOptional<string>;
     declare name: string;
     declare surface_type_id: number;
     declare sport_type_id: number;
@@ -52,7 +53,14 @@ Space.init({
     tenant_id: {
         type: DataTypes.STRING(36),
         allowNull: false,
-        comment: 'Identificador del tenant para multi-tenancy'
+        comment: 'Tenant raíz heredado de la sucursal/empresa — se duplica'
+    },
+    public_id: {
+        type: DataTypes.STRING(36),
+        allowNull: false,
+        unique: true,
+        defaultValue: DataTypes.UUIDV4,
+        comment: 'Identificador público único por fila — lo único expuesto en URLs'
     },
     name: {
         type: DataTypes.STRING(100),
@@ -144,7 +152,8 @@ Space.init({
         { name: 'idx_space_surface_type', fields: ['surface_type_id'] },
         { name: 'idx_space_sport_category', fields: ['sport_category_id'] },
         { name: 'idx_space_sport_type', fields: ['sport_type_id'] },
-        { name: 'idx_space_tenant', fields: ['tenant_id'] }
+        { name: 'idx_space_tenant', fields: ['tenant_id'] },
+        { unique: true, name: 'unique_space_public_id', fields: ['public_id'] }
     ]
 });
 

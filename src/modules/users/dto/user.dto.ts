@@ -10,7 +10,7 @@ export const toUserDto = (user: User) => {
     const person = user.person ?? null;
 
     return {
-        id: user.user_id,
+        publicId: user.public_id,
         name: [user.first_name, user.last_name].filter(Boolean).join(' '),
         email: user.email,
         phone: person?.phone ?? null,
@@ -32,7 +32,7 @@ export const toUserDetailDto = (user: User) => {
     const person = user.person ?? null;
 
     return {
-        id: user.user_id,
+        publicId: user.public_id,
         firstName: user.first_name,
         lastName: user.last_name,
         email: user.email,

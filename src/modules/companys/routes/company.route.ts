@@ -3,7 +3,7 @@ import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorizatio
 import { verificarPermiso } from '../../../shared/middlewares/verificarPermiso';
 import { validateDTO, validateQuery } from '../../../shared/middlewares/validateDTO';
 import { listCompaniesQuerySchema, registerCompanySchema, updateCompanySchema } from '../dto/company.schema';
-import { list, registerCompany, getByTenantId, updateByTenantId } from '../controllers/company.controller';
+import { list, registerCompany, getByPublicId, updateByPublicId } from '../controllers/company.controller';
 
 const router = createRouter();
 
@@ -34,29 +34,28 @@ router.post('/register',
 );
 
 /**
- * @route GET /api/companys/:tenantId
+ * @route GET /api/companys/:publicId
  * @desc  Detalle de una empresa — país, ubigeo formateado, dueño y sus sucursales (solo
- *        nombre). Se busca por `tenant_id` (UUID), no por `company_id` — no expone el id
- *        secuencial en la URL del frontend.
+ *        nombre). Se busca por `public_id` (UUID) — nunca `company_id` ni `tenant_id`.
  * @access system, super_admin
  */
-router.get('/:tenantId',
+router.get('/:publicId',
     resolveAuthorization,
     verificarPermiso('company.view'),
-    getByTenantId
+    getByPublicId
 );
 
 /**
- * @route PUT /api/companys/:tenantId
+ * @route PUT /api/companys/:publicId
  * @desc  Autoedición de la propia empresa (nombre, teléfonos, dirección, país, ubigeo) — sin
  *        `document` (RUC), no se edita desde acá.
  * @access system, super_admin (solo su propia empresa — chequeo manual en el service)
  */
-router.put('/:tenantId',
+router.put('/:publicId',
     resolveAuthorization,
     verificarPermiso('company.manage_own'),
     validateDTO(updateCompanySchema),
-    updateByTenantId
+    updateByPublicId
 );
 
 export default router;

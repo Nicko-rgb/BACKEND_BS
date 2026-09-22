@@ -147,11 +147,9 @@ export const registerCompanySchema = Joi.object({
     }).required().messages({ 'any.required': 'Los datos del dueño son requeridos' }),
 
     plan: Joi.object({
-        plan_id: Joi.number().integer().positive().required()
+        plan_public_id: Joi.string().guid().required()
             .messages({
-                'number.base': 'El plan es requerido',
-                'number.integer': 'El plan seleccionado no es válido',
-                'number.positive': 'El plan seleccionado no es válido',
+                'string.guid': 'El plan seleccionado no es válido',
                 'any.required': 'El plan es requerido',
             }),
         billing_period: Joi.string().valid('monthly', 'yearly').required()
@@ -164,7 +162,7 @@ export const registerCompanySchema = Joi.object({
 
 // Autoedición de la propia empresa — todo opcional (PUT parcial). `document` (RUC) incluido
 // para poder corregir un dato mal cargado al registrar — el Service revalida que no choque con
-// el de otra empresa, mismo criterio que al registrar (ver company.service.ts → updateByTenantId).
+// el de otra empresa, mismo criterio que al registrar (ver company.service.ts → updateByPublicId).
 export const updateCompanySchema = Joi.object(COMPANY_FIELDS).min(1).messages({
     'object.min': 'Debe enviar al menos un campo para actualizar',
 });

@@ -19,11 +19,11 @@ const router = createRouter();
 router.get('/', resolveAuthorization, verificarPermiso('user.manage_all'), validateQuery(listUsersQuerySchema), list);
 
 /**
- * @route GET /api/users/manage/:role/:id
+ * @route GET /api/users/manage/:role/:publicId
  * @desc  Detalle de un usuario de ese rol, con sus asignaciones de empresa/sucursal
  * @access permiso de gestión del rol
  */
-router.get('/:role/:id', resolveAuthorization, verificarPermiso('user.manage_all', 'user.administrator_manage', 'user.employee_manage', 'user.client_manage'), getById);
+router.get('/:role/:publicId', resolveAuthorization, verificarPermiso('user.manage_all', 'user.administrator_manage', 'user.employee_manage', 'user.client_manage'), getById);
 
 /**
  * @route POST /api/users/manage/:role
@@ -33,10 +33,10 @@ router.get('/:role/:id', resolveAuthorization, verificarPermiso('user.manage_all
 router.post('/:role', resolveAuthorization, verificarPermiso('user.manage_all', 'user.administrator_manage', 'user.employee_manage', 'user.client_manage'), validateDTOByParam('role', createUserSchemas), create);
 
 /**
- * @route PUT /api/users/manage/:role/:id
+ * @route PUT /api/users/manage/:role/:publicId
  * @desc  Edición de un usuario de ese rol (su rol actual) — nunca contraseña
  * @access permiso de gestión del rol
  */
-router.put('/:role/:id', resolveAuthorization, verificarPermiso('user.manage_all', 'user.administrator_manage', 'user.employee_manage', 'user.client_manage'), validateDTOByParam('role', updateUserSchemas), update);
+router.put('/:role/:publicId', resolveAuthorization, verificarPermiso('user.manage_all', 'user.administrator_manage', 'user.employee_manage', 'user.client_manage'), validateDTOByParam('role', updateUserSchemas), update);
 
 export default router;

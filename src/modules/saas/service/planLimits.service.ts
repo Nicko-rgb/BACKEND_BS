@@ -46,9 +46,10 @@ export const assertPlanLimit = async (companyId: number, field: PlanLimitField, 
  * Plan de una empresa raíz, su empresa primaria (la titular de la suscripción, puede ser ella misma)
  * y lo que ya consume de cada límite, con los mismos conteos que valida assertPlanLimit.
  */
-export const getPlanUsage = async (companyId: number, user: AuthenticatedUser) => {
-    const company = await CompanyRepository.findRootById(companyId);
-    if (!company) throw new NotFoundError('Empresa no encontrada');
+export const getPlanUsage = async (companyPublicId: string, user: AuthenticatedUser) => {
+    const root = await CompanyRepository.findByPublicId(companyPublicId);
+    if (!root) throw new NotFoundError('Empresa no encontrada');
+    const companyId = Number(root.company_id);
 
     if (!hasFullCompanyAccess(user) && !(user.company_ids ?? []).includes(companyId)) {
         throw new ForbiddenError('No tenés acceso a esta empresa');

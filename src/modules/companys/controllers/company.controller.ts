@@ -13,15 +13,15 @@ export const list = async (req: Request, res: Response) => {
     return ApiResponse.ok( res, data, 'Empresas obtenidas', 200, { pagination } );
 };
 
-// Detalle de una empresa — busca por tenant_id, no por company_id (ver company.service.ts → getByTenantId).
-export const getByTenantId = async (req: Request, res: Response) => {
-    const { company, assignments } = await CompanyService.getByTenantId(String(req.params.tenantId), req.user!);
+// Detalle de una empresa — busca por public_id, nunca por company_id/tenant_id (ver company.service.ts → getByPublicId).
+export const getByPublicId = async (req: Request, res: Response) => {
+    const { company, assignments } = await CompanyService.getByPublicId(String(req.params.publicId), req.user!);
     return ApiResponse.ok(res, toCompanyDetailDto(company, assignments), 'Empresa obtenida');
 };
 
-// Autoedición de la propia empresa — sin `document` (RUC), ver company.service.ts → updateByTenantId.
-export const updateByTenantId = async (req: Request, res: Response) => {
-    const { company, assignments } = await CompanyService.updateByTenantId(String(req.params.tenantId), req.validatedData, req.user!);
+// Autoedición de la propia empresa — sin `document` (RUC), ver company.service.ts → updateByPublicId.
+export const updateByPublicId = async (req: Request, res: Response) => {
+    const { company, assignments } = await CompanyService.updateByPublicId(String(req.params.publicId), req.validatedData, req.user!);
     return ApiResponse.ok(res, toCompanyDetailDto(company, assignments), 'Empresa actualizada exitosamente');
 };
 

@@ -12,9 +12,10 @@ const migration: MigrationFile = {
         order: 48
     },
 
-    async up(queryInterface, sequelize) {
+    async up(queryInterface, sequelize, transaction) {
         const [rows]: any = await sequelize.query(
-            `SELECT to_regclass('public.dsg_bss_password_reset_token') IS NOT NULL AS exists`
+            `SELECT to_regclass('public.dsg_bss_password_reset_token') IS NOT NULL AS exists`,
+            { transaction }
         );
         if (rows[0].exists) {
             console.log('    ⏭️  dsg_bss_password_reset_token ya existe — baseline registrado');
@@ -34,13 +35,23 @@ const migration: MigrationFile = {
             expires_at: { type: DataTypes.DATE, allowNull: false },
             used_at: { type: DataTypes.DATE, allowNull: true },
             created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
-        });
+        }, { transaction });
 
-        await queryInterface.addIndex('dsg_bss_password_reset_token', ['user_id'], { name: 'idx_password_reset_token_user_id' });
+        await queryInterface.addIndex('dsg_bss_password_reset_token', ['user_id'], { name: 'idx_password_reset_token_user_id', transaction } as any);
+        await queryInterface.addIndex('dsg_bss_password_reset_token', ['expires_at'], { name: 'idx_password_reset_token_expires_at', transaction } as any);
     },
 
-    async down(queryInterface) {
-        await queryInterface.dropTable('dsg_bss_password_reset_token');
+    async down(queryInterface, sequelize, transaction) {
+        const [rows]: any = await sequelize.query(
+            `SELECT to_regclass('public.dsg_bss_password_reset_token') IS NOT NULL AS exists`,
+            { transaction }
+        );
+        if (!rows[0].exists) {
+            console.log('    ⏭️  dsg_bss_password_reset_token no existe — nada que revertir');
+            return;
+        }
+
+        await queryInterface.dropTable('dsg_bss_password_reset_token', { transaction });
     }
 };
 

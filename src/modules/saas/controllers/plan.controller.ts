@@ -17,12 +17,12 @@ export const listActive = async (_req: Request, res: Response) => {
 
 // Actualiza un plan
 export const update = async (req: Request, res: Response) => {
-    const result = await PlanService.update(Number(req.params.id), req.validatedData);
+    const result = await PlanService.update(String(req.params.publicId), req.validatedData);
     return ApiResponse.ok(res, toPlanDto(result), 'Plan actualizado exitosamente');
 };
 
 // Elimina un plan
 export const remove = async (req: Request, res: Response) => {
-    await PlanService.remove(Number(req.params.id));
+    await PlanService.remove(String(req.params.publicId));
     return ApiResponse.ok(res, null, 'Plan eliminado exitosamente');
 };

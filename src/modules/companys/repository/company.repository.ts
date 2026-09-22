@@ -104,16 +104,14 @@ export const findByIdWithOwner = async (companyId: number) => {
 };
 
 /**
- * Empresa principal por `tenant_id` (UUID) — se usa como identificador público en vez del
- * `company_id` secuencial, para no exponer el id real ni el orden de alta en la URL del
- * frontend. Trae país, dueño, el ubigeo con su cadena de padres completa (distrito → provincia
- * → departamento, para poder mostrarlo formateado) y sus sucursales (`subsidiaries`, con su
- * propio ubigeo también con la cadena de padres — lo que hace falta para la card de la grilla
- * de sucursales, no el detalle completo de edición, eso lo trae sucursal.service.ts aparte).
+ * Empresa principal por `public_id` (UUID único por fila, lo único expuesto en URLs —
+ * nunca `company_id` ni `tenant_id`). Trae país, dueño, el ubigeo con su cadena de padres
+ * completa (distrito → provincia → departamento) y sus sucursales (`subsidiaries`, con su
+ * propio `public_id` también — lo que hace falta para la card de la grilla de sucursales).
  */
-export const findByTenantId = async (tenantId: string) => {
+export const findByPublicId = async (publicId: string) => {
     return Company.findOne({
-        where: { tenant_id: tenantId, parent_company_id: null },
+        where: { public_id: publicId, parent_company_id: null },
         include: [
             { association: 'country' },
             {
@@ -128,7 +126,7 @@ export const findByTenantId = async (tenantId: string) => {
             },
             {
                 association: 'subsidiaries',
-                attributes: ['company_id', 'tenant_id', 'name', 'address'],
+                attributes: ['company_id', 'public_id', 'name', 'address'],
                 include: [
                     {
                         association: 'ubigeo',
@@ -141,37 +139,46 @@ export const findByTenantId = async (tenantId: string) => {
 };
 
 /**
- * Sucursal por `tenant_id` (UUID propio, distinto del de su empresa padre — mismo criterio de
- * no exponer ids reales que `findByTenantId`). Trae país, el ubigeo con su cadena de padres
- * completa y la empresa padre (`parentCompany`, solo `tenant_id` — para armar el breadcrumb
- * "volver a la empresa" en el frontend sin otra consulta).
+ * Sucursal por `public_id` (UUID propio, distinto del de su empresa padre). Trae país,
+ * el ubigeo con su cadena de padres completa y la empresa padre (`parentCompany`, solo
+ * `public_id` — para armar el breadcrumb "volver a la empresa" sin otra consulta).
  */
-export const findSucursalByTenantId = async (tenantId: string) => {
+export const findSucursalByPublicId = async (publicId: string) => {
     return Company.findOne({
-        where: { tenant_id: tenantId, parent_company_id: { [Op.ne]: null } },
+        where: { public_id: publicId, parent_company_id: { [Op.ne]: null } },
         include: [
             { association: 'country' },
             {
                 association: 'ubigeo',
                 include: [{ association: 'parent', include: [{ association: 'parent' }] }],
             },
-            { association: 'parentCompany', attributes: ['company_id', 'tenant_id'] },
+            { association: 'parentCompany', attributes: ['company_id', 'public_id'] },
         ],
     });
 };
 
-// Sucursales por tenant_id, con el tenant_id de su empresa padre.
-export const findSucursalesByTenantIds = async (tenantIds: string[]) => {
-    if (tenantIds.length === 0) return [];
+// Sucursales por public_id, con el public_id de su empresa padre.
+export const findSucursalesByPublicIds = async (publicIds: string[]) => {
+    if (publicIds.length === 0) return [];
 
     return Company.findAll({
-        where: { tenant_id: { [Op.in]: tenantIds }, parent_company_id: { [Op.ne]: null } },
-        attributes: ['company_id', 'tenant_id', 'name'],
-        include: [{ association: 'parentCompany', attributes: ['company_id', 'tenant_id'] }],
+        where: { public_id: { [Op.in]: publicIds }, parent_company_id: { [Op.ne]: null } },
+        attributes: ['company_id', 'public_id', 'name', 'tenant_id'],
+        include: [{ association: 'parentCompany', attributes: ['company_id', 'public_id', 'tenant_id'] }],
     });
 };
 
-// Empresas o sucursales por id — solo su identificación (tenant_id y nombre).
+// Empresa o sucursal por public_id — solo identificación pública (sin tenant ni id interno).
+export const findPublicByIds = async (ids: number[]) => {
+    if (ids.length === 0) return [];
+
+    return Company.findAll({
+        where: { company_id: { [Op.in]: ids } },
+        attributes: ['company_id', 'public_id', 'name'],
+    });
+};
+
+// Empresas o sucursales por id — SOLO uso interno (nunca exponer).
 export const findByIds = async (ids: number[]) => {
     if (ids.length === 0) return [];
 

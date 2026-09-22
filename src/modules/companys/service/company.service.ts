@@ -57,15 +57,14 @@ export const list = async (query: ListCompaniesQuery, user: AuthenticatedUser) =
 };
 
 /**
- * Detalle de una empresa por `tenant_id` (identificador público, no el `company_id`
- * secuencial — ver nota en company.repository.ts::findByTenantId). Mismo criterio de
- * alcance que `list`: `system` entra a cualquiera, otro rol solo si la empresa está en su
- * `company_ids` — acá no se puede usar `verificarScope` (compara contra un `company_id`
- * numérico en la ruta, y acá el param de la URL es el `tenant_id`), así que el chequeo se
- * hace a mano, después de resolver la empresa.
+ * Detalle de una empresa por `public_id` (lo único expuesto en URLs — nunca `company_id`
+ * ni `tenant_id`). Mismo criterio de alcance que `list`: `system` entra a cualquiera,
+ * otro rol solo si la empresa está en su `company_ids` — acá no se puede usar
+ * `verificarScope` (compara contra un `company_id` numérico en la ruta, y acá el param
+ * de la URL es el `public_id`), así que el chequeo se hace a mano.
  */
-export const getByTenantId = async (tenantId: string, user: AuthenticatedUser) => {
-    const company = await CompanyRepository.findByTenantId(tenantId);
+export const getByPublicId = async (publicId: string, user: AuthenticatedUser) => {
+    const company = await CompanyRepository.findByPublicId(publicId);
     if (!company) throw new NotFoundError('Empresa no encontrada');
 
     if (!hasFullCompanyAccess(user) && !(user.company_ids ?? []).includes(Number(company.company_id))) {
@@ -89,14 +88,13 @@ export interface UpdateCompanyInput {
 
 /**
  * Actualiza los datos de la propia empresa — mismo lookup y chequeo de alcance manual que
- * `getByTenantId` (acá tampoco aplica `verificarScope`, compara contra `tenant_id` en vez del
- * `company_id` numérico de la ruta). Si viene `country_id`, revalida que el país exista y esté
- * activo, mismo criterio que `register`. Si viene `document`, revalida que no choque con el de
- * otra empresa (mismo `findByDocument` que usa `register`, acá excluyendo a la propia empresa
- * del chequeo — de lo contrario dejarlo tal cual siempre "chocaría" contra sí misma).
+ * `getByPublicId` (acá tampoco aplica `verificarScope`). Si viene `country_id`, revalida
+ * que el país exista y esté activo, mismo criterio que `register`. Si viene `document`,
+ * revalida que no choque con el de otra empresa (mismo `findByDocument` que usa `register`,
+ * acá excluyendo a la propia empresa del chequeo).
  */
-export const updateByTenantId = async (tenantId: string, data: UpdateCompanyInput, user: AuthenticatedUser) => {
-    const company = await CompanyRepository.findByTenantId(tenantId);
+export const updateByPublicId = async (publicId: string, data: UpdateCompanyInput, user: AuthenticatedUser) => {
+    const company = await CompanyRepository.findByPublicId(publicId);
     if (!company) throw new NotFoundError('Empresa no encontrada');
 
     if (!hasFullCompanyAccess(user) && !(user.company_ids ?? []).includes(Number(company.company_id))) {
@@ -118,7 +116,7 @@ export const updateByTenantId = async (tenantId: string, data: UpdateCompanyInpu
 
     await CompanyRepository.update(company, { ...data, user_update: user.user_id });
 
-    const updated = await CompanyRepository.findByTenantId(tenantId);
+    const updated = await CompanyRepository.findByPublicId(publicId);
     return withAssignments(updated!);
 };
 
@@ -126,7 +124,7 @@ export const updateByTenantId = async (tenantId: string, data: UpdateCompanyInpu
 export interface RegisterCompanyInput {
     company: { name: string; document: string; country_id: number; ubigeo_id: number; address: string; phone_cell: string; phone?: string | null; };
     owner: { first_name: string; last_name: string; email: string; password: string; phone: string; country_id: number; document_type: InferAttributes<Person>['document_type']; document_number: string; date_birth?: string | null; };
-    plan: { plan_id: number; billing_period: 'monthly' | 'yearly'; };
+    plan: { plan_public_id: string; billing_period: 'monthly' | 'yearly'; };
 }
 
 /**
@@ -144,7 +142,7 @@ export interface RegisterCompanyInput {
 export const register = async (payload: RegisterCompanyInput, user: AuthenticatedUser) => {
     const { company, owner, plan: planInput } = payload;
 
-    const plan = await SaaSPlanRepository.findById(planInput.plan_id);
+    const plan = await SaaSPlanRepository.findByPublicId(planInput.plan_public_id);
     if (!plan || !plan.is_active) {
         throw new BadRequestError('El plan seleccionado no existe o no está activo.');
     }
@@ -166,6 +164,9 @@ export const register = async (payload: RegisterCompanyInput, user: Authenticate
     if (!superAdminRole) throw new BadRequestError('El rol "super_admin" no está configurado en el sistema.');
 
     const tenantId = crypto.randomUUID();
+    const publicId = crypto.randomUUID();
+    const ownerPublicId = crypto.randomUUID();
+    const subscriptionPublicId = crypto.randomUUID();
     const hashedPassword = await bcrypt.hash(owner.password, 10);
 
     const { newCompany, newUser } = await sequelize.transaction(async (transaction) => {
@@ -177,6 +178,7 @@ export const register = async (payload: RegisterCompanyInput, user: Authenticate
             social_id: null,
             social_provider: null,
             role_id: superAdminRole.role_id,
+            public_id: ownerPublicId,
             is_enabled: true,
             user_create: user.user_id,
         }, transaction);
@@ -211,6 +213,7 @@ export const register = async (payload: RegisterCompanyInput, user: Authenticate
             country_id: company.country_id,
             ubigeo_id: company.ubigeo_id,
             tenant_id: tenantId,
+            public_id: publicId,
             parent_company_id: null,
             status: null,
             postal_code: null,
@@ -237,6 +240,7 @@ export const register = async (payload: RegisterCompanyInput, user: Authenticate
 
         const subscription = await SaaSSubscriptionRepository.create({
             plan_id: plan.plan_id,
+            public_id: subscriptionPublicId,
             status: 'ACTIVE',
             billing_period: planInput.billing_period,
             gateway: 'MANUAL',

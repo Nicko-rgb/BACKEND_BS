@@ -16,8 +16,7 @@ export const toPlanUsageDto = (plan: CompanyPlanSummary, primaryCompany: Company
     planName: plan.planName,
     notificationsTier: plan.notificationsTier,
     primaryCompany: primaryCompany ? {
-        companyId: Number(primaryCompany.company_id),
-        tenantId: primaryCompany.tenant_id,
+        publicId: primaryCompany.public_id,
         name: primaryCompany.name,
     } : null,
     subsidiaries: toLimitUsage(usage.subsidiaries, plan.maxSubsidiaries),

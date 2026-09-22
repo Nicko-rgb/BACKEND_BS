@@ -1,10 +1,10 @@
 import type { Company } from '../database/models';
 
 /**
- * Forma de una sucursal para el frontend — mismo criterio que `toCompanyDetailDto`: país y
- * ubigeo con sus ids (para precargar el form de edición) además del nombre formateado.
- * `companyTenantId` es el `tenant_id` de la empresa padre (`parentCompany`, incluido por
- * `findSucursalByTenantId`), para el link "volver a la empresa" en el frontend.
+ * Forma de una sucursal para el frontend — solo `public_id` (nunca `company_id` ni
+ * `tenant_id`). País y ubigeo con sus ids de catálogo (para precargar el form) además
+ * del nombre formateado. `companyPublicId` es el `public_id` de la empresa padre
+ * (`parentCompany`), para el link "volver a la empresa".
  */
 export const toSucursalDto = (sucursal: Company) => {
     const district = sucursal.ubigeo ?? null;
@@ -12,8 +12,8 @@ export const toSucursalDto = (sucursal: Company) => {
     const department = province?.parent ?? null;
 
     return {
-        tenantId: sucursal.tenant_id,
-        companyTenantId: sucursal.parentCompany?.tenant_id ?? null,
+        publicId: sucursal.public_id,
+        companyPublicId: sucursal.parentCompany?.public_id ?? null,
         name: sucursal.name,
         address: sucursal.address,
         phoneCell: sucursal.phone_cell,

@@ -5,10 +5,11 @@ import { invalidateUserAuthCache } from '../../../shared/utils/authorizationCach
 import { NotFoundError, ValidationError } from '../../../shared/errors/CustomErrors';
 
 // Keys de las excepciones (grant, hoy solo eso — ver replaceForUser) de un usuario — para
-// precargar el picker de checkboxes.
-export const getKeysByUserId = async (userId: number): Promise<string[]> => {
-    const user = await UserRepository.findById(userId);
+// precargar el picker de checkboxes. Lookup por public_id, uso interno por user_id.
+export const getKeysByUserId = async (publicId: string): Promise<string[]> => {
+    const user = await UserRepository.findByPublicId(publicId);
     if (!user) throw new NotFoundError('Usuario no encontrado');
+    const userId = Number(user.user_id);
 
     return UserPermissionRepository.findKeysByUserId(userId);
 };
@@ -22,9 +23,10 @@ export const getKeysByUserId = async (userId: number): Promise<string[]> => {
  * Invalida el cache de autorización del usuario — el cambio debe aplicar de inmediato, sin
  * esperar a que renueve sesión (misma razón que role.service.ts::replacePermissions).
  */
-export const replaceForUser = async (userId: number, keys: string[], grantedBy: number): Promise<string[]> => {
-    const user = await UserRepository.findById(userId);
+export const replaceForUser = async (publicId: string, keys: string[], grantedBy: number): Promise<string[]> => {
+    const user = await UserRepository.findByPublicId(publicId);
     if (!user) throw new NotFoundError('Usuario no encontrado');
+    const userId = Number(user.user_id);
 
     // system.full_access solo lo tiene el rol system — nunca se otorga como excepción por usuario.
     if (keys.includes('system.full_access')) {

@@ -17,15 +17,19 @@ const formatUbigeo = (ubigeo?: Ubigeo): string | null => {
  * hay una fila por sucursal, así que un mismo usuario puede venir repetido. El nombre sale de
  * `nameByCompanyId`, armado con la empresa y las sucursales ya cargadas.
  */
-const toCompanyUsersDto = (assignments: UserCompany[], nameByCompanyId: Map<number, string>) => {
+const toCompanyUsersDto = (
+    assignments: UserCompany[],
+    nameByCompanyId: Map<number, string>,
+    publicByCompanyId: Map<number, string>,
+) => {
     const byUserId = new Map<number, {
-        id: number;
+        publicId: string;
         firstName: string | null;
         lastName: string | null;
         email: string | null;
         phone: string | null;
         role: string;
-        sucursales: { tenantId: string; name: string | null }[];
+        sucursales: { publicId: string; name: string | null }[];
     }>();
 
     assignments.forEach((assignment) => {
@@ -35,7 +39,7 @@ const toCompanyUsersDto = (assignments: UserCompany[], nameByCompanyId: Map<numb
         const userId = Number(user.user_id);
         if (!byUserId.has(userId)) {
             byUserId.set(userId, {
-                id: userId,
+                publicId: user.public_id,
                 firstName: user.first_name,
                 lastName: user.last_name,
                 email: user.email,
@@ -46,7 +50,7 @@ const toCompanyUsersDto = (assignments: UserCompany[], nameByCompanyId: Map<numb
         }
 
         byUserId.get(userId)!.sucursales.push({
-            tenantId: assignment.tenant_id,
+            publicId: publicByCompanyId.get(Number(assignment.company_id)) ?? String(assignment.company_id),
             name: nameByCompanyId.get(Number(assignment.company_id)) ?? null,
         });
     });
@@ -65,8 +69,7 @@ export const toCompanyListDto = (company: Company, plan: CompanyPlanSummary | nu
     const owner = company.userAssignments?.[0]?.user ?? null;
 
     return {
-        id: company.company_id,
-        tenantId: company.tenant_id,
+        publicId: company.public_id,
         name: company.name,
         document: company.document,
         phoneCell: company.phone_cell,
@@ -74,7 +77,7 @@ export const toCompanyListDto = (company: Company, plan: CompanyPlanSummary | nu
         country: company.country ? { name: company.country.country, flagUrl: company.country.flag_url, phoneCode: company.country.phone_code } : null,
         isEnabled: company.is_enabled,
         owner: owner ? {
-            id: owner.user_id,
+            publicId: owner.public_id,
             firstName: owner.first_name,
             lastName: owner.last_name,
             email: owner.email,
@@ -85,7 +88,7 @@ export const toCompanyListDto = (company: Company, plan: CompanyPlanSummary | nu
             country: owner.person?.country ? { id: owner.person.country.country_id, name: owner.person.country.country, flagUrl: owner.person.country.flag_url, phoneCode: owner.person.country.phone_code } : null,
         } : null,
         plan: plan ? {
-            id: plan.planId,
+            publicId: plan.planPublicId,
             name: plan.planName,
             code: plan.planCode,
             status: plan.status,
@@ -96,7 +99,7 @@ export const toCompanyListDto = (company: Company, plan: CompanyPlanSummary | nu
 
 /**
  * Detalle de una empresa (página de "Ver empresa") — país, dueño, ubigeo formateado
- * (distrito, provincia, departamento — resuelto por `findByTenantId` con la cadena de
+ * (distrito, provincia, departamento — resuelto por `findByPublicId` con la cadena de
  * padres del ubigeo ya incluida) y sus sucursales (`subsidiaries`, con nombre/dirección/ubigeo
  * formateado — lo que muestra la card de la grilla, no el detalle completo de edición).
  * `country.id` y los ids de `ubigeo` van además de los nombres para poder precargar el
@@ -112,9 +115,13 @@ export const toCompanyDetailDto = (company: Company, assignments: UserCompany[] 
         [Number(company.company_id), company.name],
         ...(company.subsidiaries ?? []).map((s) => [Number(s.company_id), s.name] as [number, string]),
     ]);
+    const publicByCompanyId = new Map<number, string>([
+        [Number(company.company_id), company.public_id],
+        ...(company.subsidiaries ?? []).map((s) => [Number(s.company_id), s.public_id] as [number, string]),
+    ]);
 
     return {
-        id: company.company_id,
+        publicId: company.public_id,
         name: company.name,
         document: company.document,
         address: company.address,
@@ -132,7 +139,7 @@ export const toCompanyDetailDto = (company: Company, assignments: UserCompany[] 
             formatted: formatUbigeo(district)!,
         } : null,
         owner: owner ? {
-            id: owner.user_id,
+            publicId: owner.public_id,
             firstName: owner.first_name,
             lastName: owner.last_name,
             email: owner.email,
@@ -143,12 +150,12 @@ export const toCompanyDetailDto = (company: Company, assignments: UserCompany[] 
             country: owner.person?.country ? { id: owner.person.country.country_id, name: owner.person.country.country, flagUrl: owner.person.country.flag_url, phoneCode: owner.person.country.phone_code } : null,
         } : null,
         subsidiaries: (company.subsidiaries ?? []).map((s) => ({
-            tenantId: s.tenant_id,
+            publicId: s.public_id,
             name: s.name,
             address: s.address,
             ubigeo: formatUbigeo(s.ubigeo),
         })),
-        users: toCompanyUsersDto(assignments, nameByCompanyId),
+        users: toCompanyUsersDto(assignments, nameByCompanyId, publicByCompanyId),
         createdAt: company.created_at,
     };
 };

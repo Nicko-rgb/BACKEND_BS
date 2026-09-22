@@ -24,6 +24,16 @@ export const findActiveByHash = async (tokenHash: string) => {
 };
 
 /**
+ * Borra tokens vencidos hace más de `graceDays` (usados o no — todo token usado también
+ * vence 30 min después de creado, así que un solo predicado sobre `expires_at`, con índice,
+ * alcanza). Lo corre el cron diario (ver jobs/passwordResetCleanup.job.ts).
+ */
+export const purgeExpired = async (graceDays = 7) => {
+    const cutoff = new Date(Date.now() - graceDays * 24 * 60 * 60 * 1000);
+    return PasswordResetToken.destroy({ where: { expires_at: { [Op.lt]: cutoff } } });
+};
+
+/**
  * Marca el token como usado solo si sigue vigente y sin usar, y devuelve la fila actualizada.
  * Al ser un único UPDATE, dos pedidos simultáneos con el mismo token: solo uno se lo lleva.
  */

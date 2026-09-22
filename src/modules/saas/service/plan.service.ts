@@ -19,8 +19,8 @@ export const listActive = async () => {
 };
 
 // Actualiza un plan existente y limpia el cache de listados
-export const update = async (id: number, data: Partial<InferAttributes<SaaSPlan>>) => {
-    const plan = await SaaSPlanRepository.findById(id);
+export const update = async (publicId: string, data: Partial<InferAttributes<SaaSPlan>>) => {
+    const plan = await SaaSPlanRepository.findByPublicId(publicId);
     if (!plan) throw new NotFoundError('Plan no encontrado');
 
     const updated = await SaaSPlanRepository.update(plan, data);
@@ -29,12 +29,12 @@ export const update = async (id: number, data: Partial<InferAttributes<SaaSPlan>
 };
 
 // Elimina un plan — bloqueado si tiene suscripciones asociadas
-export const remove = async (id: number) => {
-    const plan = await SaaSPlanRepository.findById(id);
+export const remove = async (publicId: string) => {
+    const plan = await SaaSPlanRepository.findByPublicId(publicId);
     if (!plan) throw new NotFoundError('Plan no encontrado');
 
-    const referencesCount = await SaaSPlanRepository.countReferencesByIds([id]);
-    if ((referencesCount[id] ?? 0) > 0) {
+    const referencesCount = await SaaSPlanRepository.countReferencesByIds([Number(plan.plan_id)]);
+    if ((referencesCount[Number(plan.plan_id)] ?? 0) > 0) {
         throw new ConflictError('No se puede eliminar el plan porque tiene suscripciones asociadas');
     }
 

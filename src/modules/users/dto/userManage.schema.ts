@@ -116,7 +116,7 @@ export const createUserSchemas: Record<ManagedRole, Joi.ObjectSchema> = {
     super_admin: Joi.object({
         ...PERSONAL_CREATE,
         ...ADMIN_ACCESS_CREATE,
-        company_tenant_id: Joi.string().guid().required()
+        company_public_id: Joi.string().guid().required()
             .messages({ 'string.guid': 'La empresa seleccionada no es válida', 'any.required': 'La empresa es requerida' }),
     }),
     administrador: Joi.object({ ...PERSONAL_CREATE, ...ADMIN_ACCESS_CREATE, sucursales: SUCURSALES.required() }),

@@ -19,6 +19,12 @@ const migration: MigrationFile = {
                 primaryKey: true,
                 allowNull: false
             },
+            public_id: {
+                type: DataTypes.STRING(36),
+                allowNull: false,
+                unique: true,
+                comment: 'Identificador público único por fila — historial expuesto al frontend'
+            },
             subscription_id: {
                 type: DataTypes.BIGINT,
                 allowNull: false,
@@ -111,6 +117,7 @@ const migration: MigrationFile = {
         });
 
         await queryInterface.addIndex('dsg_bss_saas_invoices', ['company_id']);
+        await queryInterface.addIndex('dsg_bss_saas_invoices', ['public_id'], { unique: true, name: 'unique_saas_invoice_public_id' });
         await queryInterface.addIndex('dsg_bss_saas_invoices', ['subscription_id']);
     },
 

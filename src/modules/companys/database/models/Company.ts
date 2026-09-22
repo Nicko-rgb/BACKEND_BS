@@ -24,6 +24,7 @@ export class Company extends Model<InferAttributes<Company>, InferCreationAttrib
     declare company_id: CreationOptional<number>;
     declare country_id: number;
     declare tenant_id: string;
+    declare public_id: CreationOptional<string>;
     declare name: string;
     declare address: string;
     declare ubigeo_id: number;
@@ -71,7 +72,14 @@ Company.init({
     tenant_id: {
         type: DataTypes.STRING(36),
         allowNull: false,
-        comment: 'Identificador del tenant para multi-tenancy'
+        comment: 'Tenant raíz (empresa principal) — se duplica en sucursales que heredan el del padre'
+    },
+    public_id: {
+        type: DataTypes.STRING(36),
+        allowNull: false,
+        unique: true,
+        defaultValue: DataTypes.UUIDV4,
+        comment: 'Identificador público único por fila (empresa o sucursal) — lo único expuesto en URLs'
     },
     name: {
         type: DataTypes.STRING(200),
@@ -192,6 +200,7 @@ Company.init({
         // el RUC/NIT de su empresa madre. La unicidad se valida en el Service,
         // solo para empresas padre (parent_company_id IS NULL).
         { name: 'idx_company_tenant_id', fields: ['tenant_id'] },
+        { unique: true, name: 'unique_company_public_id', fields: ['public_id'] },
         { name: 'idx_company_country_id', fields: ['country_id'] },
         { name: 'idx_company_ubigeo_id', fields: ['ubigeo_id'] },
         { name: 'idx_company_parent_company_id', fields: ['parent_company_id'] },

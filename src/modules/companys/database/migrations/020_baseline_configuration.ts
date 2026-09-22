@@ -31,7 +31,8 @@ const migration: MigrationFile = {
                 onUpdate: 'CASCADE',
                 onDelete: 'CASCADE'
             },
-            tenant_id: { type: DataTypes.STRING(36), allowNull: false },
+            tenant_id: { type: DataTypes.STRING(36), allowNull: false, comment: 'Tenant raíz heredado — se duplica' },
+            public_id: { type: DataTypes.STRING(36), allowNull: false, unique: true, comment: 'Identificador público único por fila' },
             social_facebook: { type: DataTypes.STRING(500), allowNull: true },
             social_instagram: { type: DataTypes.STRING(500), allowNull: true },
             social_tiktok: { type: DataTypes.STRING(500), allowNull: true },
@@ -55,6 +56,9 @@ const migration: MigrationFile = {
             created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
             updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
         });
+
+        await queryInterface.addIndex('dsg_bss_configuration', ['public_id'], { unique: true, name: 'unique_configuration_public_id' });
+        await queryInterface.addIndex('dsg_bss_configuration', ['tenant_id'], { name: 'idx_configuration_tenant' });
     },
 
     async down(queryInterface) {

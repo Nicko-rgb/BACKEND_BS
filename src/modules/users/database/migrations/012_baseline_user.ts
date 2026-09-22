@@ -26,6 +26,7 @@ const migration: MigrationFile = {
 
         await queryInterface.createTable('dsg_bss_user', {
             user_id: { type: DataTypes.BIGINT, autoIncrement: true, primaryKey: true },
+            public_id: { type: DataTypes.STRING(36), allowNull: false, unique: true, comment: 'Identificador público único por fila — lo único expuesto en URLs' },
             first_name: { type: DataTypes.STRING(100), allowNull: true },
             last_name: { type: DataTypes.STRING(100), allowNull: true },
             email: { type: DataTypes.STRING(100), allowNull: true, unique: true },
@@ -53,6 +54,7 @@ const migration: MigrationFile = {
         });
 
         await queryInterface.addIndex('dsg_bss_user', ['social_provider', 'social_id'], { name: 'idx_user_social_provider_id' });
+        await queryInterface.addIndex('dsg_bss_user', ['public_id'], { unique: true, name: 'unique_user_public_id' });
         await queryInterface.addIndex('dsg_bss_user', ['is_enabled'], { name: 'idx_user_is_enabled' });
         await queryInterface.addIndex('dsg_bss_user', ['role_id'], { name: 'idx_user_role_id' });
     },

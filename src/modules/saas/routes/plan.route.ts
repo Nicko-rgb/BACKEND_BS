@@ -22,17 +22,17 @@ router.get('/plans', resolveAuthorization, verificarPermiso('plan.manage'), list
 router.get('/plans/active', listActive);
 
 /**
- * @route PUT /api/saas/plans/:id
+ * @route PUT /api/saas/plans/:publicId
  * @desc  Actualiza un plan existente
  * @access system
  */
-router.put('/plans/:id', resolveAuthorization, verificarPermiso('plan.manage'), validateDTO(updatePlanSchema), update);
+router.put('/plans/:publicId', resolveAuthorization, verificarPermiso('plan.manage'), validateDTO(updatePlanSchema), update);
 
 /**
- * @route DELETE /api/saas/plans/:id
+ * @route DELETE /api/saas/plans/:publicId
  * @desc  Elimina un plan — bloqueado si tiene suscripciones asociadas
  * @access system
  */
-router.delete('/plans/:id', resolveAuthorization, verificarPermiso('plan.manage'), remove);
+router.delete('/plans/:publicId', resolveAuthorization, verificarPermiso('plan.manage'), remove);
 
 export default router;

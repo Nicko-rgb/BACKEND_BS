@@ -10,6 +10,7 @@ export interface CompanyPlanSummary {
     subscriptionId: number;
     status: string;
     planId: number;
+    planPublicId: string;
     planName: string;
     planCode: string;
     maxSubsidiaries: number;
@@ -53,6 +54,7 @@ export const findPlansByCompanyIds = async (companyIds: number[]): Promise<Recor
             subscriptionId: subscription.subscription_id,
             status: subscription.status,
             planId: plan.plan_id,
+            planPublicId: plan.public_id,
             planName: plan.name,
             planCode: plan.code,
             maxSubsidiaries: plan.max_subsidiaries,
@@ -74,11 +76,11 @@ export const findPlanByCompanyId = async (companyId: number): Promise<CompanyPla
     return result[companyId] ?? null;
 };
 
-// Empresa titular (is_primary) de una suscripción — solo su id, tenant y nombre.
+// Empresa titular (is_primary) de una suscripción — solo su public_id y nombre (nunca ids internos).
 export const findPrimaryCompany = async (subscriptionId: number) => {
     const row = await SaaSSubscriptionCompany.findOne({
         where: { subscription_id: subscriptionId, is_primary: true },
-        include: [{ association: 'company', attributes: ['company_id', 'tenant_id', 'name'] }],
+        include: [{ association: 'company', attributes: ['company_id', 'public_id', 'name'] }],
     });
 
     return row?.company ?? null;

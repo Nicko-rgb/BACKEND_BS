@@ -1,7 +1,7 @@
 import type { SaaSPlan } from '../database/models';
 
 export const toPlanDto = (plan: SaaSPlan, referencesCount = 0) => ({
-    id: plan.plan_id,
+    publicId: plan.public_id,
     name: plan.name,
     code: plan.code,
     priceMonthly: plan.price_monthly,

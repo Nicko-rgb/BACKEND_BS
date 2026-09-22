@@ -8,17 +8,17 @@ import { getByUserId, update } from '../controllers/userPermission.controller';
 const router = createRouter();
 
 /**
- * @route GET /api/users/:id/permissions
+ * @route GET /api/users/:publicId/permissions
  * @desc  Keys de los permisos directos de un usuario
  * @access system
  */
-router.get('/:id/permissions', resolveAuthorization, verificarPermiso('user.manage_all'), getByUserId);
+router.get('/:publicId/permissions', resolveAuthorization, verificarPermiso('user.manage_all'), getByUserId);
 
 /**
- * @route PUT /api/users/:id/permissions
+ * @route PUT /api/users/:publicId/permissions
  * @desc  Reemplaza el set completo de permisos directos de un usuario
  * @access system
  */
-router.put('/:id/permissions', resolveAuthorization, verificarPermiso('user.manage_all'), validateDTO(updateUserPermissionsSchema), update);
+router.put('/:publicId/permissions', resolveAuthorization, verificarPermiso('user.manage_all'), validateDTO(updateUserPermissionsSchema), update);
 
 export default router;

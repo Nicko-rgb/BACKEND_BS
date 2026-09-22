@@ -12,6 +12,7 @@ import type { SaaSSubscription } from './SaaSSubscription';
 
 export class SaaSInvoice extends Model<InferAttributes<SaaSInvoice>, InferCreationAttributes<SaaSInvoice>> {
     declare invoice_id: CreationOptional<number>;
+    declare public_id: CreationOptional<string>;
     declare subscription_id: number;
     declare company_id: number;
     declare plan_id: number;
@@ -43,6 +44,13 @@ SaaSInvoice.init({
         type: DataTypes.BIGINT,
         primaryKey: true,
         autoIncrement: true
+    },
+    public_id: {
+        type: DataTypes.STRING(36),
+        allowNull: false,
+        unique: true,
+        defaultValue: DataTypes.UUIDV4,
+        comment: 'Identificador público único por fila — historial expuesto al frontend'
     },
     subscription_id: {
         type: DataTypes.BIGINT,
@@ -129,5 +137,8 @@ SaaSInvoice.init({
     tableName: 'dsg_bss_saas_invoices',
     timestamps: true,
     createdAt: 'created_at',
-    updatedAt: 'updated_at'
+    updatedAt: 'updated_at',
+    indexes: [
+        { unique: true, name: 'unique_saas_invoice_public_id', fields: ['public_id'] }
+    ]
 });

@@ -6,11 +6,10 @@ import ApiResponse from '../../../shared/utils/ApiResponse';
 import { toPaginationMeta } from '../../../shared/utils/paginate';
 import { NotFoundError } from '../../../shared/errors/CustomErrors';
 
-// :id de la ruta como entero positivo — cualquier otro valor se trata como usuario inexistente.
-const parseUserId = (value: string): number => {
-    const id = Number(value);
-    if (!Number.isInteger(id) || id <= 0) throw new NotFoundError('Usuario no encontrado');
-    return id;
+// :publicId de la ruta como UUID — cualquier otro valor se trata como usuario inexistente.
+const parsePublicId = (value: string): string => {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) throw new NotFoundError('Usuario no encontrado');
+    return value;
 };
 
 // Catálogo global de usuarios, paginado, con búsqueda y filtros por rol y país.
@@ -21,7 +20,7 @@ export const list = async (req: Request, res: Response) => {
 };
 
 export const getById = async (req: Request, res: Response) => {
-    const { user, assignments } = await UserManageService.getById(String(req.params.role), parseUserId(String(req.params.id)), req.user!);
+    const { user, assignments } = await UserManageService.getById(String(req.params.role), parsePublicId(String(req.params.publicId)), req.user!);
     return ApiResponse.ok(res, toManagedUserDto(user, assignments), 'Usuario obtenido exitosamente');
 };
 
@@ -31,6 +30,6 @@ export const create = async (req: Request, res: Response) => {
 };
 
 export const update = async (req: Request, res: Response) => {
-    const { user, assignments } = await UserManageService.update(String(req.params.role), parseUserId(String(req.params.id)), req.validatedData, req.user!);
+    const { user, assignments } = await UserManageService.update(String(req.params.role), parsePublicId(String(req.params.publicId)), req.validatedData, req.user!);
     return ApiResponse.ok(res, toManagedUserDto(user, assignments), 'Usuario actualizado exitosamente');
 };

@@ -26,15 +26,16 @@ export interface RegisterSucursalInput {
 export type UpdateSucursalInput = Partial<RegisterSucursalInput>;
 
 /**
- * Alta de una sucursal bajo una empresa existente — hereda `document` de la empresa padre
- * (mismo RUC, ver comentario del índice en Company.ts), arranca en `status: 'ACTIVE'` y
+ * Alta de una sucursal bajo una empresa existente — hereda `document` (mismo RUC) y
+ * `tenant_id` de la empresa padre (el tenant se duplica, identifica al grupo), pero genera
+ * su propio `public_id` único (lo único expuesto en URLs). Arranca en `status: 'ACTIVE'` y
  * `is_enabled: null` (esa columna es exclusiva de empresa principal). Antes de crearla valida
  * que la empresa no haya alcanzado el límite de sucursales de su plan (ver
  * saas/service/planLimits.service.ts::assertPlanLimit). Sin transacción: es un solo insert, a
  * diferencia del alta de empresa (que crea User+Person+Company+... juntos).
  */
-export const register = async (companyTenantId: string, data: RegisterSucursalInput, user: AuthenticatedUser) => {
-    const parent = await CompanyRepository.findByTenantId(companyTenantId);
+export const register = async (companyPublicId: string, data: RegisterSucursalInput, user: AuthenticatedUser) => {
+    const parent = await CompanyRepository.findByPublicId(companyPublicId);
     if (!parent) throw new NotFoundError('Empresa no encontrada');
 
     if (!hasFullCompanyAccess(user) && !(user.company_ids ?? []).includes(Number(parent.company_id))) {
@@ -48,7 +49,7 @@ export const register = async (companyTenantId: string, data: RegisterSucursalIn
     const currentSucursales = await CompanyRepository.countSucursalesByParentId(parent.company_id);
     await PlanLimitsService.assertPlanLimit(parent.company_id, 'maxSubsidiaries', currentSucursales);
 
-    const tenantId = crypto.randomUUID();
+    const publicId = crypto.randomUUID();
 
     const sucursal = await CompanyRepository.create({
         name: data.name,
@@ -59,7 +60,8 @@ export const register = async (companyTenantId: string, data: RegisterSucursalIn
         website: data.website || null,
         country_id: data.country_id,
         ubigeo_id: data.ubigeo_id,
-        tenant_id: tenantId,
+        tenant_id: parent.tenant_id,
+        public_id: publicId,
         parent_company_id: parent.company_id,
         status: 'ACTIVE',
         postal_code: null,
@@ -75,27 +77,27 @@ export const register = async (companyTenantId: string, data: RegisterSucursalIn
         user_update: null,
     });
 
-    return CompanyRepository.findSucursalByTenantId(sucursal.tenant_id) as Promise<Company>;
+    return CompanyRepository.findSucursalByPublicId(sucursal.public_id) as Promise<Company>;
 };
 
-// Scope manual — mismo criterio que company.service.ts::getByTenantId/updateByTenantId: no se
-// puede usar verificarScope (compara un company_id numérico de la ruta, acá el param es tenant_id).
+// Scope manual — mismo criterio que company.service.ts::getByPublicId/updateByPublicId: no se
+// puede usar verificarScope (compara un company_id numérico de la ruta, acá el param es public_id).
 const assertSucursalAccess = (sucursal: Company, user: AuthenticatedUser) => {
     if (!hasFullCompanyAccess(user) && !(user.company_ids ?? []).includes(Number(sucursal.company_id))) {
         throw new ForbiddenError('No tenés acceso a esta sucursal');
     }
 };
 
-export const getByTenantId = async (tenantId: string, user: AuthenticatedUser) => {
-    const sucursal = await CompanyRepository.findSucursalByTenantId(tenantId);
+export const getByPublicId = async (publicId: string, user: AuthenticatedUser) => {
+    const sucursal = await CompanyRepository.findSucursalByPublicId(publicId);
     if (!sucursal) throw new NotFoundError('Sucursal no encontrada');
 
     assertSucursalAccess(sucursal, user);
     return sucursal;
 };
 
-export const updateByTenantId = async (tenantId: string, data: UpdateSucursalInput, user: AuthenticatedUser) => {
-    const sucursal = await CompanyRepository.findSucursalByTenantId(tenantId);
+export const updateByPublicId = async (publicId: string, data: UpdateSucursalInput, user: AuthenticatedUser) => {
+    const sucursal = await CompanyRepository.findSucursalByPublicId(publicId);
     if (!sucursal) throw new NotFoundError('Sucursal no encontrada');
 
     assertSucursalAccess(sucursal, user);
@@ -120,5 +122,5 @@ export const updateByTenantId = async (tenantId: string, data: UpdateSucursalInp
 
     await CompanyRepository.update(sucursal, updateFields);
 
-    return CompanyRepository.findSucursalByTenantId(tenantId) as Promise<Company>;
+    return CompanyRepository.findSucursalByPublicId(publicId) as Promise<Company>;
 };

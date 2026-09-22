@@ -59,7 +59,8 @@ PasswordResetToken.init({
     createdAt: 'created_at',
     updatedAt: false,
     indexes: [
-        { name: 'idx_password_reset_token_user_id', fields: ['user_id'] }
+        { name: 'idx_password_reset_token_user_id', fields: ['user_id'] },
+        { name: 'idx_password_reset_token_expires_at', fields: ['expires_at'] }
     ],
     comment: 'Tokens de recuperación de contraseña'
 });

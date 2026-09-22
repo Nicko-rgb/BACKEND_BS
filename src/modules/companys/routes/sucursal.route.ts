@@ -3,16 +3,16 @@ import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorizatio
 import { verificarPermiso } from '../../../shared/middlewares/verificarPermiso';
 import { validateDTO } from '../../../shared/middlewares/validateDTO';
 import { registerSucursalSchema, updateSucursalSchema } from '../dto/sucursal.schema';
-import { registerSucursal, getByTenantId, updateByTenantId } from '../controllers/sucursal.controller';
+import { registerSucursal, getByPublicId, updateByPublicId } from '../controllers/sucursal.controller';
 
 const router = createRouter();
 
 /**
- * @route POST /api/sucursals/:companyTenantId
- * @desc  Registro de una sucursal bajo una empresa — companyTenantId es el tenant_id de la empresa padre.
+ * @route POST /api/sucursals/:companyPublicId
+ * @desc  Registro de una sucursal bajo una empresa — companyPublicId es el public_id de la empresa padre.
  * @access system, super_admin (dueño de esa empresa)
  */
-router.post('/:companyTenantId',
+router.post('/:companyPublicId',
     resolveAuthorization,
     verificarPermiso('sucursal.manage'),
     validateDTO(registerSucursalSchema),
@@ -20,26 +20,26 @@ router.post('/:companyTenantId',
 );
 
 /**
- * @route GET /api/sucursals/:tenantId
- * @desc  Detalle de una sucursal — se busca por su propio tenant_id, para precargar el form de edición.
+ * @route GET /api/sucursals/:publicId
+ * @desc  Detalle de una sucursal — se busca por su propio public_id, para precargar el form de edición.
  * @access system, super_admin (dueño de la empresa)
  */
-router.get('/:tenantId',
+router.get('/:publicId',
     resolveAuthorization,
     verificarPermiso('sucursal.manage'),
-    getByTenantId
+    getByPublicId
 );
 
 /**
- * @route PUT /api/sucursals/:tenantId
+ * @route PUT /api/sucursals/:publicId
  * @desc  Actualiza los datos de una sucursal.
  * @access system, super_admin (dueño de la empresa)
  */
-router.put('/:tenantId',
+router.put('/:publicId',
     resolveAuthorization,
     verificarPermiso('sucursal.manage'),
     validateDTO(updateSucursalSchema),
-    updateByTenantId
+    updateByPublicId
 );
 
 export default router;

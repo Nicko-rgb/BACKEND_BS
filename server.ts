@@ -27,6 +27,7 @@ import dotenv from 'dotenv';
 import sequelize from './src/config/db';
 import logger from './src/config/logger';
 import { runPendingMigrations } from './scripts/migrationRunner';
+import { startAllJobs } from './src/jobs';
 import redisClient from './src/config/redisConfig';
 import { initSocket } from './src/config/socketConfig';
 import { createApp } from './src/app';
@@ -101,10 +102,6 @@ async function inicializarBaseDatos(): Promise<void> {
 
         // ── 2. Seeders — siempre manuales ─────
         console.log(chalk.yellow('🌱 Seeders: no se ejecutan automáticamente'));
-
-        // Los jobs en segundo plano (expiración de holds, suscripciones, emails,
-        // reconciliación) vuelven cuando se porten `bookings`/`saas` completos
-        // (routes/controller/service/repository + jobs/), no solo su capa database/.
     } catch (error: any) {
         logger.error('Error al inicializar la base de datos', { error: error.message });
         throw error;
@@ -118,6 +115,7 @@ async function iniciarServidor(): Promise<void> {
     try {
         console.log(chalk.bgBlue('\n🔌 CONEXIONES A DB'));
         await inicializarBaseDatos();
+        const stopAllJobs = startAllJobs();
         await redisClient.connect();
         await initSocket(server);
         const PORT = process.env.PORT;
@@ -159,6 +157,7 @@ async function iniciarServidor(): Promise<void> {
          */
         const gracefulShutdown = async (signal: string) => {
             logger.info(`Señal ${signal} recibida — iniciando graceful shutdown...`);
+            stopAllJobs();
 
             server.close(async () => {
                 try {

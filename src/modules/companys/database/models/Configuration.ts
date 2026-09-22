@@ -17,6 +17,7 @@ export class Configuration extends Model<InferAttributes<Configuration>, InferCr
     declare config_id: CreationOptional<number>;
     declare company_id: number;
     declare tenant_id: string;
+    declare public_id: CreationOptional<string>;
     declare social_facebook: string | null;
     declare social_instagram: string | null;
     declare social_tiktok: string | null;
@@ -46,7 +47,14 @@ Configuration.init({
     tenant_id: {
         type: DataTypes.STRING(36),
         allowNull: false,
-        comment: 'Identificador del tenant para multi-tenancy'
+        comment: 'Tenant raíz heredado — se duplica'
+    },
+    public_id: {
+        type: DataTypes.STRING(36),
+        allowNull: false,
+        unique: true,
+        defaultValue: DataTypes.UUIDV4,
+        comment: 'Identificador público único por fila'
     },
 
     // ── Redes sociales y contacto público ───────────────────────────────────
@@ -103,7 +111,11 @@ Configuration.init({
     createdAt: 'created_at',
     updatedAt: 'updated_at',
     underscored: true,
-    comment: 'Tabla de configuración de compañías y sucursales'
+    comment: 'Tabla de configuración de compañías y sucursales',
+    indexes: [
+        { unique: true, name: 'unique_configuration_public_id', fields: ['public_id'] },
+        { name: 'idx_configuration_tenant', fields: ['tenant_id'] }
+    ]
 });
 
 export function associateConfiguration(models: { Company: typeof Company; User: typeof User }): void {

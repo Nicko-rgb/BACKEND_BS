@@ -75,7 +75,12 @@ export const findAll = async (pagination: PaginationQuery, filters: UserFilters 
     });
 };
 
-// Busca por PK, con su persona y su rol — usado antes de editar y para devolver el detalle completo.
+// Busca por public_id, con su persona y su rol — lo único expuesto en URLs. Uso interno sigue por user_id.
+export const findByPublicId = async (publicId: string) => {
+    return User.findOne({ where: { public_id: publicId }, include: [{ association: 'person' }, { association: 'roleRef' }] });
+};
+
+// Busca por PK — SOLO uso interno (auth, FKs, nunca exponer).
 export const findById = async (id: number) => {
     return User.findByPk(id, { include: [{ association: 'person' }, { association: 'roleRef' }] });
 };

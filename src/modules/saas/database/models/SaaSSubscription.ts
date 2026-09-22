@@ -12,6 +12,7 @@ import type { SaaSSubscriptionCompany } from './SaaSSubscriptionCompany';
 
 export class SaaSSubscription extends Model<InferAttributes<SaaSSubscription>, InferCreationAttributes<SaaSSubscription>> {
     declare subscription_id: CreationOptional<number>;
+    declare public_id: CreationOptional<string>;
     declare plan_id: number;
     declare status: CreationOptional<string>;
     declare stripe_customer_id: string | null;
@@ -56,6 +57,13 @@ SaaSSubscription.init({
         type: DataTypes.BIGINT,
         primaryKey: true,
         autoIncrement: true
+    },
+    public_id: {
+        type: DataTypes.STRING(36),
+        allowNull: false,
+        unique: true,
+        defaultValue: DataTypes.UUIDV4,
+        comment: 'Identificador público único por fila — se expone a MercadoPago (external_reference) y al frontend'
     },
     plan_id: {
         type: DataTypes.BIGINT,
@@ -135,5 +143,8 @@ SaaSSubscription.init({
     tableName: 'dsg_bss_saas_subscriptions',
     timestamps: true,
     createdAt: 'created_at',
-    updatedAt: 'updated_at'
+    updatedAt: 'updated_at',
+    indexes: [
+        { unique: true, name: 'unique_saas_subscription_public_id', fields: ['public_id'] }
+    ]
 });

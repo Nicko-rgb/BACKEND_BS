@@ -5,10 +5,10 @@ import { getPlanUsage } from '../controllers/planUsage.controller';
 const router = createRouter();
 
 /**
- * @route GET /api/saas/plan-usage/:companyId
+ * @route GET /api/saas/plan-usage/:companyPublicId
  * @desc  Plan de la empresa, su empresa primaria y cuánto usa de cada límite (sucursales, usuarios, espacios, facturas)
  * @access usuarios con acceso a esa empresa (el alcance lo valida el service)
  */
-router.get('/:companyId', resolveAuthorization, getPlanUsage);
+router.get('/:companyPublicId', resolveAuthorization, getPlanUsage);
 
 export default router;

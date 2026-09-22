@@ -21,6 +21,12 @@ const migration: MigrationFile = {
                 primaryKey: true,
                 allowNull: false
             },
+            public_id: {
+                type: DataTypes.STRING(36),
+                allowNull: false,
+                unique: true,
+                comment: 'Identificador público único por fila — se expone a MercadoPago (external_reference) y al frontend'
+            },
             plan_id: {
                 type: DataTypes.BIGINT,
                 allowNull: false,
@@ -99,6 +105,7 @@ const migration: MigrationFile = {
         });
 
         await queryInterface.addIndex('dsg_bss_saas_subscriptions', ['stripe_subscription_id']);
+        await queryInterface.addIndex('dsg_bss_saas_subscriptions', ['public_id'], { unique: true, name: 'unique_saas_subscription_public_id' });
         // Índice para buscar suscripciones MP por preapproval_id (webhook) ───────────
         await queryInterface.addIndex('dsg_bss_saas_subscriptions', ['mp_preapproval_id'], {
             name: 'idx_saas_sub_mp_preapproval_id'

@@ -20,6 +20,7 @@ import type { Media, Role } from '../../../system/database/models';
 
 export class User extends Model<InferAttributes<User>, InferCreationAttributes<User>> {
     declare user_id: CreationOptional<number>;
+    declare public_id: CreationOptional<string>;
     declare first_name: string | null;
     declare last_name: string | null;
     declare email: string | null;
@@ -50,6 +51,13 @@ User.init({
         autoIncrement: true,
         primaryKey: true,
         comment: 'Identificador único del usuario'
+    },
+    public_id: {
+        type: DataTypes.STRING(36),
+        allowNull: false,
+        unique: true,
+        defaultValue: DataTypes.UUIDV4,
+        comment: 'Identificador público único por fila — lo único expuesto en URLs'
     },
     first_name: {
         type: DataTypes.STRING(100),
@@ -136,6 +144,11 @@ User.init({
         {
             name: 'idx_user_is_enabled',
             fields: ['is_enabled']
+        },
+        {
+            unique: true,
+            name: 'unique_user_public_id',
+            fields: ['public_id']
         }
     ]
 });

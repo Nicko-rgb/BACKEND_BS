@@ -7,6 +7,7 @@ import type { SaaSSubscription } from './SaaSSubscription';
 
 export class SaaSPlan extends Model<InferAttributes<SaaSPlan>, InferCreationAttributes<SaaSPlan>> {
     declare plan_id: CreationOptional<number>;
+    declare public_id: CreationOptional<string>;
     declare name: string;
     declare code: string;
     declare price_monthly: string;
@@ -36,6 +37,13 @@ SaaSPlan.init({
         type: DataTypes.BIGINT,
         primaryKey: true,
         autoIncrement: true
+    },
+    public_id: {
+        type: DataTypes.STRING(36),
+        allowNull: false,
+        unique: true,
+        defaultValue: DataTypes.UUIDV4,
+        comment: 'Identificador público único por fila — lo único expuesto en URLs'
     },
     name: {
         type: DataTypes.STRING(100),
@@ -129,5 +137,8 @@ SaaSPlan.init({
     tableName: 'dsg_bss_saas_plans',
     timestamps: true,
     createdAt: 'created_at',
-    updatedAt: 'updated_at'
+    updatedAt: 'updated_at',
+    indexes: [
+        { unique: true, name: 'unique_saas_plan_public_id', fields: ['public_id'] }
+    ]
 });

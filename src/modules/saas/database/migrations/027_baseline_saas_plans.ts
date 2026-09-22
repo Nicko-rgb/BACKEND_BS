@@ -19,6 +19,12 @@ const migration: MigrationFile = {
                 primaryKey: true,
                 allowNull: false
             },
+            public_id: {
+                type: DataTypes.STRING(36),
+                allowNull: false,
+                unique: true,
+                comment: 'Identificador público único por fila — lo único expuesto en URLs'
+            },
             name: {
                 type: DataTypes.STRING(100),
                 allowNull: false
@@ -111,6 +117,8 @@ const migration: MigrationFile = {
                 defaultValue: DataTypes.NOW
             }
         });
+
+        await queryInterface.addIndex('dsg_bss_saas_plans', ['public_id'], { unique: true, name: 'unique_saas_plan_public_id' });
     },
 
     async down(queryInterface) {

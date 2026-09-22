@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import type { InferAttributes } from 'sequelize';
 import sequelize from '../../../config/db';
 import * as UserRepository from '../repository/user.repository';
@@ -29,7 +30,7 @@ type ManagedProfileInput = Partial<Pick<InferAttributes<User>, 'first_name' | 'l
 export type CreateManagedUserInput = ManagedProfileInput & {
     password?: string | null;
     sucursales?: string[];
-    company_tenant_id?: string;
+    company_public_id?: string;
 };
 
 export type UpdateManagedUserInput = ManagedProfileInput & {
@@ -56,11 +57,11 @@ const resolveRole = (value: string): ManagedRole => {
 const inScope = (user: AuthenticatedUser, companyId: number) =>
     hasFullCompanyAccess(user) || (user.company_ids ?? []).includes(companyId);
 
-// Sucursales a asignar — todas deben existir y estar dentro del alcance del usuario. La
-// asignación guarda el tenant_id de la empresa raíz.
-const resolveSucursalAssignments = async (user: AuthenticatedUser, tenantIds: string[]): Promise<CompanyAssignment[]> => {
-    const sucursales = await CompanyRepository.findSucursalesByTenantIds(tenantIds);
-    if (sucursales.length !== tenantIds.length) {
+// Sucursales a asignar (por public_id, lo único expuesto) — todas deben existir y estar
+// dentro del alcance del usuario. La asignación guarda el tenant_id raíz (interno).
+const resolveSucursalAssignments = async (user: AuthenticatedUser, publicIds: string[]): Promise<CompanyAssignment[]> => {
+    const sucursales = await CompanyRepository.findSucursalesByPublicIds(publicIds);
+    if (sucursales.length !== publicIds.length) {
         throw new BadRequestError('Alguna de las sucursales seleccionadas no existe.');
     }
     if (sucursales.some((sucursal) => !inScope(user, Number(sucursal.company_id)))) {
@@ -74,9 +75,9 @@ const resolveSucursalAssignments = async (user: AuthenticatedUser, tenantIds: st
     }));
 };
 
-// Empresa principal a la que se asigna un super_admin (dueño).
-const resolveOwnerAssignment = async (user: AuthenticatedUser, tenantId: string): Promise<CompanyAssignment[]> => {
-    const company = await CompanyRepository.findByTenantId(tenantId);
+// Empresa principal a la que se asigna un super_admin (dueño) — por public_id.
+const resolveOwnerAssignment = async (user: AuthenticatedUser, publicId: string): Promise<CompanyAssignment[]> => {
+    const company = await CompanyRepository.findByPublicId(publicId);
     if (!company) throw new NotFoundError('Empresa no encontrada');
     if (!inScope(user, Number(company.company_id))) throw new ForbiddenError('No tenés acceso a esta empresa');
 
@@ -121,9 +122,9 @@ const assertTargetInScope = async (user: AuthenticatedUser, role: ManagedRole, t
 };
 
 // Usuario objetivo de una lectura/edición — su rol actual debe ser el de la ruta, y el usuario
-// autenticado debe poder gestionar ese rol dentro de su alcance.
-const loadTarget = async (user: AuthenticatedUser, role: ManagedRole, id: number) => {
-    const target = await UserRepository.findById(id);
+// autenticado debe poder gestionar ese rol dentro de su alcance. Lookup por public_id.
+const loadTarget = async (user: AuthenticatedUser, role: ManagedRole, publicId: string) => {
+    const target = await UserRepository.findByPublicId(publicId);
     if (!target || target.roleRef?.key !== role) throw new NotFoundError('Usuario no encontrado');
     if (!canAssignRole(user, role)) throw new ForbiddenError('No tenés permisos para gestionar este usuario');
 
@@ -131,17 +132,17 @@ const loadTarget = async (user: AuthenticatedUser, role: ManagedRole, id: number
     return target;
 };
 
-// Asignaciones activas de un usuario visibles para quien consulta, con tenant y nombre.
+// Asignaciones activas de un usuario visibles para quien consulta, con public_id y nombre.
 const loadAssignments = async (user: AuthenticatedUser, userId: number): Promise<ManagedAssignment[]> => {
     const rows = (await UserCompanyRepository.findActiveByUserId(userId))
         .filter((row) => inScope(user, Number(row.company_id)));
 
-    const companies = await CompanyRepository.findByIds(rows.map((row) => Number(row.company_id)));
+    const companies = await CompanyRepository.findPublicByIds(rows.map((row) => Number(row.company_id)));
     const companyById = new Map(companies.map((company) => [Number(company.company_id), company]));
 
     return rows.flatMap((row) => {
         const company = companyById.get(Number(row.company_id));
-        return company ? [{ tenantId: company.tenant_id, name: company.name, role: row.role }] : [];
+        return company ? [{ publicId: company.public_id, name: company.name, role: row.role }] : [];
     });
 };
 
@@ -155,9 +156,9 @@ export const list = async (query: ListUsersQuery) => {
     return UserRepository.findAll(query, { search, role, countryId: query.countryId });
 };
 
-export const getById = async (roleParam: string, id: number, user: AuthenticatedUser) => {
+export const getById = async (roleParam: string, publicId: string, user: AuthenticatedUser) => {
     const role = resolveRole(roleParam);
-    const target = await loadTarget(user, role, id);
+    const target = await loadTarget(user, role, publicId);
 
     return { user: target, assignments: await loadAssignments(user, Number(target.user_id)) };
 };
@@ -182,12 +183,12 @@ export const create = async (roleParam: string, data: CreateManagedUserInput, us
 
     let assignments: CompanyAssignment[] = [];
     if (SUCURSAL_ROLES.includes(role)) assignments = await resolveSucursalAssignments(user, data.sucursales ?? []);
-    if (role === 'super_admin') assignments = await resolveOwnerAssignment(user, data.company_tenant_id!);
+    if (role === 'super_admin') assignments = await resolveOwnerAssignment(user, data.company_public_id!);
     await assertUserLimit(assignments);
 
     const hashedPassword = data.password ? await bcrypt.hash(data.password, 10) : null;
 
-    const newUserId = await sequelize.transaction(async (transaction) => {
+    const newUserPublicId = await sequelize.transaction(async (transaction) => {
         const newUser = await UserRepository.create({
             first_name: data.first_name!,
             last_name: data.last_name!,
@@ -196,6 +197,7 @@ export const create = async (roleParam: string, data: CreateManagedUserInput, us
             social_id: null,
             social_provider: null,
             role_id: roleRow.role_id,
+            public_id: crypto.randomUUID(),
             is_enabled: true,
             user_create: user.user_id,
         }, transaction);
@@ -228,10 +230,10 @@ export const create = async (roleParam: string, data: CreateManagedUserInput, us
             })), transaction);
         }
 
-        return Number(newUser.user_id);
+        return newUser.public_id;
     });
 
-    return getById(role, newUserId, user);
+    return getById(role, newUserPublicId, user);
 };
 
 /**
@@ -239,9 +241,9 @@ export const create = async (roleParam: string, data: CreateManagedUserInput, us
  * solo se permite entre administrador y empleado; `sucursales` reemplaza sus asignaciones dentro
  * del alcance de quien edita.
  */
-export const update = async (roleParam: string, id: number, data: UpdateManagedUserInput, user: AuthenticatedUser) => {
+export const update = async (roleParam: string, publicId: string, data: UpdateManagedUserInput, user: AuthenticatedUser) => {
     const role = resolveRole(roleParam);
-    const target = await loadTarget(user, role, id);
+    const target = await loadTarget(user, role, publicId);
     const { role: nextRole, sucursales, ...profile } = data;
 
     let nextRoleId: number | undefined;
@@ -284,5 +286,5 @@ export const update = async (roleParam: string, id: number, data: UpdateManagedU
         await invalidateUserAuthCache(targetId);
     }
 
-    return getById(assignedRole, targetId, user);
+    return getById(assignedRole, target.public_id, user);
 };
