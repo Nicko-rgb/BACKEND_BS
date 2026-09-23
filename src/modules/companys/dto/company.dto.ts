@@ -59,11 +59,7 @@ const toCompanyUsersDto = (
 };
 
 /**
- * Forma de una empresa principal para el frontend — incluye su dueño (primer
- * `userAssignments` con role 'super_admin', cargado por include en el repository) y su
- * plan (resuelto aparte en el service, vía saasSubscription.repository, porque `companys`
- * no puede importar modelos de `saas`). Ambos vienen `null` si todavía no están asignados
- * — empresa recién creada, pendiente de completar el alta.
+ * Objeto de respuesta para frontend para el listado de empresas, incluiye datos basicos
  */
 export const toCompanyListDto = (company: Company, plan: CompanyPlanSummary | null = null) => {
     const owner = company.userAssignments?.[0]?.user ?? null;
@@ -73,22 +69,18 @@ export const toCompanyListDto = (company: Company, plan: CompanyPlanSummary | nu
         name: company.name,
         document: company.document,
         phoneCell: company.phone_cell,
-        website: company.website,
-        country: company.country ? { name: company.country.country, flagUrl: company.country.flag_url, phoneCode: company.country.phone_code } : null,
         isEnabled: company.is_enabled,
+        country: company.country ? { 
+            name: company.country.country,
+            flagUrl: company.country.flag_url,
+            phoneCode: company.country.phone_code
+        } : null,
         owner: owner ? {
-            publicId: owner.public_id,
             firstName: owner.first_name,
             lastName: owner.last_name,
             email: owner.email,
-            phone: owner.person?.phone ?? null,
-            documentType: owner.person?.document_type ?? null,
-            documentNumber: owner.person?.document_number ?? null,
-            dateBirth: owner.person?.date_birth ?? null,
-            country: owner.person?.country ? { id: owner.person.country.country_id, name: owner.person.country.country, flagUrl: owner.person.country.flag_url, phoneCode: owner.person.country.phone_code } : null,
         } : null,
         plan: plan ? {
-            publicId: plan.planPublicId,
             name: plan.planName,
             code: plan.planCode,
             status: plan.status,
@@ -98,18 +90,11 @@ export const toCompanyListDto = (company: Company, plan: CompanyPlanSummary | nu
 };
 
 /**
- * Detalle de una empresa (página de "Ver empresa") — país, dueño, ubigeo formateado
- * (distrito, provincia, departamento — resuelto por `findByPublicId` con la cadena de
- * padres del ubigeo ya incluida) y sus sucursales (`subsidiaries`, con nombre/dirección/ubigeo
- * formateado — lo que muestra la card de la grilla, no el detalle completo de edición).
- * `country.id` y los ids de `ubigeo` van además de los nombres para poder precargar el
- * formulario de edición sin otro request.
+ * Detalle de una empresa (página de "Ver empresa")
  */
 export const toCompanyDetailDto = (company: Company, assignments: UserCompany[] = []) => {
     const owner = company.userAssignments?.[0]?.user ?? null;
     const district = company.ubigeo ?? null;
-    const province = district?.parent ?? null;
-    const department = province?.parent ?? null;
 
     const nameByCompanyId = new Map<number, string>([
         [Number(company.company_id), company.name],
@@ -128,14 +113,8 @@ export const toCompanyDetailDto = (company: Company, assignments: UserCompany[] 
         phoneCell: company.phone_cell,
         phone: company.phone,
         isEnabled: company.is_enabled,
-        country: company.country ? { id: company.country.country_id, name: company.country.country, flagUrl: company.country.flag_url, phoneCode: company.country.phone_code } : null,
+        country: company.country ? { name: company.country.country, flagUrl: company.country.flag_url, phoneCode: company.country.phone_code } : null,
         ubigeo: district ? {
-            id: district.ubigeo_id,
-            district: district.name,
-            province: province?.name ?? null,
-            provinceId: province?.ubigeo_id ?? null,
-            department: department?.name ?? null,
-            departmentId: department?.ubigeo_id ?? null,
             formatted: formatUbigeo(district)!,
         } : null,
         owner: owner ? {

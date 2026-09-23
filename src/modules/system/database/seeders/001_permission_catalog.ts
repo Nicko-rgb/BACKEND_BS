@@ -59,10 +59,9 @@ const PERMISSIONS: PermissionSeed[] = [
     // ── sucursal (companys) ───────────────────────────────────────────────────
     { key: 'sucursal.view', label: 'Ver sucursales', description: 'Ver el listado y detalle de sucursales', module: 'companys', app_access: 'admin' },
     { key: 'sucursal.edit', label: 'Editar sucursales', description: 'Editar los datos de una sucursal', module: 'companys', app_access: 'admin' },
+    { key: 'sucursal.create', label: 'Registrar sucursal', description: 'Registrar una Sucursal', module: 'companys', app_access: 'admin'},
     { key: 'sucursal.config', label: 'Configurar sucursales', description: 'Configurar parámetros de una sucursal', module: 'companys', app_access: 'admin' },
-    { key: 'sucursal.manage', label: 'Gestionar sucursales', description: 'Gestión completa de sucursales de la empresa', module: 'companys', app_access: 'admin' },
     { key: 'sucursal.rating_manage', label: 'Gestionar calificaciones', description: 'Moderar calificaciones recibidas por una sucursal', module: 'companys', app_access: 'admin' },
-    { key: 'sucursal.rating_create', label: 'Crear calificación', description: 'Calificar una reserva finalizada', module: 'companys', app_access: 'booking' },
     
     // ── user — usuarios del sistema (users) ─────────────────────────────────
     { key: 'user.employee_manage', label: 'Gestionar empleados', description: 'Alta, edición y baja de empleados', module: 'users', app_access: 'admin' },

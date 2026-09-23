@@ -23,7 +23,6 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
         'booking.view',
         'booking.cancel',
         'payment.create',
-        'sucursal.rating_create',
     ],
     empleado: [
         'booking.create',
@@ -38,6 +37,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
         'user.client_manage',
     ],
     administrador: [
+        'sucursal.create',
         'sucursal.view',
         'sucursal.edit',
         'sucursal.config',
@@ -56,10 +56,10 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
         'statistics.view',
     ],
     super_admin: [
+        'sucursal.create',
         'company.manage',
         'company.view',
         'company.manage_own',
-        'sucursal.manage',
         'space.manage',
         'sucursal.rating_manage',
         'booking.manage',

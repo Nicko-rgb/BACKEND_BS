@@ -9,12 +9,12 @@ const router = createRouter();
 
 /**
  * @route POST /api/sucursals/:companyPublicId
- * @desc  Registro de una sucursal bajo una empresa — companyPublicId es el public_id de la empresa padre.
+ * @desc  Registro de una sucursal bajo una empresa
  * @access system, super_admin (dueño de esa empresa)
  */
 router.post('/:companyPublicId',
     resolveAuthorization,
-    verificarPermiso('sucursal.manage'),
+    verificarPermiso('sucursal.create'),
     validateDTO(registerSucursalSchema),
     registerSucursal
 );
@@ -26,7 +26,7 @@ router.post('/:companyPublicId',
  */
 router.get('/:publicId',
     resolveAuthorization,
-    verificarPermiso('sucursal.manage'),
+    verificarPermiso('sucursal.view'),
     getByPublicId
 );
 
@@ -37,7 +37,7 @@ router.get('/:publicId',
  */
 router.put('/:publicId',
     resolveAuthorization,
-    verificarPermiso('sucursal.manage'),
+    verificarPermiso('sucursal.edit'),
     validateDTO(updateSucursalSchema),
     updateByPublicId
 );
