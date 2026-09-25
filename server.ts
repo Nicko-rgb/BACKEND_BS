@@ -84,7 +84,7 @@ async function inicializarBaseDatos(): Promise<void> {
 
         // ── 1. Ejecutar migraciones pendientes ────
         if (isDev) {
-            console.log(chalk.yellow('📦 Migraciones: omitidas en desarrollo'));
+            console.log(chalk.yellow('   - 📦 Migraciones: omitidas en desarrollo'));
         } else {
             console.log(chalk.cyan('📦 Migraciones: verificando pendientes...'));
             const { applied, failed } = await runPendingMigrations();
@@ -94,14 +94,14 @@ async function inicializarBaseDatos(): Promise<void> {
             }
 
             if (applied > 0) {
-                console.log(chalk.green(`📦 Migraciones: ${applied} aplicada(s)`));
+                console.log(chalk.green(`   - 📦 Migraciones: ${applied} aplicada(s)`));
             } else {
-                console.log(chalk.green('📦 Migraciones: esquema al día, sin pendientes'));
+                console.log(chalk.green('   - 📦 Migraciones: esquema al día, sin pendientes'));
             }
         }
 
         // ── 2. Seeders — siempre manuales ─────
-        console.log(chalk.yellow('🌱 Seeders: no se ejecutan automáticamente'));
+        console.log(chalk.yellow('   - 🌱 Seeders: no se ejecutan automáticamente'));
     } catch (error: any) {
         logger.error('Error al inicializar la base de datos', { error: error.message });
         throw error;
@@ -115,9 +115,9 @@ async function iniciarServidor(): Promise<void> {
     try {
         console.log(chalk.bgBlue('\n🔌 CONEXIONES A DB'));
         await inicializarBaseDatos();
-        const stopAllJobs = startAllJobs();
         await redisClient.connect();
         await initSocket(server);
+        const stopAllJobs = startAllJobs();
         const PORT = process.env.PORT;
         const HOST = isDev ? '0.0.0.0' : (process.env.HOST);
 

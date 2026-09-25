@@ -58,7 +58,7 @@ export const initSocket = async (server: HttpServer): Promise<Server> => {
             await Promise.all([pubClient.connect(), subClient.connect()]);
             io.adapter(createAdapter(pubClient, subClient));
 
-            console.log(chalk.green('✅ Socket.IO: Redis adapter conectado (modo multi-servidor)'));
+            console.log(chalk.green('   - ✅ Socket.IO: Redis adapter conectado (modo multi-servidor)'));
         } catch (error: any) {
             // No bloquear el arranque si Redis falla — degradar a single-server
             logger.warn(`Redis adapter no disponible. Socket.IO en modo single-server. (${error.message})`);

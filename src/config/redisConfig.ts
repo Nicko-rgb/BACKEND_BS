@@ -18,7 +18,7 @@ class RedisClient {
 
     async connect(): Promise<void> {
         if (!this.isEnabled) {
-            logger.warn('Redis está deshabilitado en las variables de entorno');
+            console.log(chalk.yellow('   - ⚠️  Redis está deshabilitado en las variables de entorno'))
             return;
         }
 
@@ -50,7 +50,7 @@ class RedisClient {
             });
 
             this.client.on('connect', () => {
-                console.log(chalk.green('✅ Redis: conectado'));
+                console.log(chalk.green('   - ✅ Redis: conectado'));
                 this.isConnected = true;
             });
 

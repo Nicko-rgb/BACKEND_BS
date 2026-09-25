@@ -36,7 +36,6 @@ export const startPasswordResetCleanup = () => {
 
     void run();
     const task = cron.schedule(cronExpression, () => { void run(); });
-    logger.info(`[PasswordResetCleanup] Programado: "${cronExpression}"`);
 
     return task;
 };

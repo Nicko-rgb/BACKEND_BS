@@ -1,5 +1,6 @@
 import logger from '../config/logger';
 import { startPasswordResetCleanup } from '../modules/auth/jobs/passwordResetCleanup.job';
+import chalk from 'chalk';
 
 // Cada job expone `start*()` que devuelve algo con `.stop()` (ej. ScheduledTask de
 // node-cron). Agregar un job nuevo = 1 línea acá (import + entrada en `jobStarters`);
@@ -12,7 +13,7 @@ const jobStarters: Array<() => { stop: () => void }> = [
 /** Arranca todos los jobs registrados. Llamar una vez, después de conectar la DB. */
 export const startAllJobs = (): (() => void) => {
     const tasks = jobStarters.map((start) => start());
-    logger.info(`[Jobs] ${tasks.length} job(s) iniciados`);
+    console.log(chalk.green(`[JOBS] - ${tasks.length} job(s) iniciados`))
 
     return () => {
         for (const task of tasks) {
