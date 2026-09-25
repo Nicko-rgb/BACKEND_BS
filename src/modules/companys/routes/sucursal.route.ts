@@ -21,8 +21,8 @@ router.post('/:companyPublicId',
 
 /**
  * @route GET /api/sucursals/:publicId
- * @desc  Detalle de una sucursal — se busca por su propio public_id, para precargar el form de edición.
- * @access system, super_admin (dueño de la empresa)
+ * @desc  Detalle de una sucursal — se busca por su propio public_id
+ * @access system, super_admin,
  */
 router.get('/:publicId',
     resolveAuthorization,

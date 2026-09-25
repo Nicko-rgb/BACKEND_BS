@@ -53,10 +53,6 @@ const migration: MigrationFile = {
                 defaultValue: null
             },
             description: { type: DataTypes.TEXT, allowNull: true },
-            opening_time: { type: DataTypes.TIME, allowNull: true },
-            closing_time: { type: DataTypes.TIME, allowNull: true },
-            min_price: { type: DataTypes.DECIMAL(10, 2), allowNull: true },
-            features: { type: DataTypes.TEXT, allowNull: true },
             parent_company_id: {
                 type: DataTypes.BIGINT,
                 allowNull: true,

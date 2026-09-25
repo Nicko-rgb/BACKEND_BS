@@ -1,12 +1,12 @@
 /**
- * Modelo Configuration - Configuración de compañías Y sucursales
+ * Modelo Configuration - Perfil operativo de la sucursal
  *
- * Un mismo modelo para ambos tipos de entidad ya que Company y Sucursal
- * comparten la tabla dsg_bss_company (self-referencing via parent_company_id).
- * La FK company_id tiene unique:true → una config por entidad.
- *
- * Nota: Los datos de pago (Yape, Plin, cuentas bancarias) se gestionan
- * en la tabla dsg_bss_payment_account (modelo PaymentAccount).
+ * Company y Sucursal comparten la tabla dsg_bss_company (self-referencing via
+ * parent_company_id), pero la configuración es SOLO de sucursales: la FK
+ * sucursal_id (unique → una config por sucursal) referencia una company con
+ * parent_company_id. La empresa madre no tiene configuración propia — todo es
+ * por sede. El guard "solo sucursal" vive en el service, la FK sola no puede
+ * distinguir el tipo de fila.
  */
 import { DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional } from 'sequelize';
 import sequelize from '../../../../config/db';
@@ -15,7 +15,7 @@ import type { Company } from './Company';
 
 export class Configuration extends Model<InferAttributes<Configuration>, InferCreationAttributes<Configuration>> {
     declare config_id: CreationOptional<number>;
-    declare company_id: number;
+    declare sucursal_id: number;
     declare tenant_id: string;
     declare public_id: CreationOptional<string>;
     declare social_facebook: string | null;
@@ -24,6 +24,10 @@ export class Configuration extends Model<InferAttributes<Configuration>, InferCr
     declare social_youtube: string | null;
     declare social_whatsapp: string | null;
     declare whatsapp_message: string | null;
+    declare opening_time: string | null;
+    declare closing_time: string | null;
+    declare min_price: string | null;
+    declare features: string | null;
     declare user_create: number;
     declare user_update: number | null;
     declare readonly created_at: CreationOptional<Date>;
@@ -37,12 +41,12 @@ Configuration.init({
         primaryKey: true,
         comment: 'Identificador único de la configuración'
     },
-    company_id: {
+    sucursal_id: {
         type: DataTypes.BIGINT,
         allowNull: false,
         unique: true,
         references: { model: 'dsg_bss_company', key: 'company_id' },
-        comment: 'Referencia a la compañía o sucursal configurada'
+        comment: 'Sucursal configurada (company con parent_company_id) — una config por sucursal'
     },
     tenant_id: {
         type: DataTypes.STRING(36),
@@ -89,6 +93,28 @@ Configuration.init({
         comment: 'Mensaje predefinido para el botón de WhatsApp'
     },
 
+    // ── Perfil operativo de la sede ──────────────────────────────────────────
+    opening_time: {
+        type: DataTypes.TIME,
+        allowNull: true,
+        comment: 'Horario de apertura de la sucursal'
+    },
+    closing_time: {
+        type: DataTypes.TIME,
+        allowNull: true,
+        comment: 'Horario de cierre de la sucursal'
+    },
+    min_price: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true,
+        comment: 'Precio mínimo de la sucursal'
+    },
+    features: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: 'Características de la sucursal (separadas por comas)'
+    },
+
     // ── Auditoría ────────────────────────────────────────────────────────────
     user_create: {
         type: DataTypes.BIGINT,
@@ -111,7 +137,7 @@ Configuration.init({
     createdAt: 'created_at',
     updatedAt: 'updated_at',
     underscored: true,
-    comment: 'Tabla de configuración de compañías y sucursales',
+    comment: 'Perfil operativo de la sucursal: redes, horarios, precio y características',
     indexes: [
         { unique: true, name: 'unique_configuration_public_id', fields: ['public_id'] },
         { name: 'idx_configuration_tenant', fields: ['tenant_id'] }

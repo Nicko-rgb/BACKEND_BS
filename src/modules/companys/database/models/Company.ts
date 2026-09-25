@@ -37,10 +37,6 @@ export class Company extends Model<InferAttributes<Company>, InferCreationAttrib
     declare longitude: string | null;
     declare status: CompanyStatus | null;
     declare description: string | null;
-    declare opening_time: string | null;
-    declare closing_time: string | null;
-    declare min_price: string | null;
-    declare features: string | null;
     declare parent_company_id: number | null;
     declare is_enabled: CompanyEnabled | null;
     declare user_create: number;
@@ -142,26 +138,6 @@ Company.init({
         allowNull: true,
         comment: 'Descripción de la compañía'
     },
-    opening_time: {
-        type: DataTypes.TIME,
-        allowNull: true,
-        comment: 'Horario de apertura (para sucursales)'
-    },
-    closing_time: {
-        type: DataTypes.TIME,
-        allowNull: true,
-        comment: 'Horario de cierre (para sucursales)'
-    },
-    min_price: {
-        type: DataTypes.DECIMAL(10, 2),
-        allowNull: true,
-        comment: 'Precio mínimo (para sucursales)'
-    },
-    features: {
-        type: DataTypes.TEXT,
-        allowNull: true,
-        comment: 'Características de la sucursal (separadas por comas)'
-    },
     parent_company_id: {
         type: DataTypes.BIGINT,
         allowNull: true,
@@ -247,8 +223,8 @@ export function associateCompany(models: {
         as: 'paymentConfigurations'
     });
     Company.hasOne(models.Configuration, {
-        foreignKey: 'company_id',
-        as: 'configuration'
+        foreignKey: 'sucursal_id',
+        as: 'sucursalConfiguration'
     });
     Company.hasMany(models.Rating, {
         foreignKey: 'sucursal_id',

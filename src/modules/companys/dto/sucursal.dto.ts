@@ -23,7 +23,12 @@ export const toSucursalDto = (sucursal: Company) => {
         description: sucursal.description,
         website: sucursal.website,
         status: sucursal.status,
-        country: sucursal.country ? { id: sucursal.country.country_id, name: sucursal.country.country, flagUrl: sucursal.country.flag_url, phoneCode: sucursal.country.phone_code } : null,
+        country: sucursal.country ? { 
+            id: sucursal.country.country_id,
+            name: sucursal.country.country,
+            flagUrl: sucursal.country.flag_url,
+            phoneCode: sucursal.country.phone_code
+        } : null,
         ubigeo: district ? {
             id: district.ubigeo_id,
             district: district.name,

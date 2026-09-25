@@ -1,6 +1,8 @@
 /**
  * Baseline: crear tabla dsg_bss_configuration
- * Configuración de redes sociales y WhatsApp por empresa.
+ * Perfil operativo de la sucursal: redes sociales, WhatsApp, horarios,
+ * precio mínimo y características. Solo sucursales (company con
+ * parent_company_id) — la empresa madre no tiene configuración propia.
  */
 import { DataTypes } from 'sequelize';
 import type { MigrationFile } from '../../../../../scripts/migrationRunner';
@@ -23,13 +25,14 @@ const migration: MigrationFile = {
 
         await queryInterface.createTable('dsg_bss_configuration', {
             config_id: { type: DataTypes.BIGINT, autoIncrement: true, primaryKey: true },
-            company_id: {
+            sucursal_id: {
                 type: DataTypes.BIGINT,
                 allowNull: false,
                 unique: true,
                 references: { model: 'dsg_bss_company', key: 'company_id' },
                 onUpdate: 'CASCADE',
-                onDelete: 'CASCADE'
+                onDelete: 'CASCADE',
+                comment: 'Sucursal configurada (company con parent_company_id) — una config por sucursal'
             },
             tenant_id: { type: DataTypes.STRING(36), allowNull: false, comment: 'Tenant raíz heredado — se duplica' },
             public_id: { type: DataTypes.STRING(36), allowNull: false, unique: true, comment: 'Identificador público único por fila' },
@@ -39,6 +42,10 @@ const migration: MigrationFile = {
             social_youtube: { type: DataTypes.STRING(500), allowNull: true },
             social_whatsapp: { type: DataTypes.STRING(30), allowNull: true },
             whatsapp_message: { type: DataTypes.STRING(300), allowNull: true },
+            opening_time: { type: DataTypes.TIME, allowNull: true, comment: 'Horario de apertura de la sucursal' },
+            closing_time: { type: DataTypes.TIME, allowNull: true, comment: 'Horario de cierre de la sucursal' },
+            min_price: { type: DataTypes.DECIMAL(10, 2), allowNull: true, comment: 'Precio mínimo de la sucursal' },
+            features: { type: DataTypes.TEXT, allowNull: true, comment: 'Características de la sucursal (separadas por comas)' },
             user_create: {
                 type: DataTypes.BIGINT,
                 allowNull: false,
