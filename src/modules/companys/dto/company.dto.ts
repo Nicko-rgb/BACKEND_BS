@@ -133,6 +133,7 @@ export const toCompanyDetailDto = (company: Company, assignments: UserCompany[] 
             name: s.name,
             address: s.address,
             ubigeo: formatUbigeo(s.ubigeo),
+            status: s.status,
         })),
         users: toCompanyUsersDto(assignments, nameByCompanyId, publicByCompanyId),
         createdAt: company.created_at,

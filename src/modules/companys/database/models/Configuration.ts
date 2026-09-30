@@ -145,7 +145,7 @@ Configuration.init({
 });
 
 export function associateConfiguration(models: { Company: typeof Company; User: typeof User }): void {
-    Configuration.belongsTo(models.Company, { foreignKey: 'company_id', as: 'company' });
+    Configuration.belongsTo(models.Company, { foreignKey: 'sucursal_id', as: 'sucursal' });
     Configuration.belongsTo(models.User, { foreignKey: 'user_create', as: 'userCreate' });
     Configuration.belongsTo(models.User, { foreignKey: 'user_update', as: 'userUpdate' });
 }

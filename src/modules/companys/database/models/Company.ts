@@ -50,6 +50,7 @@ export class Company extends Model<InferAttributes<Company>, InferCreationAttrib
     declare ubigeo?: NonAttribute<Ubigeo>;
     declare subsidiaries?: NonAttribute<Company[]>;
     declare parentCompany?: NonAttribute<Company>;
+    declare spaces?: NonAttribute<Space[]>;
 }
 
 Company.init({

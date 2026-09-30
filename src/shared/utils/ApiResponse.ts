@@ -36,6 +36,7 @@ const error = (req: Request | undefined, res: Response, code = 'ERROR', message 
         success: false,
         error: {
             code,
+            status,
             message: tagMessage(message),
             details: taggedDetails
         },

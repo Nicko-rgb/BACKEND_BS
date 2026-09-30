@@ -126,7 +126,7 @@ export const findByPublicId = async (publicId: string) => {
             },
             {
                 association: 'subsidiaries',
-                attributes: ['company_id', 'public_id', 'name', 'address'],
+                attributes: ['company_id', 'public_id', 'name', 'address', 'status'],
                 include: [
                     {
                         association: 'ubigeo',
@@ -153,6 +153,11 @@ export const findSucursalByPublicId = async (publicId: string) => {
                 include: [{ association: 'parent', include: [{ association: 'parent' }] }],
             },
             { association: 'parentCompany', attributes: ['company_id', 'public_id'] },
+            {
+                association: 'spaces',
+                attributes: ['public_id', 'name', 'status_space'],
+                include: [{ association: 'sportType', attributes: ['name'] }],
+            },
         ],
     });
 };

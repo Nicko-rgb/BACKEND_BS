@@ -8,8 +8,9 @@ import { BadRequestError, ForbiddenError, NotFoundError } from '../../../shared/
 import type { AuthenticatedUser } from '../../../shared/types/auth';
 import type { Company } from '../database/models';
 
-// Payload del alta de sucursal — el resto de los campos operativos del modelo (horario, precio
-// mínimo) se manejan aparte, en "Configurar" (todavía no existe).
+// Payload del alta de sucursal — los campos operativos (horario, precio mínimo,
+// características, redes) viven en dsg_bss_configuration y se manejan aparte, en
+// "Configurar" (ver sucursalConfig.service.ts).
 export interface RegisterSucursalInput {
     name: string;
     address: string;

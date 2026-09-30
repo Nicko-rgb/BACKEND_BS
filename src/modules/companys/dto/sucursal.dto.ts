@@ -4,7 +4,8 @@ import type { Company } from '../database/models';
  * Forma de una sucursal para el frontend — solo `public_id` (nunca `company_id` ni
  * `tenant_id`). País y ubigeo con sus ids de catálogo (para precargar el form) además
  * del nombre formateado. `companyPublicId` es el `public_id` de la empresa padre
- * (`parentCompany`), para el link "volver a la empresa".
+ * (`parentCompany`), para el link "volver a la empresa". `spaces` trae nombre,
+ * deporte y estado de cada espacio de la sede.
  */
 export const toSucursalDto = (sucursal: Company) => {
     const district = sucursal.ubigeo ?? null;
@@ -38,6 +39,12 @@ export const toSucursalDto = (sucursal: Company) => {
             departmentId: department?.ubigeo_id ?? null,
             formatted: [district.name, province?.name, department?.name].filter(Boolean).join(', '),
         } : null,
+        spaces: (sucursal.spaces ?? []).map((space) => ({
+            publicId: space.public_id,
+            name: space.name,
+            sport: space.sportType?.name ?? null,
+            status: space.status_space,
+        })),
         createdAt: sucursal.created_at,
     };
 };

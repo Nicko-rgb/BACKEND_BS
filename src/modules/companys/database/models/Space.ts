@@ -5,7 +5,7 @@
  * y tiene características específicas como tipo de superficie, deporte,
  * capacidad y tarifas.
  */
-import { DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional } from 'sequelize';
+import { DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional, NonAttribute } from 'sequelize';
 import sequelize from '../../../../config/db';
 import type { User } from '../../../users/database/models';
 import type { Company } from './Company';
@@ -35,6 +35,7 @@ export class Space extends Model<InferAttributes<Space>, InferCreationAttributes
     declare user_update: number | null;
     declare readonly created_at: CreationOptional<Date>;
     declare readonly updated_at: CreationOptional<Date>;
+    declare sportType?: NonAttribute<SportType>;
 }
 
 Space.init({
