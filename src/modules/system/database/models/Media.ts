@@ -23,7 +23,7 @@ export class Media extends Model<InferAttributes<Media>, InferCreationAttributes
     declare media_id: CreationOptional<number>;
     declare medible_id: number;
     declare medible_type: string;
-    declare tenant_id: string;
+    declare tenant_id: string | null;
     declare type: CreationOptional<MediaType>;
     declare category: CreationOptional<MediaCategory>;
     declare file_url: string;
@@ -56,8 +56,8 @@ Media.init({
     },
     tenant_id: {
         type: DataTypes.STRING(36),
-        allowNull: false,
-        comment: 'Identificador del tenant para multi-tenancy'
+        allowNull: true,
+        comment: 'Tenant de la entidad dueña — NULL para assets globales sin tenant'
     },
     type: {
         type: DataTypes.ENUM('IMAGE', 'VIDEO', 'DOCUMENT', 'AUDIO'),

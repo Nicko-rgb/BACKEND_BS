@@ -54,6 +54,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
         'user.client_manage',
         'reports.view',
         'statistics.view',
+        'media.manage',
     ],
     super_admin: [
         'sucursal.create',
@@ -69,6 +70,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
         'user.client_manage',
         'reports.view',
         'statistics.view',
+        'media.manage',
     ],
     system: [
         // El middleware ya bypasea con este solo permiso — ver verificarPermiso.ts.

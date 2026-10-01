@@ -32,7 +32,7 @@ const migration: MigrationFile = {
             media_id: { type: DataTypes.BIGINT, autoIncrement: true, primaryKey: true },
             medible_id: { type: DataTypes.BIGINT, allowNull: false },
             medible_type: { type: DataTypes.STRING(50), allowNull: false },
-            tenant_id: { type: DataTypes.STRING(36), allowNull: false },
+            tenant_id: { type: DataTypes.STRING(36), allowNull: true, comment: 'Tenant de la entidad dueña — NULL para assets globales sin tenant' },
             type: {
                 type: DataTypes.ENUM('IMAGE', 'VIDEO', 'DOCUMENT', 'AUDIO'),
                 defaultValue: 'IMAGE'

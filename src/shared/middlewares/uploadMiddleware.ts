@@ -3,6 +3,7 @@
  *
  * Mapa de destinos:
  *   logo, banner, main_image  -> uploads/companys/img/
+ *   cover (portada de sucursal, media global) -> uploads/sucursals/img/
  *   yape_qr, plin_qr, qr_image -> uploads/companys/qr/
  *   payment_proof              -> uploads/bookings/proof/
  *   media  (galeria de Space)  -> uploads/spaces/img/ o uploads/spaces/video/
@@ -25,6 +26,7 @@ const FIELD_DEST: Record<string, FieldDestination> = {
     logo: { folder: 'companys', sub: 'img' },
     banner: { folder: 'companys', sub: 'img' },
     main_image: { folder: 'companys', sub: 'img' },
+    cover: { folder: 'sucursals', sub: 'img' },
     yape_qr: { folder: 'companys', sub: 'qr' },
     plin_qr: { folder: 'companys', sub: 'qr' },
     qr_image: { folder: 'companys', sub: 'qr' },

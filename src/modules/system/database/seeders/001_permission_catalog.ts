@@ -89,6 +89,7 @@ const PERMISSIONS: PermissionSeed[] = [
     { key: 'sport_category.manage', label: 'Gestionar categorías deportivas', description: 'Administrar el catálogo de categorías deportivas', module: 'system', app_access: 'admin' },
     { key: 'surface_type.manage', label: 'Gestionar tipos de superficie', description: 'Administrar el catálogo de tipos de superficie', module: 'system', app_access: 'admin' },
     { key: 'payment_type.manage', label: 'Gestionar tipos de pago', description: 'Administrar el catálogo de tipos de pago', module: 'system', app_access: 'admin' },
+    { key: 'media.manage', label: 'Gestionar archivos', description: 'Subir, ver y eliminar archivos multimedia (media global)', module: 'system', app_access: 'admin' },
 
     // ── plan — planes SaaS (saas), aunque se administre desde una ruta de system ──
     { key: 'plan.manage', label: 'Gestionar planes', description: 'Administrar los planes SaaS del sistema', module: 'saas', app_access: 'admin' },

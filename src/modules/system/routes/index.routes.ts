@@ -8,6 +8,7 @@ import sportCategoryRoutes from './sportCategory.route';
 import surfaceTypeRoutes from './surfaceType.route';
 import paymentTypeRoutes from './paymentType.route';
 import ubigeoRoutes from './ubigeo.route';
+import mediaRoutes from './media.route';
 
 const router = createRouter();
 
@@ -23,5 +24,6 @@ router.use('/system', sportCategoryRoutes);
 router.use('/system', surfaceTypeRoutes);
 router.use('/system', paymentTypeRoutes);
 router.use('/system', ubigeoRoutes);
+router.use('/system', mediaRoutes);
 
 export default router;
