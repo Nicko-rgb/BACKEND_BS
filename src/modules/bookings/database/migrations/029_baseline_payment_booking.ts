@@ -30,7 +30,7 @@ const migration: MigrationFile = {
                 onUpdate: 'CASCADE',
                 onDelete: 'CASCADE'
             },
-            tenant_id: { type: DataTypes.STRING(36), allowNull: false },
+            tenant_id: { type: DataTypes.UUID, allowNull: false },
             amount: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
             method: { type: DataTypes.ENUM('ONLINE', 'IN_PERSON'), allowNull: false },
             status: {

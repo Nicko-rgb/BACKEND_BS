@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import { idPublicId } from '../../../shared/utils/ids';
 import bcrypt from 'bcryptjs';
 import type { InferAttributes } from 'sequelize';
 import sequelize from '../../../config/db';
@@ -163,10 +163,10 @@ export const register = async (payload: RegisterCompanyInput, user: Authenticate
     const superAdminRole = await RoleRepository.findByKey('super_admin');
     if (!superAdminRole) throw new BadRequestError('El rol "super_admin" no está configurado en el sistema.');
 
-    const tenantId = crypto.randomUUID();
-    const publicId = crypto.randomUUID();
-    const ownerPublicId = crypto.randomUUID();
-    const subscriptionPublicId = crypto.randomUUID();
+    const tenantId = idPublicId();
+    const publicId = idPublicId();
+    const ownerPublicId = idPublicId();
+    const subscriptionPublicId = idPublicId();
     const hashedPassword = await bcrypt.hash(owner.password, 10);
 
     const { newCompany, newUser } = await sequelize.transaction(async (transaction) => {

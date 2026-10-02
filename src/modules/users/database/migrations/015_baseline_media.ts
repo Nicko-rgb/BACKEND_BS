@@ -11,6 +11,7 @@
  */
 import { DataTypes } from 'sequelize';
 import type { MigrationFile } from '../../../../../scripts/migrationRunner';
+import { idPublicId } from '../../../../shared/utils/ids';
 
 const migration: MigrationFile = {
     meta: {
@@ -32,7 +33,8 @@ const migration: MigrationFile = {
             media_id: { type: DataTypes.BIGINT, autoIncrement: true, primaryKey: true },
             medible_id: { type: DataTypes.BIGINT, allowNull: false },
             medible_type: { type: DataTypes.STRING(50), allowNull: false },
-            tenant_id: { type: DataTypes.STRING(36), allowNull: true, comment: 'Tenant de la entidad dueña — NULL para assets globales sin tenant' },
+            tenant_id: { type: DataTypes.UUID, allowNull: true, comment: 'Tenant de la entidad dueña — NULL para assets globales sin tenant' },
+            public_id: { type: DataTypes.UUID, allowNull: false, unique: true, defaultValue: () => idPublicId(), comment: 'Identificador público único por fila — lo único expuesto en URLs' },
             type: {
                 type: DataTypes.ENUM('IMAGE', 'VIDEO', 'DOCUMENT', 'AUDIO'),
                 defaultValue: 'IMAGE'
@@ -41,7 +43,7 @@ const migration: MigrationFile = {
                 type: DataTypes.ENUM('GALLERY', 'PROFILE', 'COVER', 'THUMBNAIL', 'DOCUMENT'),
                 defaultValue: 'GALLERY'
             },
-            file_url: { type: DataTypes.STRING(500), allowNull: false },
+            file_url: { type: DataTypes.STRING(500), allowNull: false, unique: true, comment: 'URL del archivo — única por fila (1:1 fila↔archivo)' },
             file_name: { type: DataTypes.STRING(255), allowNull: false },
             description: { type: DataTypes.TEXT, allowNull: true },
             is_primary: { type: DataTypes.BOOLEAN, defaultValue: false },
@@ -65,6 +67,7 @@ const migration: MigrationFile = {
 
         await queryInterface.addIndex('dsg_bss_media', ['tenant_id'], { name: 'idx_media_tenant' });
         await queryInterface.addIndex('dsg_bss_media', ['medible_id', 'medible_type'], { name: 'idx_media_polymorphic' });
+        await queryInterface.addIndex('dsg_bss_media', ['public_id'], { unique: true, name: 'unique_media_public_id' });
     },
 
     async down(queryInterface) {

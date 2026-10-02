@@ -11,9 +11,9 @@
  */
 import fs from 'fs';
 import path from 'path';
-import crypto from 'crypto';
-import sequelize from '../../config/db';
-import logger from '../../config/logger';
+import { idPublicId } from '../../../shared/utils/ids';
+import sequelize from '../../../config/db';
+import logger from '../../../config/logger';
 import * as CompanyRepository from '../../companys/repository/company.repository';
 import * as MediaRepository from '../repository/media.repository';
 import { buildFileUrl } from '../../../shared/middlewares/uploadMiddleware';
@@ -112,7 +112,7 @@ export const register = async (file: Express.Multer.File | undefined, input: Reg
             file_name: file.originalname,
             description: input.description || null,
             is_primary: isPrimary,
-            public_id: crypto.randomUUID(),
+            public_id: idPublicId(),
             user_create: user.user_id,
             user_update: null,
         }, transaction);

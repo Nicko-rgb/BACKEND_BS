@@ -22,7 +22,7 @@ const migration: MigrationFile = {
                 allowNull: false
             },
             public_id: {
-                type: DataTypes.STRING(36),
+                type: DataTypes.UUID,
                 allowNull: false,
                 unique: true,
                 comment: 'Identificador público único por fila — se expone a MercadoPago (external_reference) y al frontend'
@@ -88,7 +88,7 @@ const migration: MigrationFile = {
                 comment: 'Email del pagador registrado en MercadoPago'
             },
             lead_uuid: {
-                type: DataTypes.STRING(36),
+                type: DataTypes.UUID,
                 allowNull: true,
                 comment: 'lead_uuid del seguimiento de checkout — sobrevive hasta que el webhook confirma el pago'
             },

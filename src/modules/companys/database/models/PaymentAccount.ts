@@ -62,7 +62,7 @@ PaymentAccount.init({
         comment: 'Configuración de pago de la sucursal a la que apunta esta cuenta (ConfigurationPayment)'
     },
     tenant_id: {
-        type: DataTypes.STRING(36),
+        type: DataTypes.UUID,
         allowNull: false,
         comment: 'Tenant para multi-tenancy'
     },

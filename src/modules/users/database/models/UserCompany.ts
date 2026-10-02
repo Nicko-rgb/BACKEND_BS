@@ -59,7 +59,7 @@ UserCompany.init({
         comment: 'Clasificador del rol del usuario en esta empresa/sucursal (solo display)'
     },
     tenant_id: {
-        type: DataTypes.STRING(36),
+        type: DataTypes.UUID,
         allowNull: false,
         comment: 'tenant_id de la empresa raíz, para filtrado rápido por tenant'
     },

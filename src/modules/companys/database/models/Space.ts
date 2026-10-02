@@ -7,6 +7,7 @@
  */
 import { DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional, NonAttribute } from 'sequelize';
 import sequelize from '../../../../config/db';
+import { idPublicId } from '../../../../shared/utils/ids';
 import type { User } from '../../../users/database/models';
 import type { Company } from './Company';
 import type { BusinessHour } from './BusinessHour';
@@ -52,15 +53,15 @@ Space.init({
         comment: 'Referencia a la sucursal específica'
     },
     tenant_id: {
-        type: DataTypes.STRING(36),
+        type: DataTypes.UUID,
         allowNull: false,
         comment: 'Tenant raíz heredado de la sucursal/empresa — se duplica'
     },
     public_id: {
-        type: DataTypes.STRING(36),
+        type: DataTypes.UUID,
         allowNull: false,
         unique: true,
-        defaultValue: DataTypes.UUIDV4,
+        defaultValue: () => idPublicId(),
         comment: 'Identificador público único por fila — lo único expuesto en URLs'
     },
     name: {

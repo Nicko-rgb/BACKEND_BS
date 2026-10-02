@@ -37,7 +37,7 @@ const migration: MigrationFile = {
                 onUpdate: 'CASCADE',
                 onDelete: 'CASCADE'
             },
-            tenant_id: { type: DataTypes.STRING(36), allowNull: false },
+            tenant_id: { type: DataTypes.UUID, allowNull: false },
             is_default: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
             sort_order: { type: DataTypes.INTEGER, allowNull: true },
             is_enabled: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },

@@ -70,7 +70,7 @@ Notification.init({
         references: { model: 'dsg_bss_company', key: 'company_id' }
     },
     tenant_id: {
-        type: DataTypes.STRING(36),
+        type: DataTypes.UUID,
         allowNull: true,
         comment: 'Identificador del tenant para multi-tenancy — null si no pertenece a una empresa'
     },

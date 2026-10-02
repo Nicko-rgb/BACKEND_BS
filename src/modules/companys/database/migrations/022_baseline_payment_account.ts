@@ -44,7 +44,7 @@ const migration: MigrationFile = {
                 onUpdate: 'CASCADE',
                 onDelete: 'SET NULL'
             },
-            tenant_id: { type: DataTypes.STRING(36), allowNull: false },
+            tenant_id: { type: DataTypes.UUID, allowNull: false },
             account_alias: { type: DataTypes.STRING(150), allowNull: true },
             account_number: { type: DataTypes.STRING(50), allowNull: true },
             account_name: { type: DataTypes.STRING(200), allowNull: true },

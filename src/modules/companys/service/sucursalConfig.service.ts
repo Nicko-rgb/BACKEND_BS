@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import { idPublicId } from '../../../shared/utils/ids';
 import sequelize from '../../../config/db';
 import * as CompanyRepository from '../repository/company.repository';
 import * as ConfigurationRepository from '../repository/configuration.repository';
@@ -97,7 +97,7 @@ export const saveBySucursalPublicId = async (sucursalPublicId: string, data: Sav
         const created = await ConfigurationRepository.create({
             sucursal_id: Number(sucursal.company_id),
             tenant_id: sucursal.tenant_id,
-            public_id: crypto.randomUUID(),
+            public_id: idPublicId(),
             ...fields,
             user_create: user.user_id,
             user_update: null,

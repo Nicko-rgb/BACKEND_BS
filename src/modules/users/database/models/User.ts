@@ -11,6 +11,7 @@
  */
 import { DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional, NonAttribute } from 'sequelize';
 import sequelize from '../../../../config/db';
+import { idPublicId } from '../../../../shared/utils/ids';
 import type { Person } from './Person';
 import type { UserFavorite } from './UserFavorite';
 import type { UserCompany } from './UserCompany';
@@ -53,10 +54,10 @@ User.init({
         comment: 'Identificador único del usuario'
     },
     public_id: {
-        type: DataTypes.STRING(36),
+        type: DataTypes.UUID,
         allowNull: false,
         unique: true,
-        defaultValue: DataTypes.UUIDV4,
+        defaultValue: () => idPublicId(),
         comment: 'Identificador público único por fila — lo único expuesto en URLs'
     },
     first_name: {

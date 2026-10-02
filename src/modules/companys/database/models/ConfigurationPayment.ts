@@ -44,7 +44,7 @@ ConfigurationPayment.init({
         references: { model: 'dsg_bss_payment_types', key: 'payment_type_id' }
     },
     tenant_id: {
-        type: DataTypes.STRING(36),
+        type: DataTypes.UUID,
         allowNull: false,
         comment: 'Identificador del tenant para multi-tenancy'
     },

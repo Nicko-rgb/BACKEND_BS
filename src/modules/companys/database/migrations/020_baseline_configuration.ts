@@ -34,8 +34,8 @@ const migration: MigrationFile = {
                 onDelete: 'CASCADE',
                 comment: 'Sucursal configurada (company con parent_company_id) — una config por sucursal'
             },
-            tenant_id: { type: DataTypes.STRING(36), allowNull: false, comment: 'Tenant raíz heredado — se duplica' },
-            public_id: { type: DataTypes.STRING(36), allowNull: false, unique: true, comment: 'Identificador público único por fila' },
+            tenant_id: { type: DataTypes.UUID, allowNull: false, comment: 'Tenant raíz heredado — se duplica' },
+            public_id: { type: DataTypes.UUID, allowNull: false, unique: true, comment: 'Identificador público único por fila' },
             social_facebook: { type: DataTypes.STRING(500), allowNull: true },
             social_instagram: { type: DataTypes.STRING(500), allowNull: true },
             social_tiktok: { type: DataTypes.STRING(500), allowNull: true },

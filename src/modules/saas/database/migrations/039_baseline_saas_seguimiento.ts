@@ -20,7 +20,7 @@ const migration: MigrationFile = {
                 allowNull: false
             },
             lead_uuid: {
-                type: DataTypes.STRING(36),
+                type: DataTypes.UUID,
                 allowNull: false,
                 unique: true,
                 comment: 'UUID generado en el navegador al iniciar el checkout — clave de upsert'

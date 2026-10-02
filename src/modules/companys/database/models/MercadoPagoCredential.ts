@@ -49,7 +49,7 @@ MercadoPagoCredential.init({
         comment: 'Sucursal dueña de esta cuenta de Mercado Pago (no aplica a empresa principal)'
     },
     tenant_id: {
-        type: DataTypes.STRING(36),
+        type: DataTypes.UUID,
         allowNull: false,
         comment: 'Tenant para multi-tenancy'
     },

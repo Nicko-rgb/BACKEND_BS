@@ -7,6 +7,7 @@
  */
 import { DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional, NonAttribute } from 'sequelize';
 import sequelize from '../../../../config/db';
+import { idPublicId } from '../../../../shared/utils/ids';
 import type { SaaSPlan } from './SaaSPlan';
 import type { SaaSSubscriptionCompany } from './SaaSSubscriptionCompany';
 
@@ -59,10 +60,10 @@ SaaSSubscription.init({
         autoIncrement: true
     },
     public_id: {
-        type: DataTypes.STRING(36),
+        type: DataTypes.UUID,
         allowNull: false,
         unique: true,
-        defaultValue: DataTypes.UUIDV4,
+        defaultValue: () => idPublicId(),
         comment: 'Identificador público único por fila — se expone a MercadoPago (external_reference) y al frontend'
     },
     plan_id: {
@@ -131,7 +132,7 @@ SaaSSubscription.init({
         comment: 'Si el usuario canceló, pero puede usarlo hasta fin de mes'
     },
     lead_uuid: {
-        type: DataTypes.STRING(36),
+        type: DataTypes.UUID,
         allowNull: true,
         comment: 'lead_uuid del seguimiento de checkout — sobrevive hasta que el webhook confirma el pago'
     },

@@ -25,52 +25,117 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
         'payment.create',
     ],
     empleado: [
+        // Empresa (solo lectura de las propias, el scope filtra por company_ids)
+        'company.view',
+
+        // Sucursal
+        'sucursal.view',
+
+        // Espacio
+        'space.view',
+        'space.edit',
+
+        // Usuarios dentro de su empresa
+        'user.client_manage',
+
+        // Reservas
         'booking.create',
         'booking.view',
         'booking.confirm',
         'booking.cancel',
+
+        // Pagos
         'payment.create',
         'payment.view',
         'payment.confirmed',
         'payment.refused',
-        'space.view',
-        'user.client_manage',
-    ],
-    administrador: [
-        'sucursal.create',
-        'sucursal.view',
-        'sucursal.edit',
-        'sucursal.config',
-        'space.manage',
-        'space.view',
-        'space.business_hour_manage',
-        'space.media_manage',
-        'sucursal.rating_manage',
-        'booking.view',
-        'booking.confirm',
-        'booking.cancel',
-        'payment.reorder',
-        'user.employee_manage',
-        'user.client_manage',
+
+        // Otros
         'reports.view',
         'statistics.view',
-        'media.manage',
     ],
-    super_admin: [
-        'sucursal.create',
-        'company.manage',
+    administrador: [
+        // Empresa
+        'company.create',
         'company.view',
-        'company.manage_own',
-        'space.manage',
+        'company.edit',
+
+        // Sucursal
+        'sucursal.create',
+        'sucursal.edit',
+        'sucursal.view',
+        'sucursal.config',
         'sucursal.rating_manage',
-        'booking.manage',
-        'payment.account_manage',
+
+        // Espacio
+        'space.create',
+        'space.view',
+        'space.edit',
+        'space.business_hour_manage',
+        'space.media_manage',
+
+        // Usuarios dentro de su empresa
         'user.employee_manage',
         'user.administrator_manage',
         'user.client_manage',
+
+        // Reservas
+        'booking.create',
+        'booking.view',
+        'booking.confirm',
+        'booking.cancel',
+
+        // Pagos
+        'payment.create',
+        'payment.view',
+        'payment.confirmed',
+        'payment.refused',
+
+        // Otros
         'reports.view',
         'statistics.view',
-        'media.manage',
+    ],
+    super_admin: [
+        // Empresa
+        'company.create',
+        'company.view',
+        'company.edit',
+
+        // Sucursal
+        'sucursal.create',
+        'sucursal.edit',
+        'sucursal.view',
+        'sucursal.config',
+        'sucursal.rating_manage',
+
+        // Espacio
+        'space.create',
+        'space.view',
+        'space.edit',
+        'space.business_hour_manage',
+        'space.media_manage',
+
+        // Usuarios dentro de su empresa
+        'user.employee_manage',
+        'user.administrator_manage',
+        'user.client_manage',
+
+        // Reservas
+        'booking.create',
+        'booking.view',
+        'booking.confirm',
+        'booking.cancel',
+
+        // Pagos
+        'payment.create',
+        'payment.view',
+        'payment.confirmed',
+        'payment.refused',
+        'payment.account_manage',
+
+        // Otros
+        'reports.view',
+        'statistics.view',
     ],
     system: [
         // El middleware ya bypasea con este solo permiso — ver verificarPermiso.ts.

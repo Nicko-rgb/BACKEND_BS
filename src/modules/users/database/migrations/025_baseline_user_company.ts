@@ -43,7 +43,7 @@ const migration: MigrationFile = {
                 onDelete: 'CASCADE'
             },
             role: { type: DataTypes.STRING(50), allowNull: false },
-            tenant_id: { type: DataTypes.STRING(36), allowNull: false },
+            tenant_id: { type: DataTypes.UUID, allowNull: false },
             is_active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
             created_by: {
                 type: DataTypes.BIGINT,

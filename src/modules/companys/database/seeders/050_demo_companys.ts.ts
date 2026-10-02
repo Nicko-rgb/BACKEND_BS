@@ -23,7 +23,7 @@
  *   admin:   admin.demo@demo.pe  / Demo1234*
  */
 import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
+import { idPublicId } from '../../../../shared/utils/ids';
 import type { SeederConfig } from '../../../../../scripts/seederRunner';
 import sequelize from '../../../../config/db';
 import * as CompanyRepository from '../../repository/company.repository';
@@ -69,7 +69,7 @@ const seedFn = async (systemUserId?: number): Promise<void> => {
         throw new Error('Roles super_admin/administrador no encontrados — corré roleSeed antes que demoCompanySeed.');
     }
 
-    const tenantId = crypto.randomUUID();
+    const tenantId = idPublicId();
     const hashedPassword = await bcrypt.hash(DEMO_PASSWORD, 10);
 
     await sequelize.transaction(async (transaction) => {
@@ -114,7 +114,7 @@ const seedFn = async (systemUserId?: number): Promise<void> => {
             country_id: PERU_COUNTRY_ID,
             ubigeo_id: CALLERIA_UBIGEO_ID,
             tenant_id: tenantId,
-            public_id: crypto.randomUUID(),
+            public_id: idPublicId(),
             parent_company_id: null,
             status: null,
             postal_code: null,
@@ -142,7 +142,7 @@ const seedFn = async (systemUserId?: number): Promise<void> => {
 
         const subscription = await SaaSSubscriptionRepository.create({
             plan_id: startPlan.plan_id,
-            public_id: crypto.randomUUID(),
+            public_id: idPublicId(),
             status: 'ACTIVE',
             billing_period: 'monthly',
             gateway: 'MANUAL',
@@ -169,7 +169,7 @@ const seedFn = async (systemUserId?: number): Promise<void> => {
             country_id: PERU_COUNTRY_ID,
             ubigeo_id: CALLERIA_UBIGEO_ID,
             tenant_id: tenantId,
-            public_id: crypto.randomUUID(),
+            public_id: idPublicId(),
             parent_company_id: company.company_id,
             status: 'ACTIVE',
             postal_code: null,

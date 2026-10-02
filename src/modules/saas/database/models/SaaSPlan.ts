@@ -3,6 +3,7 @@
  */
 import { DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional } from 'sequelize';
 import sequelize from '../../../../config/db';
+import { idPublicId } from '../../../../shared/utils/ids';
 import type { SaaSSubscription } from './SaaSSubscription';
 
 export class SaaSPlan extends Model<InferAttributes<SaaSPlan>, InferCreationAttributes<SaaSPlan>> {
@@ -39,10 +40,10 @@ SaaSPlan.init({
         autoIncrement: true
     },
     public_id: {
-        type: DataTypes.STRING(36),
+        type: DataTypes.UUID,
         allowNull: false,
         unique: true,
-        defaultValue: DataTypes.UUIDV4,
+        defaultValue: () => idPublicId(),
         comment: 'Identificador público único por fila — lo único expuesto en URLs'
     },
     name: {

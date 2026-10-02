@@ -30,8 +30,8 @@ const migration: MigrationFile = {
                 onUpdate: 'CASCADE',
                 onDelete: 'CASCADE'
             },
-            tenant_id: { type: DataTypes.STRING(36), allowNull: false, comment: 'Tenant raíz heredado de la sucursal/empresa — se duplica' },
-            public_id: { type: DataTypes.STRING(36), allowNull: false, unique: true, comment: 'Identificador público único por fila — lo único expuesto en URLs' },
+            tenant_id: { type: DataTypes.UUID, allowNull: false, comment: 'Tenant raíz heredado de la sucursal/empresa — se duplica' },
+            public_id: { type: DataTypes.UUID, allowNull: false, unique: true, comment: 'Identificador público único por fila — lo único expuesto en URLs' },
             name: { type: DataTypes.STRING(100), allowNull: false },
             surface_type_id: {
                 type: DataTypes.BIGINT,

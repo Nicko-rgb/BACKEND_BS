@@ -20,7 +20,7 @@ const migration: MigrationFile = {
                 allowNull: false
             },
             public_id: {
-                type: DataTypes.STRING(36),
+                type: DataTypes.UUID,
                 allowNull: false,
                 unique: true,
                 comment: 'Identificador público único por fila — historial expuesto al frontend'

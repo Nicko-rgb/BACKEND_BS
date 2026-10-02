@@ -10,6 +10,7 @@
  */
 import { DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional } from 'sequelize';
 import sequelize from '../../../../config/db';
+import { idPublicId } from '../../../../shared/utils/ids';
 import type { User } from '../../../users/database/models';
 import type { Company } from './Company';
 
@@ -49,15 +50,15 @@ Configuration.init({
         comment: 'Sucursal configurada (company con parent_company_id) — una config por sucursal'
     },
     tenant_id: {
-        type: DataTypes.STRING(36),
+        type: DataTypes.UUID,
         allowNull: false,
         comment: 'Tenant raíz heredado — se duplica'
     },
     public_id: {
-        type: DataTypes.STRING(36),
+        type: DataTypes.UUID,
         allowNull: false,
         unique: true,
-        defaultValue: DataTypes.UUIDV4,
+        defaultValue: () => idPublicId(),
         comment: 'Identificador público único por fila'
     },
 

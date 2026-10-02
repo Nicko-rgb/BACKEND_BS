@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
+import { idPublicId } from '../../../shared/utils/ids';
 import type { InferAttributes } from 'sequelize';
 import sequelize from '../../../config/db';
 import * as UserRepository from '../repository/user.repository';
@@ -197,7 +197,7 @@ export const create = async (roleParam: string, data: CreateManagedUserInput, us
             social_id: null,
             social_provider: null,
             role_id: roleRow.role_id,
-            public_id: crypto.randomUUID(),
+            public_id: idPublicId(),
             is_enabled: true,
             user_create: user.user_id,
         }, transaction);

@@ -6,6 +6,7 @@
  */
 import { DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional } from 'sequelize';
 import sequelize from '../../../../config/db';
+import { idPublicId } from '../../../../shared/utils/ids';
 import type { Company } from '../../../companys/database/models';
 import type { SaaSPlan } from './SaaSPlan';
 import type { SaaSSubscription } from './SaaSSubscription';
@@ -46,10 +47,10 @@ SaaSInvoice.init({
         autoIncrement: true
     },
     public_id: {
-        type: DataTypes.STRING(36),
+        type: DataTypes.UUID,
         allowNull: false,
         unique: true,
-        defaultValue: DataTypes.UUIDV4,
+        defaultValue: () => idPublicId(),
         comment: 'Identificador público único por fila — historial expuesto al frontend'
     },
     subscription_id: {

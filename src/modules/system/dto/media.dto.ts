@@ -10,7 +10,7 @@ export const uploadMediaSchema = Joi.object({
         'any.only': 'Tipo no soportado (Company, Sucursal)',
         'any.required': 'El tipo de entidad es requerido',
     }),
-    medible_public_id: Joi.string().guid({ version: 'uuidv4' }).required().messages({
+    medible_public_id: Joi.string().guid().required().messages({
         'string.guid': 'El identificador de la entidad no es válido',
         'any.required': 'El identificador de la entidad es requerido',
     }),

@@ -10,6 +10,7 @@
  */
 import { DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional, NonAttribute } from 'sequelize';
 import sequelize from '../../../../config/db';
+import { idPublicId } from '../../../../shared/utils/ids';
 import type { User, UserFavorite, UserCompany } from '../../../users/database/models';
 import type { Space } from './Space';
 import type { Configuration } from './Configuration';
@@ -67,15 +68,15 @@ Company.init({
         comment: 'Referencia al país donde se ubica la compañía o sucursal'
     },
     tenant_id: {
-        type: DataTypes.STRING(36),
+        type: DataTypes.UUID,
         allowNull: false,
         comment: 'Tenant raíz (empresa principal) — se duplica en sucursales que heredan el del padre'
     },
     public_id: {
-        type: DataTypes.STRING(36),
+        type: DataTypes.UUID,
         allowNull: false,
         unique: true,
-        defaultValue: DataTypes.UUIDV4,
+        defaultValue: () => idPublicId(),
         comment: 'Identificador público único por fila (empresa o sucursal) — lo único expuesto en URLs'
     },
     name: {

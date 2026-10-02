@@ -30,8 +30,8 @@ const migration: MigrationFile = {
                 onUpdate: 'CASCADE',
                 onDelete: 'CASCADE'
             },
-            tenant_id: { type: DataTypes.STRING(36), allowNull: false, comment: 'Tenant raíz (empresa principal) — se duplica en sucursales: heredan el del padre' },
-            public_id: { type: DataTypes.STRING(36), allowNull: false, unique: true, comment: 'Identificador público único por fila (empresa o sucursal) — lo único expuesto en URLs' },
+            tenant_id: { type: DataTypes.UUID, allowNull: false, comment: 'Tenant raíz (empresa principal) — se duplica en sucursales: heredan el del padre' },
+            public_id: { type: DataTypes.UUID, allowNull: false, unique: true, comment: 'Identificador público único por fila (empresa o sucursal) — lo único expuesto en URLs' },
             name: { type: DataTypes.STRING(200), allowNull: false },
             address: { type: DataTypes.TEXT, allowNull: false },
             ubigeo_id: {

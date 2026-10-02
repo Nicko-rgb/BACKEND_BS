@@ -32,7 +32,7 @@ const migration: MigrationFile = {
                 onUpdate: 'CASCADE',
                 onDelete: 'CASCADE'
             },
-            tenant_id: { type: DataTypes.STRING(36), allowNull: false },
+            tenant_id: { type: DataTypes.UUID, allowNull: false },
             access_token_encrypted: { type: DataTypes.TEXT, allowNull: false },
             public_key: { type: DataTypes.STRING(255), allowNull: true },
             mp_user_id: { type: DataTypes.STRING(50), allowNull: true },

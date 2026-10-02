@@ -39,46 +39,44 @@ const PERMISSIONS: PermissionSeed[] = [
     { key: 'booking.create', label: 'Crear reserva', description: 'Crear una nueva reserva', module: 'bookings', app_access: 'both' },
     { key: 'booking.view', label: 'Ver reservas', description: 'Ver el listado y detalle de reservas', module: 'bookings', app_access: 'both' },
     { key: 'booking.confirm', label: 'Confirmar reserva', description: 'Confirmar una reserva pendiente', module: 'bookings', app_access: 'admin' },
-    { key: 'booking.cancel', label: 'Cancelar reserva', description: 'Cancelar una reserva propia o de la sucursal', module: 'bookings', app_access: 'both' },
-    { key: 'booking.manage', label: 'Gestionar reservas', description: 'Gestión completa de reservas de la empresa', module: 'bookings', app_access: 'admin' },
+    { key: 'booking.cancel', label: 'Cancelar/Rechazar reserva', description: 'Cancelar o rechazar una reserva ', module: 'bookings', app_access: 'both' },
 
-    // ── payment — pagos de reserva (bookings) salvo cuentas/credenciales (companys) ──
+    // ── payment — pagos de reserva (bookings) y cuentas/credenciales de pago (companys) ──
     { key: 'payment.create', label: 'Crear pago', description: 'Crear un pago de reserva', module: 'bookings', app_access: 'both' },
     { key: 'payment.view', label: 'Ver pagos', description: 'Ver el listado y detalle de pagos', module: 'bookings', app_access: 'admin' },
     { key: 'payment.confirmed', label: 'Confirmar pago', description: 'Confirmar un pago de reserva', module: 'bookings', app_access: 'admin' },
     { key: 'payment.refused', label: 'Rechazar pago', description: 'Rechazar un pago de reserva', module: 'bookings', app_access: 'admin' },
-    { key: 'payment.reorder', label: 'Reordenar pagos', description: 'Reordenar el listado de pagos', module: 'bookings', app_access: 'admin' },
     { key: 'payment.account_manage', label: 'Gestionar cuentas de pago', description: 'Gestionar las cuentas/credenciales de pago de la empresa', module: 'companys', app_access: 'admin' },
-    
-    // ── space — canchas/espacios deportivos (companys) ──────────────────────
-    { key: 'space.view', label: 'Ver espacios', description: 'Ver el listado y detalle de espacios', module: 'companys', app_access: 'admin' },
-    { key: 'space.manage', label: 'Gestionar espacios', description: 'Alta, edición y baja de espacios', module: 'companys', app_access: 'admin' },
-    { key: 'space.business_hour_manage', label: 'Gestionar horarios', description: 'Gestionar los horarios de trabajo de un espacio', module: 'companys', app_access: 'admin' },
-    { key: 'space.media_manage', label: 'Gestionar imágenes de espacio', description: 'Subir/eliminar imágenes de un espacio', module: 'companys', app_access: 'admin' },
-    
+
+    // ── company — empresas (companys) ───────────────────────────────────────
+    { key: 'company.view', label: 'Ver empresas', description: 'Ver el listado y detalle de empresas', module: 'companys', app_access: 'admin' },
+    { key: 'company.create', label: 'Crear empresa', description: 'Registrar una empresa nueva en el sistema', module: 'companys', app_access: 'admin' },
+    { key: 'company.edit', label: 'Editar empresa', description: 'Editar los datos de una empresa', module: 'companys', app_access: 'admin' },
+
     // ── sucursal (companys) ───────────────────────────────────────────────────
     { key: 'sucursal.view', label: 'Ver sucursales', description: 'Ver el listado y detalle de sucursales', module: 'companys', app_access: 'admin' },
     { key: 'sucursal.edit', label: 'Editar sucursales', description: 'Editar los datos de una sucursal', module: 'companys', app_access: 'admin' },
-    { key: 'sucursal.create', label: 'Registrar sucursal', description: 'Registrar una Sucursal', module: 'companys', app_access: 'admin'},
+    { key: 'sucursal.create', label: 'Registrar sucursal', description: 'Registrar una Sucursal', module: 'companys', app_access: 'admin' },
     { key: 'sucursal.config', label: 'Configurar sucursales', description: 'Configurar parámetros de una sucursal', module: 'companys', app_access: 'admin' },
     { key: 'sucursal.rating_manage', label: 'Gestionar calificaciones', description: 'Moderar calificaciones recibidas por una sucursal', module: 'companys', app_access: 'admin' },
-    
+
+    // ── space — canchas/espacios deportivos (companys) ──────────────────────
+    { key: 'space.create', label: 'Crear espacio', description: 'Crear un espacio deportivo', module: 'companys', app_access: 'admin' },
+    { key: 'space.view', label: 'Ver espacios', description: 'Ver el listado y detalle de espacios', module: 'companys', app_access: 'admin' },
+    { key: 'space.edit', label: 'Editar espacio', description: 'Editar los datos de un espacio deportivo', module: 'companys', app_access: 'admin' },
+    { key: 'space.business_hour_manage', label: 'Gestionar horarios', description: 'Gestionar los horarios de trabajo de un espacio', module: 'companys', app_access: 'admin' },
+    { key: 'space.media_manage', label: 'Gestionar imágenes de espacio', description: 'Subir/eliminar imágenes de un espacio', module: 'companys', app_access: 'admin' },
+
     // ── user — usuarios del sistema (users) ─────────────────────────────────
     { key: 'user.employee_manage', label: 'Gestionar empleados', description: 'Alta, edición y baja de empleados', module: 'users', app_access: 'admin' },
     { key: 'user.administrator_manage', label: 'Gestionar administradores', description: 'Alta, edición y baja de administradores', module: 'users', app_access: 'admin' },
     { key: 'user.client_manage', label: 'Gestionar clientes', description: 'Alta y edición de clientes (ej. registrar un cliente para una reserva)', module: 'users', app_access: 'admin' },
-    { key: 'user.manage_all', label: 'Gestionar todos los usuarios', description: 'Acceso completo al catálogo de usuarios del sistema, sin importar su rol', module: 'users', app_access: 'admin' },
+    { key: 'user.manage_all', label: 'Gestiona todos los usuarios del sistema', description: 'Acceso completo al catálogo de usuarios del sistema, sin importar su rol', module: 'users', app_access: 'admin' },
     { key: 'user.profile_edit', label: 'Editar perfil', description: 'Editar los datos del propio perfil', module: 'users', app_access: 'booking' },
 
-    // ── reports / statistics — sin módulo propio todavía, reportan sobre companys ──
+    // ── reports / statistics — reportan sobre companys ──
     { key: 'reports.view', label: 'Ver reportes', description: 'Ver reportes de la empresa/sucursal', module: 'companys', app_access: 'admin' },
     { key: 'statistics.view', label: 'Ver estadísticas', description: 'Ver estadísticas de la empresa/sucursal', module: 'companys', app_access: 'admin' },
-
-    // ── company — empresas (companys) ───────────────────────────────────────
-    { key: 'company.manage', label: 'Gestionar empresas', description: 'Gestión completa de la propia empresa', module: 'companys', app_access: 'admin' },
-    { key: 'company.view', label: 'Ver empresas', description: 'Ver el listado y detalle de empresas', module: 'companys', app_access: 'admin' },
-    { key: 'company.manage_own', label: 'Gestionar empresa propia', description: 'Gestionar los datos de la propia empresa', module: 'companys', app_access: 'admin' },
-    { key: 'company.create', label: 'Crear empresa', description: 'Registrar una empresa nueva en el sistema', module: 'companys', app_access: 'admin' },
 
     // ── system — administración del sistema (system) ────────────────────────
     { key: 'system.full_access', label: 'Acceso total al sistema', description: 'Bypasea cualquier chequeo de permiso — exclusivo del rol system', module: 'system', app_access: 'admin' },
@@ -89,10 +87,8 @@ const PERMISSIONS: PermissionSeed[] = [
     { key: 'sport_category.manage', label: 'Gestionar categorías deportivas', description: 'Administrar el catálogo de categorías deportivas', module: 'system', app_access: 'admin' },
     { key: 'surface_type.manage', label: 'Gestionar tipos de superficie', description: 'Administrar el catálogo de tipos de superficie', module: 'system', app_access: 'admin' },
     { key: 'payment_type.manage', label: 'Gestionar tipos de pago', description: 'Administrar el catálogo de tipos de pago', module: 'system', app_access: 'admin' },
-    { key: 'media.manage', label: 'Gestionar archivos', description: 'Subir, ver y eliminar archivos multimedia (media global)', module: 'system', app_access: 'admin' },
-
-    // ── plan — planes SaaS (saas), aunque se administre desde una ruta de system ──
     { key: 'plan.manage', label: 'Gestionar planes', description: 'Administrar los planes SaaS del sistema', module: 'saas', app_access: 'admin' },
+
 ];
 
 const seedFn = async (): Promise<void> => {

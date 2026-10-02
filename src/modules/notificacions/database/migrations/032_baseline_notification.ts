@@ -37,7 +37,7 @@ const migration: MigrationFile = {
                 onUpdate: 'CASCADE',
                 onDelete: 'CASCADE'
             },
-            tenant_id: { type: DataTypes.STRING(36), allowNull: true },
+            tenant_id: { type: DataTypes.UUID, allowNull: true },
             title: { type: DataTypes.STRING(255), allowNull: false },
             message: { type: DataTypes.TEXT, allowNull: false },
             // VARCHAR y no ENUM: los valores válidos los define el tipo NotificationType del

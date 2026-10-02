@@ -39,7 +39,7 @@ BusinessHour.init({
         references: { model: 'dsg_bss_space', key: 'space_id' }
     },
     tenant_id: {
-        type: DataTypes.STRING(36),
+        type: DataTypes.UUID,
         allowNull: false,
         comment: 'Identificador del tenant para multi-tenancy'
     },

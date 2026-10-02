@@ -8,7 +8,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import compression from 'compression';
 import path from 'path';
-import crypto from 'crypto';
+import { idPublicId } from './shared/utils/ids';
 import * as Sentry from '@sentry/node';
 import logger from './config/logger';
 import { runWithRequestContext, getCacheEvents } from './shared/utils/requestContext';
@@ -94,7 +94,7 @@ export function createApp(): Express {
      * Disponible en req.id y en el header de respuesta X-Request-Id.
      */
     app.use((req: Request, res: Response, next: NextFunction) => {
-        req.id = crypto.randomUUID();
+        req.id = idPublicId();
         res.setHeader('X-Request-Id', req.id);
         next();
     });

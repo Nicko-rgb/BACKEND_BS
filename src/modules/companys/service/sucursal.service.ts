@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import { idPublicId } from '../../../shared/utils/ids';
 import type { InferAttributes } from 'sequelize';
 import * as CompanyRepository from '../repository/company.repository';
 import * as CountryRepository from '../../system/repository/country.repository';
@@ -50,7 +50,7 @@ export const register = async (companyPublicId: string, data: RegisterSucursalIn
     const currentSucursales = await CompanyRepository.countSucursalesByParentId(parent.company_id);
     await PlanLimitsService.assertPlanLimit(parent.company_id, 'maxSubsidiaries', currentSucursales);
 
-    const publicId = crypto.randomUUID();
+    const publicId = idPublicId();
 
     const sucursal = await CompanyRepository.create({
         name: data.name,

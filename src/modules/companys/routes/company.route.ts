@@ -53,7 +53,7 @@ router.get('/:publicId',
  */
 router.put('/:publicId',
     resolveAuthorization,
-    verificarPermiso('company.manage_own'),
+    verificarPermiso('company.edit'),
     validateDTO(updateCompanySchema),
     updateByPublicId
 );

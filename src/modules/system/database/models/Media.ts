@@ -12,6 +12,7 @@
  */
 import { DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional } from 'sequelize';
 import sequelize from '../../../../config/db';
+import { idPublicId } from '../../../../shared/utils/ids';
 import type { User } from '../../../users/database/models';
 import type { Company } from '../../../companys/database/models';
 import type { Space } from '../../../companys/database/models';
@@ -24,6 +25,7 @@ export class Media extends Model<InferAttributes<Media>, InferCreationAttributes
     declare medible_id: number;
     declare medible_type: string;
     declare tenant_id: string | null;
+    declare public_id: CreationOptional<string>;
     declare type: CreationOptional<MediaType>;
     declare category: CreationOptional<MediaCategory>;
     declare file_url: string;
@@ -55,9 +57,16 @@ Media.init({
         comment: 'Tipo del modelo relacionado (nombre de la tabla o modelo)'
     },
     tenant_id: {
-        type: DataTypes.STRING(36),
+        type: DataTypes.UUID,
         allowNull: true,
         comment: 'Tenant de la entidad dueña — NULL para assets globales sin tenant'
+    },
+    public_id: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        unique: true,
+        defaultValue: () => idPublicId(),
+        comment: 'Identificador público único por fila — lo único expuesto en URLs'
     },
     type: {
         type: DataTypes.ENUM('IMAGE', 'VIDEO', 'DOCUMENT', 'AUDIO'),
@@ -72,7 +81,8 @@ Media.init({
     file_url: {
         type: DataTypes.STRING(500),
         allowNull: false,
-        comment: 'URL del archivo multimedia'
+        unique: true,
+        comment: 'URL del archivo — única por fila (1:1 fila↔archivo)'
     },
     file_name: {
         type: DataTypes.STRING(255),
@@ -113,7 +123,8 @@ Media.init({
     comment: 'Tabla de archivos multimedia',
     indexes: [
         { name: 'idx_media_tenant', fields: ['tenant_id'] },
-        { name: 'idx_media_polymorphic', fields: ['medible_id', 'medible_type'] }
+        { name: 'idx_media_polymorphic', fields: ['medible_id', 'medible_type'] },
+        { unique: true, name: 'unique_media_public_id', fields: ['public_id'] }
     ]
 });
 
