@@ -15,7 +15,44 @@ import * as Sentry from '@sentry/node';
  * genérico; para el resto de errores (details como objeto, o sin details)
  * se deja error.message tal cual.
  */
-const buildLogMessage = (error: any): string => {
+/**
+ * Forma mínima que este handler sabe leer de un error.
+ * `message` es requerido: todo lo que llega acá en la práctica extiende Error
+ * (CustomErrors, Joi, Sequelize). El resto es opcional — lo que no encaje cae
+ * al genérico 500 sin romper el tipado del build.
+ */
+interface AppError {
+    message: string;
+    name?: string;
+    stack?: string;
+    statusCode?: number;
+    isJoi?: boolean;
+    details?: unknown;
+    errors?: unknown;
+    fields?: unknown;
+    table?: unknown;
+    parent?: { code?: string; message?: string };
+    sql?: string | null;
+}
+
+/** Ítem de `details` de un ValidationError de Joi. */
+interface JoiValidationDetail {
+    path: (string | number)[];
+    message: string;
+    context?: { value?: unknown };
+}
+
+/** Ítem de `errors` de un error de Sequelize. */
+interface SequelizeItemError {
+    path?: unknown;
+    message?: unknown;
+    value?: unknown;
+}
+
+const isJoiDetail = (d: unknown): d is JoiValidationDetail =>
+    typeof d === 'object' && d !== null && Array.isArray((d as { path?: unknown }).path);
+
+const buildLogMessage = (error: AppError): string => {
     if (Array.isArray(error.details) && error.details.length > 0 && error.details.every((d: unknown) => typeof d === 'string')) {
         return error.details.join(' | ');
     }
@@ -26,7 +63,7 @@ class GlobalErrorHandler {
     /**
      * Maneja errores de manera centralizada
      */
-    static handleError(error: any, req: Request, res: Response, _next: NextFunction) {
+    static handleError(error: AppError, req: Request, res: Response, _next: NextFunction) {
         const statusCode = error.statusCode || 500;
 
         // Log estructurado del error con contexto del request
@@ -36,7 +73,7 @@ class GlobalErrorHandler {
             path: req.path,
             method: req.method,
             // Detalle estructurado (Joi, Sequelize, etc.) para debug/log aggregation
-            ...(error.details && { details: error.details }),
+            ...(error.details ? { details: error.details } : {}),
             // Stack trace solo para errores 5xx (bug real) y solo en desarrollo —
             // un 4xx ya se explica solo con message/details, y en producción no
             // hay que exponer rutas de archivos ni estructura interna del server.
@@ -56,8 +93,8 @@ class GlobalErrorHandler {
         }
 
         // Error de validación de Joi (directo si no pasa por validateDTO)
-        if (error.name === 'ValidationError' && error.isJoi) {
-            const details = error.details.map((detail: any) => ({
+        if (error.name === 'ValidationError' && error.isJoi && Array.isArray(error.details)) {
+            const details = error.details.filter(isJoiDetail).map((detail) => ({
                 field: detail.path.join('.'),
                 message: detail.message,
                 value: detail.context?.value
@@ -67,14 +104,16 @@ class GlobalErrorHandler {
 
         // Error de Sequelize - Constraint único
         if (error.name === 'SequelizeUniqueConstraintError') {
-            const field = error.errors[0]?.path || 'campo';
-            const details = { field, value: error.errors[0]?.value };
+            const firstError = (Array.isArray(error.errors) ? error.errors[0] : undefined) as SequelizeItemError | undefined;
+            const field = firstError?.path || 'campo';
+            const details = { field, value: firstError?.value };
             return ApiResponse.error(req, res, 'DUPLICATE_ENTRY', `Ya existe un registro con este ${field}`, details, 409);
         }
 
         // Error de Sequelize - Validación
         if (error.name === 'SequelizeValidationError') {
-            const details = error.errors.map((err: any) => ({
+            const itemErrors: SequelizeItemError[] = Array.isArray(error.errors) ? error.errors : [];
+            const details = itemErrors.map((err) => ({
                 field: err.path,
                 message: err.message,
                 value: err.value
@@ -145,7 +184,7 @@ class GlobalErrorHandler {
      * Middleware para rutas no encontradas
      */
     static notFound(req: Request, _res: Response, next: NextFunction): void {
-        const error: any = new Error(`Ruta no encontrada en el servidor - ${req.originalUrl}`);
+        const error: AppError = new Error(`Ruta no encontrada en el servidor - ${req.originalUrl}`);
         error.statusCode = 404;
         next(error);
     }

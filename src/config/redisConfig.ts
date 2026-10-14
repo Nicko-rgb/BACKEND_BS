@@ -7,6 +7,7 @@
 import { createClient } from 'redis';
 import chalk from 'chalk';
 import logger from './logger';
+import { toErrorMessage } from '../shared/utils/errorUtils';
 
 type RedisClientInstance = ReturnType<typeof createClient>;
 
@@ -40,8 +41,8 @@ class RedisClient {
                 }
             });
 
-            this.client.on('error', (err: any) => {
-                if (err.code === 'ECONNREFUSED') {
+            this.client.on('error', (err: Error) => {
+                if ('code' in err && err.code === 'ECONNREFUSED') {
                     logger.warn('Redis no está disponible. La aplicación continuará sin caching.');
                 } else {
                     logger.error('Error de Redis', { error: err.message });
@@ -68,8 +69,8 @@ class RedisClient {
             }
             const value = await this.client.get(key);
             return value ? JSON.parse(value) : null;
-        } catch (error: any) {
-            logger.error('Error al obtener dato de Redis', { error: error.message });
+        } catch (error: unknown) {
+            logger.error('Error al obtener dato de Redis', { error: toErrorMessage(error) });
             return null;
         }
     }
@@ -81,8 +82,8 @@ class RedisClient {
             }
             await this.client.set(key, JSON.stringify(value), { EX: ttl });
             return true;
-        } catch (error: any) {
-            logger.error('Error al guardar dato en Redis', { error: error.message });
+        } catch (error: unknown) {
+            logger.error('Error al guardar dato en Redis', { error: toErrorMessage(error) });
             return false;
         }
     }
@@ -94,8 +95,8 @@ class RedisClient {
             }
             await this.client.del(key);
             return true;
-        } catch (error: any) {
-            logger.error('Error al eliminar dato de Redis', { error: error.message });
+        } catch (error: unknown) {
+            logger.error('Error al eliminar dato de Redis', { error: toErrorMessage(error) });
             return false;
         }
     }
@@ -110,8 +111,8 @@ class RedisClient {
                 await this.client.del(keys);
             }
             return true;
-        } catch (error: any) {
-            logger.error('Error al eliminar datos por patrón en Redis', { error: error.message });
+        } catch (error: unknown) {
+            logger.error('Error al eliminar datos por patrón en Redis', { error: toErrorMessage(error) });
             return false;
         }
     }
@@ -126,8 +127,8 @@ class RedisClient {
             if (!this.isConnected || !this.client) return true; // sin Redis → permitir ejecución
             const result = await this.client.set(key, '1', { NX: true, PX: ttlMs });
             return result === 'OK';
-        } catch (error: any) {
-            logger.error('Error al adquirir lock en Redis', { error: error.message });
+        } catch (error: unknown) {
+            logger.error('Error al adquirir lock en Redis', { error: toErrorMessage(error) });
             return true; // ante falla, permitir ejecución para no bloquear el job
         }
     }
@@ -139,8 +140,8 @@ class RedisClient {
                 this.isConnected = false;
                 logger.warn('Desconectado de Redis');
             }
-        } catch (error: any) {
-            logger.error('Error al desconectar de Redis', { error: error.message });
+        } catch (error: unknown) {
+            logger.error('Error al desconectar de Redis', { error: toErrorMessage(error) });
         }
     }
 }

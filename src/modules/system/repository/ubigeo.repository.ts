@@ -1,9 +1,7 @@
 import { Op } from 'sequelize';
 import type { InferAttributes, WhereOptions } from 'sequelize';
 import { Ubigeo, Country } from '../database/models';
-import { toSequelizePagination } from '../../../shared/utils/paginate';
 import { countReferences } from '../../../shared/utils/checkReferences';
-import type { PaginationQuery } from '../../../shared/types/pagination';
 
 // Include compartido por findAll/findById — hoja + país + hasta 2 niveles de padres, para que el DTO arme la fila completa.
 const LEAF_INCLUDE = [
@@ -13,29 +11,6 @@ const LEAF_INCLUDE = [
 
 // Tablas que referencian a un ubigeo — autorreferencial (hijos directos).
 const REFERENCE_CHECKS = [{ table: 'dsg_bss_ubigeo', column: 'parent_id' }];
-
-// Excluye a cualquier ubigeo que sea padre de otro (deja solo hojas) y opcionalmente filtra por
-// name/code — compartido por findAll (admin) y findAllActive (público).
-const buildLeafWhere = async (search?: string): Promise<WhereOptions> => {
-    const parentRows = await Ubigeo.findAll({
-        attributes: ['parent_id'],
-        where: { parent_id: { [Op.ne]: null } },
-        group: ['parent_id'],
-    });
-    const parentIds = parentRows
-        .map((row) => row.parent_id)
-        .filter((id): id is number => id !== null);
-
-    const baseWhere: WhereOptions = parentIds.length > 0 ? { ubigeo_id: { [Op.notIn]: parentIds } } : {};
-
-    return search ? {
-        ...baseWhere,
-        [Op.or]: [
-            { name: { [Op.iLike]: `%${search}%` } },
-            { code: { [Op.iLike]: `%${search}%` } },
-        ],
-    } : baseWhere;
-};
 
 // Nivel 1 de un país (sin padre) o hijos directos de un ubigeo — para selects en cascada dinámicos
 // (endpoint público): primero país → nivel 1, y si el nodo elegido tiene hijos, se pide el

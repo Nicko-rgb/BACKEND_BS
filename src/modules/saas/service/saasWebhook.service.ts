@@ -7,6 +7,7 @@ import * as UserRepository from '../../users/repository/user.repository';
 import { invalidateUserAuthCache } from '../../../shared/utils/authorizationCache';
 import { UnauthorizedError } from '../../../shared/errors/CustomErrors';
 import logger from '../../../config/logger';
+import { readErrorProp } from '../../../shared/utils/errorUtils';
 
 export interface WebhookNotification {
     dataId?: string;
@@ -29,10 +30,10 @@ const activateTrialFromPreapproval = async (preapprovalId: string): Promise<void
     let preapproval;
     try {
         preapproval = await new PreApproval(mpClient).get({ id: preapprovalId });
-    } catch (err: any) {
+    } catch (err: unknown) {
         // 404 de MercadoPago (id inexistente — "Simular notificación" manda uno de ejemplo,
         // o el Preapproval real ya no existe) — se ignora, nunca se responde error por esto.
-        logger.info(`[MP Webhook] Preapproval ${preapprovalId} no encontrado en MercadoPago — ignorado`, { status: err?.status });
+        logger.info(`[MP Webhook] Preapproval ${preapprovalId} no encontrado en MercadoPago — ignorado`, { status: readErrorProp(err, 'status') });
         return;
     }
 

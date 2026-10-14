@@ -35,8 +35,7 @@ router.post('/register',
 
 /**
  * @route GET /api/companys/:publicId
- * @desc  Detalle de una empresa — país, ubigeo formateado, dueño y sus sucursales (solo
- *        nombre). Se busca por `public_id` (UUID) — nunca `company_id` ni `tenant_id`.
+ * @desc  Detalle de una empresa
  * @access system, super_admin
  */
 router.get('/:publicId',
