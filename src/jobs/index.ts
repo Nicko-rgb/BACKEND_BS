@@ -1,6 +1,7 @@
 import logger from '../config/logger';
 import { startPasswordResetCleanup } from '../modules/auth/jobs/passwordResetCleanup.job';
 import chalk from 'chalk';
+import { toErrorMessage } from '../shared/utils/errorUtils';
 
 // Cada job expone `start*()` que devuelve algo con `.stop()` (ej. ScheduledTask de
 // node-cron). Agregar un job nuevo = 1 línea acá (import + entrada en `jobStarters`);
@@ -19,8 +20,8 @@ export const startAllJobs = (): (() => void) => {
         for (const task of tasks) {
             try {
                 task.stop();
-            } catch (error: any) {
-                logger.error('[Jobs] Error deteniendo un job', { error: error.message });
+            } catch (error: unknown) {
+                logger.error('[Jobs] Error deteniendo un job', { error: toErrorMessage(error) });
             }
         }
     };

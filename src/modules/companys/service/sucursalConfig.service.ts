@@ -79,7 +79,8 @@ export const saveBySucursalPublicId = async (sucursalPublicId: string, data: Sav
         whatsapp_message: data.whatsapp_message || null,
         opening_time: data.opening_time,
         closing_time: data.closing_time,
-        min_price: data.min_price ?? null,
+        // DECIMAL(10,2) viaja como string en pg — el schema valida number, se convierte acá.
+        min_price: data.min_price != null ? String(data.min_price) : null,
         features: data.features || null,
     };
 

@@ -1,5 +1,6 @@
 import whatsappConfig from './whatsapp';
 import logger from '../../../config/logger';
+import { toErrorMessage } from '../../../shared/utils/errorUtils';
 
 interface SendTemplateMessageOptions {
     /** número en formato E.164 (ej. "51987654321") */
@@ -50,7 +51,8 @@ export const sendTemplateMessage = async ({ to, contentSid, contentVariables = {
             body: bodyParams.toString(),
         });
 
-        const data: any = await response.json();
+        // El shape lo define Twilio — se lee defensivo acá en el borde.
+        const data = (await response.json()) as { message?: unknown; sid?: unknown };
 
         if (!response.ok) {
             logger.error(`[whatsappClient] Error enviando a ${formattedTo}`, { error: data.message || data });
@@ -59,8 +61,8 @@ export const sendTemplateMessage = async ({ to, contentSid, contentVariables = {
 
         logger.info(`[whatsappClient] Enviado por Twilio: ${data.sid} → ${formattedTo}`);
         return true;
-    } catch (err: any) {
-        logger.error(`[whatsappClient] Error de red enviando a ${formattedTo}`, { error: err.message });
+    } catch (err: unknown) {
+        logger.error(`[whatsappClient] Error de red enviando a ${formattedTo}`, { error: toErrorMessage(err) });
         return false;
     }
 };

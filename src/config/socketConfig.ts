@@ -5,6 +5,7 @@ import { Server, Socket } from 'socket.io';
 import type { Server as HttpServer } from 'http';
 import chalk from 'chalk';
 import logger from './logger';
+import { toErrorMessage } from '../shared/utils/errorUtils';
 
 let io: Server | undefined;
 
@@ -23,8 +24,8 @@ function safeSocketHandler<T extends unknown[]>(socket: Socket, eventName: strin
     return (...args: T) => {
         try {
             handler(...args);
-        } catch (error: any) {
-            logger.error(`[Socket] Error en handler '${eventName}'`, { socketId: socket.id, error: error.message });
+        } catch (error: unknown) {
+            logger.error(`[Socket] Error en handler '${eventName}'`, { socketId: socket.id, error: toErrorMessage(error) });
         }
     };
 }
@@ -59,9 +60,9 @@ export const initSocket = async (server: HttpServer): Promise<Server> => {
             io.adapter(createAdapter(pubClient, subClient));
 
             console.log(chalk.green('   - ✅ Socket.IO: Redis adapter conectado (modo multi-servidor)'));
-        } catch (error: any) {
+        } catch (error: unknown) {
             // No bloquear el arranque si Redis falla — degradar a single-server
-            logger.warn(`Redis adapter no disponible. Socket.IO en modo single-server. (${error.message})`);
+            logger.warn(`Redis adapter no disponible. Socket.IO en modo single-server. (${toErrorMessage(error)})`);
         }
     }
 

@@ -72,7 +72,7 @@ const ALLOWED_TYPES = [
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ];
 
-const fileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+const fileFilter = (_req: Express.Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
     if (ALLOWED_TYPES.includes(file.mimetype)) {
         cb(null, true);
     } else {

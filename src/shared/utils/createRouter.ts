@@ -23,14 +23,17 @@ import GlobalErrorHandler from '../handlers/GlobalErrorHandler';
 
 const WRAPPED_METHODS = ['get', 'post', 'put', 'patch', 'delete'] as const;
 
+type WrappableMethod = (typeof WRAPPED_METHODS)[number];
+
 export function createRouter(): Router {
     const router = Router();
+    const overrides = router as unknown as Record<WrappableMethod, (path: string, ...handlers: RequestHandler[]) => unknown>;
 
     for (const method of WRAPPED_METHODS) {
         const original = router[method].bind(router);
 
-        (router as any)[method] = (path: string, ...handlers: RequestHandler[]) => {
-            const wrapped = handlers.map(h => GlobalErrorHandler.asyncHandler(h));
+        overrides[method] = (path, ...handlers) => {
+            const wrapped = handlers.map((h) => GlobalErrorHandler.asyncHandler(h));
             return original(path, ...wrapped);
         };
     }

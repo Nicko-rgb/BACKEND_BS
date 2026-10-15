@@ -2,6 +2,7 @@ import { PreApproval, client as mpClient } from '../../../config/mercadopago';
 import * as SaaSSubscriptionRepository from '../repository/saasSubscription.repository';
 import { BadRequestError } from '../../../shared/errors/CustomErrors';
 import logger from '../../../config/logger';
+import { readErrorProp, toErrorMessage } from '../../../shared/utils/errorUtils';
 import type { SaaSSubscription } from '../database/models';
 import type { SaaSPlan } from '../database/models';
 import type { Country } from '../../system/database/models';
@@ -47,10 +48,17 @@ export const createPaymentLink = async (
 ): Promise<string> => {
     const transactionAmount = Number(billingPeriod === 'yearly' ? plan.price_yearly : plan.price_monthly);
 
-    // `PreApprovalRequest.auto_recurring` del SDK no tipa `free_trial` (queda solo en el tipo
-    // interno `AutoRecurringWithFreeTrial`, no exportado) aunque la API real sí lo acepta —
-    // se arma acá aparte y se castea al mandarlo.
-    const autoRecurring = {
+    // El tipo público `auto_recurring` del SDK no incluye `free_trial` aunque la API
+    // real sí lo acepta — se declara el shape completo acá para no usar `as any`.
+    interface AutoRecurringWithFreeTrial {
+        frequency: number;
+        frequency_type: string;
+        transaction_amount?: number;
+        currency_id: string;
+        free_trial?: { frequency: number; frequency_type: string };
+    }
+
+    const autoRecurring: AutoRecurringWithFreeTrial = {
         ...billingPeriodToRecurring(billingPeriod),
         transaction_amount: transactionAmount,
         currency_id: country.iso_currency,
@@ -67,15 +75,15 @@ export const createPaymentLink = async (
                 payer_email: mpPayerEmail,
                 external_reference: String(subscription.subscription_id),
                 back_url: process.env.FRONT_ADMIN_BOOKING || 'http://localhost:3000',
-                auto_recurring: autoRecurring as any,
+                auto_recurring: autoRecurring,
             },
         });
-    } catch (mpError: any) {
+    } catch (mpError: unknown) {
         logger.error(`[MP Preapproval] Error creando link de pago para subscription_id=${subscription.subscription_id}`, {
-            status: mpError?.status,
-            message: mpError?.message,
-            cause: mpError?.cause,
-            apiResponse: mpError?.apiResponse,
+            status: readErrorProp(mpError, 'status'),
+            message: toErrorMessage(mpError),
+            cause: readErrorProp(mpError, 'cause'),
+            apiResponse: readErrorProp(mpError, 'apiResponse'),
             requestSent: { payer_email: mpPayerEmail, auto_recurring: autoRecurring },
         });
         throw new BadRequestError('No se pudo generar el link de pago con MercadoPago.');

@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import logger from '../../../config/logger';
 import * as PasswordResetTokenRepository from '../repository/passwordResetToken.repository';
+import { toErrorMessage } from '../../../shared/utils/errorUtils';
 
 // Limpieza diaria de madrugada (tráfico mínimo). Acepta expresión de 5 campos;
 // se puede pisar con env sin tocar código.
@@ -27,8 +28,8 @@ export const startPasswordResetCleanup = () => {
         try {
             const deleted = await PasswordResetTokenRepository.purgeExpired();
             if (deleted > 0) logger.info(`[PasswordResetCleanup] ${deleted} token(s) vencidos purgados`);
-        } catch (error: any) {
-            logger.error('[PasswordResetCleanup] Purga falló', { error: error.message });
+        } catch (error: unknown) {
+            logger.error('[PasswordResetCleanup] Purga falló', { error: toErrorMessage(error) });
         } finally {
             running = false;
         }
