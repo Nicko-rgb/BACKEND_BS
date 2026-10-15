@@ -36,7 +36,7 @@ export const loginAdmin = async ({ email, password }: LoginAdminInput) => {
     const userId = Number(user.user_id);
     const roleId = Number(user.role_id);
 
-    const { permissions, companyIds } = await resolveAuthorization(userId);
+    const { permissions, companyIds, scopeLevel } = await resolveAuthorization(userId);
 
     const payload: Pick<AuthenticatedUser, 'user_id' | 'role_id' | 'app'> = {
         user_id: userId,
@@ -48,5 +48,5 @@ export const loginAdmin = async ({ email, password }: LoginAdminInput) => {
         expiresIn: (process.env.JWT_EXPIRES) as jwt.SignOptions['expiresIn'],
     });
 
-    return { token, user, permissions, companyIds };
+    return { token, user, permissions, companyIds, scopeLevel };
 };

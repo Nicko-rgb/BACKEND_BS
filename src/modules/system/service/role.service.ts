@@ -2,7 +2,7 @@ import type { InferAttributes, InferCreationAttributes } from 'sequelize';
 import * as RoleRepository from '../repository/role.repository';
 import * as RolePermissionRepository from '../repository/rolePermission.repository';
 import * as PermissionRepository from '../repository/permission.repository';
-import { invalidateRoleAuthCache } from '../../../shared/utils/authorizationCache';
+import { invalidateRoleAuthCache, invalidateUserAuthCache } from '../../../shared/utils/authorizationCache';
 import { countReferences } from '../../../shared/utils/checkReferences';
 import { canAssignRole } from '../../../shared/utils/roleHierarchy';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
@@ -89,7 +89,8 @@ export const remove = async (id: number) => {
     await invalidateRoleAuthCache(id);
 };
 
-// Keys de los permisos base de un rol — para precargar el picker de checkboxes.
+// Keys de la PLANTILLA de permisos de un rol — lo que recibe un usuario nuevo
+// de ese rol al crearse (después vive independiente). Para precargar el picker.
 export const getPermissionKeys = async (id: number): Promise<string[]> => {
     const role = await RoleRepository.findById(id);
     if (!role) throw new NotFoundError('Rol no encontrado');
@@ -98,13 +99,18 @@ export const getPermissionKeys = async (id: number): Promise<string[]> => {
 };
 
 /**
- * Reemplaza el set completo de permisos base de un rol. Valida contra el catálogo que todas las
- * keys existan (mismo criterio que userPermission.service.ts::replaceForUser). Invalida el cache
- * de autorización del rol — el cambio aplica de inmediato a TODOS los usuarios de ese rol, sin
- * esperar a que renueven sesión (esto es lo que resuelve el problema original: editar permisos
- * de un rol ya no requiere tocar usuario por usuario).
+ * Reemplaza la PLANTILLA de permisos de un rol — lo que reciben los usuarios
+ * NUEVOS de ese rol al crearse (ver grantRoleDefaults). Con `syncToUsers`,
+ * además propaga el diff a los usuarios EXISTENTES de ese rol (otorga las
+ * agregadas, quita las removidas) e invalida sus caches — es la única vía
+ * global, para el día a día cada usuario se edita por su cuenta.
+ * Valida contra el catálogo que todas las keys existan.
  */
-export const replacePermissions = async (id: number, keys: string[]): Promise<string[]> => {
+export const replacePermissions = async (
+    id: number,
+    keys: string[],
+    options: { syncToUsers?: boolean; grantedBy?: number | null } = {}
+): Promise<string[]> => {
     const role = await RoleRepository.findById(id);
     if (!role) throw new NotFoundError('Rol no encontrado');
 
@@ -121,7 +127,20 @@ export const replacePermissions = async (id: number, keys: string[]): Promise<st
         }
     }
 
+    const before = new Set(await RolePermissionRepository.findKeysByRoleId(id));
     await RolePermissionRepository.replaceForRole(id, keys);
-    await invalidateRoleAuthCache(id);
+
+    if (options.syncToUsers) {
+        const after = new Set(keys);
+        const granted = keys.filter((key) => !before.has(key));
+        const revoked = [...before].filter((key) => !after.has(key));
+        if (granted.length > 0 || revoked.length > 0) {
+            const affected = await RolePermissionRepository.syncTemplateToUsers(
+                id, granted, revoked, options.grantedBy ?? null
+            );
+            await Promise.all(affected.map((userId) => invalidateUserAuthCache(userId)));
+        }
+    }
+
     return RolePermissionRepository.findKeysByRoleId(id);
 };

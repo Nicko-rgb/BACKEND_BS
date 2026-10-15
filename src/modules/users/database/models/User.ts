@@ -5,9 +5,10 @@
  * Los usuarios pueden ser clientes que reservan espacios deportivos, administradores
  * de instalaciones, o administradores del sistema.
  *
- * `role_id` (FK a dsg_bss_role) es la fuente de verdad para permisos/menú/scope — ver
- * authorizationResolver.ts. No hay columna `role` de texto: el rol se lee siempre vía
- * el join a `roleRef` (dsg_bss_role).
+ * `role_id` (FK a dsg_bss_role) aporta etiqueta + scope + menú — ver
+ * authorizationResolver.ts. Los permisos viven en el set propio del usuario
+ * (dsg_bss_user_permissions). No hay columna `role` de texto: el rol se lee
+ * siempre vía el join a `roleRef` (dsg_bss_role).
  */
 import { DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional, NonAttribute } from 'sequelize';
 import sequelize from '../../../../config/db';
@@ -29,7 +30,8 @@ export class User extends Model<InferAttributes<User>, InferCreationAttributes<U
     declare password_changed_at: Date | null;
     declare social_id: string | null;
     declare social_provider: string | null;
-    // Fuente de verdad para permisos/menú/scope (ver authorizationResolver.ts).
+    // Fuente de verdad para etiqueta/scope/menú (ver authorizationResolver.ts).
+    // Los permisos salen de dsg_bss_user_permissions, no del rol.
     declare role_id: number;
     declare is_enabled: CreationOptional<boolean>;
     declare user_create: number | null;

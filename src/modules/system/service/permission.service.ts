@@ -3,42 +3,47 @@ import * as PermissionRepository from '../repository/permission.repository';
 import { countPermissionUsageInRoutes } from '../utils/permissionUsage';
 import cacheUtility from '../../../shared/utils/cacheUtility';
 import { NotFoundError, ConflictError } from '../../../shared/errors/CustomErrors';
-import type { PaginationQuery } from '../../../shared/types/pagination';
 import type { Permission } from '../database/models';
+// La constante vive en users pero no importa nada — es pura, sin riesgo de
+// dependencia circular (ver nota en permission.repository.ts).
+import { ASSIGNABLE_PERMISSION_KEYS } from '../../users/constants/userPermissions';
 
-export interface ListPermissionsQuery extends PaginationQuery {
+export interface ListPermissionsQuery {
     search?: string;
     module?: string;
     group?: string;
+    page?: number;
+    limit?: number;
 }
 
 /**
- * Todos los permisos del catálogo. Con `search`, busca por key o label en el backend y devuelve
- * todos los resultados sin paginar (catálogo chico, no hace falta recortar). Sin `search`, listado
- * paginado normal, con caché por página. `module`/`group` filtran el resultado en ambos casos (se
- * pueden combinar). `usage` sale de countPermissionUsageInRoutes, memoizado una sola vez por
- * proceso. `referencesCount` se calcula siempre en vivo (nunca cacheado) — cuenta usuarios a los
- * que el permiso les llega EFECTIVAMENTE (vía su rol o vía una excepción directa, ver
- * countEffectiveUsersByKeys), no solo los que lo tienen como excepción — dato que cambia con más
- * frecuencia que el catálogo mismo.
+ * Catálogo de permisos en un solo endpoint con paginación dinámica: si el query
+ * trae page/limit pagina; si no, trae todo (misma forma de respuesta, con
+ * pagination de una sola página). `search`/`module`/`group` filtran en ambos
+ * casos (se pueden combinar). `usage` sale de countPermissionUsageInRoutes,
+ * memoizado una sola vez por proceso. `referencesCount` se calcula siempre en
+ * vivo (nunca cacheado).
  */
 export const listAll = async (query: ListPermissionsQuery) => {
     const search = query.search?.trim();
     const module = query.module?.trim() || undefined;
     const group = query.group?.trim() || undefined;
     const usage = countPermissionUsageInRoutes();
+    const paginate = query.page !== undefined || query.limit !== undefined;
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const pagination = paginate ? { page, limit } : undefined;
 
-    if (search) {
-        const rows = await PermissionRepository.search(search, module, group);
-        const referencesCount = await PermissionRepository.countEffectiveUsersByKeys(rows.map((row) => row.key));
-        return { rows, count: rows.length, usage, referencesCount };
-    }
-
-    const { rows, count } = await cacheUtility.withCache('system:permissions', { page: query.page, limit: query.limit, module, group }, async () => {
-        return PermissionRepository.findAll(query, module, group);
-    });
+    const fetchAll = search
+        ? () => PermissionRepository.search(search, module, group, pagination)
+        : () => PermissionRepository.findAll(pagination, module, group);
+    const { rows, count } = await cacheUtility.withCache(
+        'system:permissions',
+        paginate ? { page, limit, search, module, group } : { all: true, search, module, group },
+        fetchAll
+    );
     const referencesCount = await PermissionRepository.countEffectiveUsersByKeys(rows.map((row) => row.key));
-    return { rows, count, usage, referencesCount };
+    return { rows, count, usage, referencesCount, paginated: paginate as boolean, page, limit };
 };
 
 // Módulos y grupos distintos del catálogo, en una sola llamada — pueblan los dos filtros
@@ -53,9 +58,12 @@ export const listModules = async (): Promise<{ modules: string[]; groups: string
     });
 };
 
-// Catálogo completo, sin paginar — para pickers de checkboxes (ej. asignar permisos a un usuario).
-export const listCatalog = async () => {
-    return cacheUtility.withCache('system:permissions:catalog', {}, () => PermissionRepository.findAllOrdered());
+// Servida dinámica para pickers: system ve todo; el resto solo lo repartible
+// (ASSIGNABLE_PERMISSION_KEYS). Sin paginar — los pickers tildan sobre el set completo.
+export const listAssignable = async (isSystem: boolean) => {
+    return cacheUtility.withCache('system:permissions:assignable', { isSystem }, () =>
+        PermissionRepository.findAllOrdered(isSystem ? undefined : [...ASSIGNABLE_PERMISSION_KEYS])
+    );
 };
 
 // ── Crea un permiso nuevo — bloqueado si ya existe uno con la misma key ───

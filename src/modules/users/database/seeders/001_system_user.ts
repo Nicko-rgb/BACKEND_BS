@@ -11,7 +11,7 @@
  */
 import bcrypt from 'bcryptjs';
 import type { SeederConfig } from '../../../../../scripts/seederRunner';
-import { User } from '../models';
+import { User, UserPermission } from '../models';
 import { Role } from '../../../system/database/models';
 
 const seedFn = async (): Promise<number | void> => {
@@ -42,6 +42,15 @@ const seedFn = async (): Promise<number | void> => {
         role_id: systemRole.role_id,
         is_enabled: true,
         user_create: null,
+    });
+
+    // Set inicial directo (no vía plantilla: este seed corre en order 12 y la
+    // plantilla se siembra en order 46). Sin esta fila el login devuelve
+    // permissions vacío y el front le esconde todo.
+    await UserPermission.create({
+        user_id: systemUser.user_id,
+        permission_key: 'system.full_access',
+        granted_by: null,
     });
 
     return systemUser.user_id;

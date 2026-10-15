@@ -38,7 +38,7 @@ router.delete('/roles/:id', resolveAuthorization, verificarPermiso('system.full_
 
 /**
  * @route GET /api/system/roles/:id/permissions
- * @desc  Keys de los permisos base del rol
+ * @desc  Keys de la plantilla de permisos del rol
  * @access system
  */
 router.get('/roles/:id/permissions', resolveAuthorization, verificarPermiso('system.full_access'), getPermissions);

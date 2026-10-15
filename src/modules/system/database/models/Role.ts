@@ -1,8 +1,10 @@
 /**
  * Modelo Role — Catálogo de roles del sistema
  *
- * Fuente de verdad de a qué permisos (RolePermission) y qué ítems de menú
- * (RoleMenuItem) accede cada rol, y de su scope_level (alcance de datos).
+ * El rol es la ETIQUETA del usuario: aporta scope_level (alcance de datos) y
+ * menú (RoleMenuItem). Los permisos de cada usuario viven en su propio set
+ * (dsg_bss_user_permissions); dsg_bss_role_permission es solo la plantilla que
+ * se copia al crear un usuario nuevo.
  * Reemplaza al varchar libre `dsg_bss_user.role` para todo lo que sea
  * autorización — ver authorizationResolver.ts.
  */

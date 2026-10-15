@@ -6,8 +6,8 @@ import type { PaginationQuery } from '../../../shared/types/pagination';
 
 // Usuario con su role_id y su rol (roleRef.key, para el bloqueo de 'cliente' en el login) — ya
 // no hace falta eager-cargar directPermissions/companyAssignments acá, authorizationResolver los
-// resuelve por su cuenta (con cache) contra dsg_bss_role_permission/dsg_bss_user_permissions/
-// dsg_bss_user_company.
+// resuelve por su cuenta (con cache) contra dsg_bss_user_permissions/dsg_bss_user_company
+// (el rol solo aporta key + scope_level).
 export const findByEmailForLogin = async (email: string) => {
     return User.findOne({ where: { email }, include: [{ association: 'roleRef' }] });
 };

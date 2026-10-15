@@ -66,12 +66,14 @@ export const updateRoleSchema = Joi.object({
     'object.min': 'Debe enviar al menos un campo para actualizar',
 });
 
-// Reemplazo completo del set de permisos base de un rol — mismo contrato que
+// Reemplazo completo de la plantilla de permisos de un rol — mismo contrato que
 // userPermission.schema.ts::updateUserPermissionsSchema (el checkbox picker manda siempre el
-// estado final, no un diff).
+// estado final, no un diff). `sync_users` propaga el diff a los usuarios existentes
+// de ese rol; sin él, solo cambia lo que reciben los usuarios nuevos.
 export const replaceRolePermissionsSchema = Joi.object({
     permission_keys: Joi.array().items(Joi.string()).required()
         .messages({
             'any.required': 'La lista de permisos es requerida',
         }),
+    sync_users: Joi.boolean().default(false),
 });

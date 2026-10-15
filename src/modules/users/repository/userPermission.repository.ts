@@ -1,30 +1,55 @@
 import { Op } from 'sequelize';
+import type { Transaction } from 'sequelize';
 import sequelize from '../../../config/db';
 import { UserPermission } from '../database/models';
+import { RolePermission } from '../../system/database/models';
 
-// Keys de las excepciones de un usuario (ambos tipos juntos) — usado por el picker de
-// ManageUserPermissions.tsx, que hoy solo escribe 'grant' (ver replaceForUser).
+// Set efectivo de permisos de un usuario — lo que hay acá ES lo que puede
+// hacer (ver authorizationResolver). Lo precarga el picker de permisos.
 export const findKeysByUserId = async (userId: number): Promise<string[]> => {
     const rows = await UserPermission.findAll({ where: { user_id: userId }, attributes: ['permission_key'] });
     return rows.map((row) => row.permission_key);
 };
 
-export interface PermissionOverrides {
-    grant: string[];
-    revoke: string[];
-}
+/**
+ * Copia la plantilla de permisos del rol (dsg_bss_role_permission) al set
+ * efectivo del usuario recién creado. El `grantedBy` es quien lo registra
+ * (auditoría). Acepta la transacción del alta para que usuario + permisos
+ * nazcan juntos o no nazcan.
+ *
+ * Después de esto el usuario vive independiente del rol: editar la plantilla
+ * NO toca usuarios existentes.
+ */
+export const grantRoleDefaults = async (
+    userId: number,
+    roleId: number,
+    grantedBy: number | null,
+    transaction?: Transaction
+): Promise<void> => {
+    const template = await RolePermission.findAll({
+        where: { role_id: roleId },
+        attributes: ['permission_key'],
+        transaction,
+    });
+    if (template.length === 0) return;
 
-// Excepciones de un usuario, separadas por tipo — usado por authorizationResolver para
-// computar los permisos efectivos (permisos_del_rol ∪ grant − revoke).
-export const findOverridesByUserId = async (userId: number): Promise<PermissionOverrides> => {
-    const rows = await UserPermission.findAll({ where: { user_id: userId }, attributes: ['permission_key', 'type'] });
-    const overrides: PermissionOverrides = { grant: [], revoke: [] };
-    rows.forEach((row) => { overrides[row.type as 'grant' | 'revoke'].push(row.permission_key); });
-    return overrides;
+    const rows = template.map((row) => ({
+        user_id: userId,
+        permission_key: row.permission_key,
+        granted_by: grantedBy,
+    }));
+
+    if (transaction) {
+        await UserPermission.bulkCreate(rows, { transaction, ignoreDuplicates: true });
+        return;
+    }
+    await sequelize.transaction(async (t) => {
+        await UserPermission.bulkCreate(rows, { transaction: t, ignoreDuplicates: true });
+    });
 };
 
 /**
- * Reemplaza el set completo de permisos directos de un usuario por `keys` — borra los que ya
+ * Reemplaza el set completo de permisos de un usuario por `keys` — borra los que ya
  * no están, crea los que faltan, deja intactos los que se repiten (no pisa su `created_at`).
  * `grantedBy` es el usuario que hace el cambio (queda de auditoría en cada fila nueva).
  *

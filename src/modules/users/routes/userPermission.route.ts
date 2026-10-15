@@ -9,16 +9,25 @@ const router = createRouter();
 
 /**
  * @route GET /api/users/:publicId/permissions
- * @desc  Keys de los permisos directos de un usuario
- * @access system
+ * @desc  Keys del set efectivo de permisos de un usuario
+ * @access usuarios con gestión de usuarios (sobre usuarios de su alcance)
  */
-router.get('/:publicId/permissions', resolveAuthorization, verificarPermiso('user.manage_all'), getByUserId);
+router.get('/:publicId/permissions',
+    resolveAuthorization,
+    verificarPermiso('user.administrator_manage', 'user.employee_manage'), 
+    getByUserId
+);
 
 /**
  * @route PUT /api/users/:publicId/permissions
- * @desc  Reemplaza el set completo de permisos directos de un usuario
- * @access system
+ * @desc  Reemplaza el set completo de permisos de un usuario
+ * @access usuarios con gestión de usuarios (sobre usuarios de su alcance)
  */
-router.put('/:publicId/permissions', resolveAuthorization, verificarPermiso('user.manage_all'), validateDTO(updateUserPermissionsSchema), update);
+router.put('/:publicId/permissions',
+    resolveAuthorization,
+    verificarPermiso('user.administrator_manage', 'user.employee_manage'), 
+    validateDTO(updateUserPermissionsSchema),
+    update
+);
 
 export default router;

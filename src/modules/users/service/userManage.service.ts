@@ -4,12 +4,13 @@ import type { InferAttributes } from 'sequelize';
 import sequelize from '../../../config/db';
 import * as UserRepository from '../repository/user.repository';
 import * as UserCompanyRepository from '../repository/userCompany.repository';
+import * as UserPermissionRepository from '../repository/userPermission.repository';
 import * as RoleRepository from '../../system/repository/role.repository';
 import * as CompanyRepository from '../../companys/repository/company.repository';
 import * as PlanLimitsService from '../../saas/service/planLimits.service';
 import { applyProfileChanges, assertCountryAvailable } from './user.service';
 import { canAssignRole, isManagedRole } from '../../../shared/utils/roleHierarchy';
-import { hasFullCompanyAccess } from '../../../shared/utils/accessScope';
+import { hasFullCompanyAccess, hasCompanyScope } from '../../../shared/utils/accessScope';
 import { invalidateUserAuthCache } from '../../../shared/utils/authorizationCache';
 import { BadRequestError, ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../../../shared/errors/CustomErrors';
 import type { ManagedRole } from '../../../shared/utils/roleHierarchy';
@@ -54,9 +55,6 @@ const resolveRole = (value: string): ManagedRole => {
     return value;
 };
 
-const inScope = (user: AuthenticatedUser, companyId: number) =>
-    hasFullCompanyAccess(user) || (user.company_ids ?? []).includes(companyId);
-
 // Sucursales a asignar (por public_id, lo único expuesto) — todas deben existir y estar
 // dentro del alcance del usuario. La asignación guarda el tenant_id raíz (interno).
 const resolveSucursalAssignments = async (user: AuthenticatedUser, publicIds: string[]): Promise<CompanyAssignment[]> => {
@@ -64,7 +62,7 @@ const resolveSucursalAssignments = async (user: AuthenticatedUser, publicIds: st
     if (sucursales.length !== publicIds.length) {
         throw new BadRequestError('Alguna de las sucursales seleccionadas no existe.');
     }
-    if (sucursales.some((sucursal) => !inScope(user, Number(sucursal.company_id)))) {
+    if (sucursales.some((sucursal) => !hasCompanyScope(user, Number(sucursal.company_id)))) {
         throw new ForbiddenError('No tenés acceso a alguna de las sucursales seleccionadas');
     }
 
@@ -79,7 +77,7 @@ const resolveSucursalAssignments = async (user: AuthenticatedUser, publicIds: st
 const resolveOwnerAssignment = async (user: AuthenticatedUser, publicId: string): Promise<CompanyAssignment[]> => {
     const company = await CompanyRepository.findByPublicId(publicId);
     if (!company) throw new NotFoundError('Empresa no encontrada');
-    if (!inScope(user, Number(company.company_id))) throw new ForbiddenError('No tenés acceso a esta empresa');
+    if (!hasCompanyScope(user, Number(company.company_id))) throw new ForbiddenError('No tenés acceso a esta empresa');
 
     return [{ company_id: Number(company.company_id), tenant_id: company.tenant_id, root_company_id: Number(company.company_id) }];
 };
@@ -116,7 +114,7 @@ const assertTargetInScope = async (user: AuthenticatedUser, role: ManagedRole, t
         targetCompanyIds = await UserCompanyRepository.findActiveCompanyIdsByUserId(Number(target.user_id));
     }
 
-    if (!targetCompanyIds.some((companyId) => inScope(user, companyId))) {
+    if (!targetCompanyIds.some((companyId) => hasCompanyScope(user, companyId))) {
         throw new ForbiddenError('No tenés acceso a este usuario');
     }
 };
@@ -135,7 +133,7 @@ const loadTarget = async (user: AuthenticatedUser, role: ManagedRole, publicId: 
 // Asignaciones activas de un usuario visibles para quien consulta, con public_id y nombre.
 const loadAssignments = async (user: AuthenticatedUser, userId: number): Promise<ManagedAssignment[]> => {
     const rows = (await UserCompanyRepository.findActiveByUserId(userId))
-        .filter((row) => inScope(user, Number(row.company_id)));
+        .filter((row) => hasCompanyScope(user, Number(row.company_id)));
 
     const companies = await CompanyRepository.findPublicByIds(rows.map((row) => Number(row.company_id)));
     const companyById = new Map(companies.map((company) => [Number(company.company_id), company]));
@@ -165,7 +163,9 @@ export const getById = async (roleParam: string, publicId: string, user: Authent
 
 /**
  * Alta de un usuario con el rol de la ruta. Crea User + Person + sus asignaciones (empresa para
- * super_admin, sucursales para administrador/empleado) en una sola transacción.
+ * super_admin, sucursales para administrador/empleado) + su set inicial de permisos copiado de
+ * la plantilla del rol (dsg_bss_role_permission), todo en una sola transacción. Después el
+ * usuario vive independiente del rol: se ajusta con el picker de permisos por usuario.
  */
 export const create = async (roleParam: string, data: CreateManagedUserInput, user: AuthenticatedUser) => {
     const role = resolveRole(roleParam);
@@ -230,6 +230,14 @@ export const create = async (roleParam: string, data: CreateManagedUserInput, us
             })), transaction);
         }
 
+        // Set inicial de permisos = plantilla del rol asignado (después se edita por usuario).
+        await UserPermissionRepository.grantRoleDefaults(
+            Number(newUser.user_id),
+            Number(roleRow.role_id),
+            user.user_id,
+            transaction
+        );
+
         return newUser.public_id;
     });
 
@@ -239,7 +247,8 @@ export const create = async (roleParam: string, data: CreateManagedUserInput, us
 /**
  * Edición de un usuario con el rol de la ruta (su rol actual) — nunca contraseña. Un cambio de rol
  * solo se permite entre administrador y empleado; `sucursales` reemplaza sus asignaciones dentro
- * del alcance de quien edita.
+ * del alcance de quien edita. Los permisos NO se tocan: son independientes del rol, se ajustan
+ * con el picker de permisos por usuario.
  */
 export const update = async (roleParam: string, publicId: string, data: UpdateManagedUserInput, user: AuthenticatedUser) => {
     const role = resolveRole(roleParam);

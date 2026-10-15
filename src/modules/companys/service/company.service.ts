@@ -10,9 +10,10 @@ import * as NotificationService from '../../notificacions/service/notification.s
 import { NotificationEvents } from '../../notificacions/constants/notificationEvents';
 import * as UserRepository from '../../users/repository/user.repository';
 import * as UserCompanyRepository from '../../users/repository/userCompany.repository';
+import * as UserPermissionRepository from '../../users/repository/userPermission.repository';
 import * as CountryRepository from '../../system/repository/country.repository';
 import * as RoleRepository from '../../system/repository/role.repository';
-import { hasFullCompanyAccess } from '../../../shared/utils/accessScope';
+import { hasFullCompanyAccess, assertCompanyScope } from '../../../shared/utils/accessScope';
 import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { PaginationQuery } from '../../../shared/types/pagination';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
@@ -59,17 +60,14 @@ export const list = async (query: ListCompaniesQuery, user: AuthenticatedUser) =
 /**
  * Detalle de una empresa por `public_id` (lo único expuesto en URLs — nunca `company_id`
  * ni `tenant_id`). Mismo criterio de alcance que `list`: `system` entra a cualquiera,
- * otro rol solo si la empresa está en su `company_ids` — acá no se puede usar
- * `verificarScope` (compara contra un `company_id` numérico en la ruta, y acá el param
- * de la URL es el `public_id`), así que el chequeo se hace a mano.
+ * otro rol solo si la empresa está en su `company_ids` (ver accessScope.ts) — el chequeo
+ * se hace acá a mano porque el param de la URL es el `public_id`, no el `company_id`.
  */
 export const getByPublicId = async (publicId: string, user: AuthenticatedUser) => {
     const company = await CompanyRepository.findByPublicId(publicId);
     if (!company) throw new NotFoundError('Empresa no encontrada');
 
-    if (!hasFullCompanyAccess(user) && !(user.company_ids ?? []).includes(Number(company.company_id))) {
-        throw new ForbiddenError('No tenés acceso a esta empresa');
-    }
+    assertCompanyScope(user, Number(company.company_id), 'No tenés acceso a esta empresa');
 
     return withAssignments(company);
 };
@@ -87,8 +85,8 @@ export interface UpdateCompanyInput {
 }
 
 /**
- * Actualiza los datos de la propia empresa — mismo lookup y chequeo de alcance manual que
- * `getByPublicId` (acá tampoco aplica `verificarScope`). Si viene `country_id`, revalida
+ * Actualiza los datos de la propia empresa — mismo lookup y chequeo de alcance que
+ * `getByPublicId` (ver accessScope.ts). Si viene `country_id`, revalida
  * que el país exista y esté activo, mismo criterio que `register`. Si viene `document`,
  * revalida que no choque con el de otra empresa (mismo `findByDocument` que usa `register`,
  * acá excluyendo a la propia empresa del chequeo).
@@ -97,9 +95,7 @@ export const updateByPublicId = async (publicId: string, data: UpdateCompanyInpu
     const company = await CompanyRepository.findByPublicId(publicId);
     if (!company) throw new NotFoundError('Empresa no encontrada');
 
-    if (!hasFullCompanyAccess(user) && !(user.company_ids ?? []).includes(Number(company.company_id))) {
-        throw new ForbiddenError('No tenés acceso a esta empresa');
-    }
+    assertCompanyScope(user, Number(company.company_id), 'No tenés acceso a esta empresa');
 
     if (data.country_id !== undefined) {
         const country = await CountryRepository.findById(data.country_id);
@@ -161,7 +157,7 @@ export const register = async (payload: RegisterCompanyInput, user: Authenticate
     if (!country.is_active) throw new BadRequestError('El país seleccionado no está disponible actualmente.');
 
     const superAdminRole = await RoleRepository.findByKey('super_admin');
-    if (!superAdminRole) throw new BadRequestError('El rol "super_admin" no está configurado en el sistema.');
+    if (!superAdminRole || !superAdminRole.is_active) throw new BadRequestError('El rol no está configurado o activo en el sistema.');
 
     const tenantId = idPublicId();
     const publicId = idPublicId();
@@ -200,8 +196,13 @@ export const register = async (payload: RegisterCompanyInput, user: Authenticate
             default_payment_type_id: null,
         }, transaction);
 
-        // Sin grantDefaults: los permisos del dueño nuevo ya "son" los de dsg_bss_role_permission
-        // para super_admin, resueltos en caliente por role_id — nada que copiar por usuario.
+        // Set inicial del dueño = plantilla del rol super_admin (después se edita por usuario).
+        await UserPermissionRepository.grantRoleDefaults(
+            Number(newUser.user_id),
+            Number(superAdminRole.role_id),
+            user.user_id,
+            transaction
+        );
 
         const newCompany = await CompanyRepository.create({
             name: company.name,

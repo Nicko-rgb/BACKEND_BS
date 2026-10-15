@@ -1,5 +1,6 @@
 import Joi from 'joi';
 import type { Media } from '../database/models';
+import { MEDIA_CATEGORIES, MEDIA_TYPES } from '../database/models/Media';
 
 // Alta de archivo — multipart: los campos llegan como strings, Joi coerciona.
 // `medible_public_id` es el public_id de la entidad (nunca ids internos).
@@ -14,10 +15,10 @@ export const uploadMediaSchema = Joi.object({
         'string.guid': 'El identificador de la entidad no es válido',
         'any.required': 'El identificador de la entidad es requerido',
     }),
-    category: Joi.string().valid('GALLERY', 'PROFILE', 'COVER', 'THUMBNAIL', 'DOCUMENT').messages({
+    category: Joi.string().valid(...MEDIA_CATEGORIES).messages({
         'any.only': 'Categoría no válida',
     }),
-    type: Joi.string().valid('IMAGE', 'VIDEO', 'DOCUMENT', 'AUDIO').messages({
+    type: Joi.string().valid(...MEDIA_TYPES).messages({
         'any.only': 'Tipo de archivo no válido',
     }),
     is_primary: Joi.boolean().truthy('true').falsy('false').messages({

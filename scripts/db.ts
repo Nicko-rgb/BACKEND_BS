@@ -294,6 +294,29 @@ async function dbCreate(): Promise<void> {
     await dbSetup();
 }
 
+// ─── Comando: cache:flush ───────────────────────────────────────────────────
+
+/**
+ * Limpia TODO el caché Redis (KEYS * + DEL). Solo desarrollo — en prod se
+ * invalidan prefijos puntuales vía delByPattern desde los services.
+ * No falla si Redis está deshabilitado o caído (fail-open).
+ */
+async function flushCache(): Promise<void> {
+    if (process.env.REDIS_ENABLED !== 'true') {
+        console.log('   Redis deshabilitado — nada que limpiar.');
+        return;
+    }
+    try {
+        const redisClient = require('../src/config/redisConfig').default;
+        await redisClient.connect();
+        const ok = await redisClient.delByPattern('*');
+        console.log(ok ? '   ✅ Caché Redis limpiado.' : '   ⚠️  No se pudo limpiar Redis (sin conexión).');
+        await redisClient.disconnect();
+    } catch (error: any) {
+        console.warn('   ⚠️  No se pudo limpiar Redis:', error.message);
+    }
+}
+
 // ─── Comando: db:reset ─────────────────────────────────────────────────────
 
 /**
@@ -376,6 +399,11 @@ async function dbReset(): Promise<void> {
         const { runAllSeeds } = await import('./seederRunner');
         await runAllSeeds();
 
+        // Limpiar caché Redis — los seeders dejan data nueva y el caché viejo
+        // (ej. catálogo de permisos) mentiría hasta que expire el TTL ────────
+        console.log('\n🧹 Limpiando caché Redis...\n');
+        await flushCache();
+
         console.log('\n🎉 Base de datos reseteada exitosamente.\n');
 
     } catch (error: any) {
@@ -449,6 +477,7 @@ function showHelp(): void {
     db:setup             Ejecuta migrate + seed en secuencia (BD ya existente)
     db:reset             Elimina TODO, re-migra y re-siembra (solo desarrollo)
                          Usa --force para saltar confirmación
+    cache:flush          Limpia todo el caché Redis
 
   Ejemplos:
     npm run migrate
@@ -489,6 +518,12 @@ async function main(): Promise<void> {
     // db:reset maneja su propia conexión ──────────────────────────────────────
     if (command === 'db:reset') {
         await dbReset();
+        return;
+    }
+
+    // cache:flush maneja su propia conexión ───────────────────────────────────
+    if (command === 'cache:flush') {
+        await flushCache();
         return;
     }
 

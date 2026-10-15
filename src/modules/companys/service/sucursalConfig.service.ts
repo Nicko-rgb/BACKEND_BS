@@ -2,7 +2,7 @@ import { idPublicId } from '../../../shared/utils/ids';
 import sequelize from '../../../config/db';
 import * as CompanyRepository from '../repository/company.repository';
 import * as ConfigurationRepository from '../repository/configuration.repository';
-import { hasFullCompanyAccess } from '../../../shared/utils/accessScope';
+import { assertCompanyScope } from '../../../shared/utils/accessScope';
 import { BadRequestError, ForbiddenError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
 
@@ -25,13 +25,10 @@ export interface SaveSucursalConfigInput {
     status?: SucursalStatus;
 }
 
-// Scope manual — mismo criterio que sucursal.service (el param de la URL es el public_id,
-// así que verificarScope no aplica): system entra a cualquiera, otro rol solo si la
-// sucursal está en su company_ids.
+// Scope sobre la sucursal ya resuelta — system entra a cualquiera, otro rol solo
+// si está en su company_ids (ver accessScope.ts).
 const assertSucursalAccess = (sucursalCompanyId: number, user: AuthenticatedUser) => {
-    if (!hasFullCompanyAccess(user) && !(user.company_ids ?? []).includes(Number(sucursalCompanyId))) {
-        throw new ForbiddenError('No tenés acceso a esta sucursal');
-    }
+    assertCompanyScope(user, Number(sucursalCompanyId), 'No tenés acceso a esta sucursal');
 };
 
 // Sucursal por public_id — findSucursalByPublicId ya filtra parent_company_id NOT NULL,

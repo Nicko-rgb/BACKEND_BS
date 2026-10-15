@@ -3,7 +3,7 @@ import type { InferAttributes } from 'sequelize';
 import * as CompanyRepository from '../repository/company.repository';
 import * as CountryRepository from '../../system/repository/country.repository';
 import * as PlanLimitsService from '../../saas/service/planLimits.service';
-import { hasFullCompanyAccess } from '../../../shared/utils/accessScope';
+import { hasFullCompanyAccess, assertCompanyScope } from '../../../shared/utils/accessScope';
 import { BadRequestError, ForbiddenError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
 import type { Company } from '../database/models';
@@ -39,9 +39,7 @@ export const register = async (companyPublicId: string, data: RegisterSucursalIn
     const parent = await CompanyRepository.findByPublicId(companyPublicId);
     if (!parent) throw new NotFoundError('Empresa no encontrada');
 
-    if (!hasFullCompanyAccess(user) && !(user.company_ids ?? []).includes(Number(parent.company_id))) {
-        throw new ForbiddenError('No tenés acceso a esta empresa');
-    }
+    assertCompanyScope(user, Number(parent.company_id), 'No tenés acceso a esta empresa');
 
     const country = await CountryRepository.findById(data.country_id);
     if (!country) throw new BadRequestError('El país seleccionado no existe.');
@@ -77,12 +75,10 @@ export const register = async (companyPublicId: string, data: RegisterSucursalIn
     return CompanyRepository.findSucursalByPublicId(sucursal.public_id) as Promise<Company>;
 };
 
-// Scope manual — mismo criterio que company.service.ts::getByPublicId/updateByPublicId: no se
-// puede usar verificarScope (compara un company_id numérico de la ruta, acá el param es public_id).
+// Scope sobre la sucursal ya resuelta — system entra a cualquiera, otro rol solo
+// si está en su company_ids (ver accessScope.ts).
 const assertSucursalAccess = (sucursal: Company, user: AuthenticatedUser) => {
-    if (!hasFullCompanyAccess(user) && !(user.company_ids ?? []).includes(Number(sucursal.company_id))) {
-        throw new ForbiddenError('No tenés acceso a esta sucursal');
-    }
+    assertCompanyScope(user, Number(sucursal.company_id), 'No tenés acceso a esta sucursal');
 };
 
 export const getByPublicId = async (publicId: string, user: AuthenticatedUser) => {

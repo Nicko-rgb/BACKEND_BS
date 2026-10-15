@@ -1,8 +1,10 @@
 /**
  * Middleware verificarPermiso
  *
- * Valida que el usuario autenticado tenga AL MENOS UNO de los permisos indicados.
- * system.full_access bypasea cualquier chequeo.
+ * Valida que el usuario autenticado tenga AL MENOS UNO de los permisos indicados
+ * en SU set propio (dsg_bss_user_permissions, resuelto en caliente). El rol no
+ * pinta nada acá: dsg_bss_role_permission es solo la plantilla de defaults.
+ * `system.full_access` bypasea cualquier chequeo.
  * Debe usarse DESPUÉS de resolveAuthorization (modules/auth/middlewares) —
  * necesita req.user.permissions ya resuelto.
  *

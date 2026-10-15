@@ -7,9 +7,9 @@
  *      permissions/company_ids/scope_level — si los llevara, cambiar los
  *      permisos de un rol no aplicaría hasta que cada usuario renueve token
  *      (ver decisión de "vigencia inmediata" del refactor de roles).
- *   2. Con el token ya validado, resuelve en caliente contra dsg_bss_role/
- *      role_permission/user_permissions/user_company (cacheado, invalidable)
- *      y completa acá role/scope_level/permissions/company_ids.
+ *   2. Con el token ya validado, resuelve en caliente contra dsg_bss_role
+ *      (key + scope_level) / user_permissions (set efectivo) / user_company (cacheado,
+ *      invalidable) y completa acá role/scope_level/permissions/company_ids.
  * Una ruta protegida solo necesita encadenar `resolveAuthorization` — no
  * hace falta (ni corresponde) usar `verificarTokenAuth` aparte.
  */
@@ -18,7 +18,7 @@ export interface AuthenticatedUser {
     user_id: number;
     name?: string;
     email?: string;
-    /** FK a dsg_bss_role — fuente de verdad para permisos/menú/scope. */
+    /** FK a dsg_bss_role — etiqueta + scope + menú. Los permisos salen de user_permissions. */
     role_id: number;
     /** Key del rol ('cliente'|'empleado'|'administrador'|'super_admin'|'system') — resuelta, solo display/logs. */
     role: string;

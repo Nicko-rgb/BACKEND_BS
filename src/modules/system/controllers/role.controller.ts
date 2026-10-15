@@ -33,8 +33,11 @@ export const getPermissions = async (req: Request, res: Response) => {
     return ApiResponse.ok(res, keys, 'Permisos del rol obtenidos exitosamente');
 };
 
-// Reemplaza el set completo de permisos base de un rol
+// Reemplaza la plantilla de permisos de un rol (con `sync_users`, propaga a existentes)
 export const replacePermissions = async (req: Request, res: Response) => {
-    const keys = await RoleService.replacePermissions(Number(req.params.id), req.validatedData.permission_keys);
+    const keys = await RoleService.replacePermissions(Number(req.params.id), req.validatedData.permission_keys, {
+        syncToUsers: req.validatedData.sync_users === true,
+        grantedBy: req.user!.user_id,
+    });
     return ApiResponse.ok(res, keys, 'Permisos del rol actualizados exitosamente');
 };

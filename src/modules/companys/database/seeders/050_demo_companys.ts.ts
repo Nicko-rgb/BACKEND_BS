@@ -29,6 +29,7 @@ import sequelize from '../../../../config/db';
 import * as CompanyRepository from '../../repository/company.repository';
 import * as UserRepository from '../../../users/repository/user.repository';
 import * as UserCompanyRepository from '../../../users/repository/userCompany.repository';
+import * as UserPermissionRepository from '../../../users/repository/userPermission.repository';
 import * as SaaSSubscriptionRepository from '../../../saas/repository/saasSubscription.repository';
 import { SaaSPlan } from '../../../saas/database/models';
 import * as RoleRepository from '../../../system/repository/role.repository';
@@ -104,8 +105,7 @@ const seedFn = async (systemUserId?: number): Promise<void> => {
         }, transaction);
 
         // Empresa ─────────────────────────────────────────────────────────────
-        const company = await CompanyRepository.create({
-            name: 'Empresa Nixon',
+        const company = await CompanyRepository.create({            name: 'Empresa Nixon',
             address: 'Av. Miraflores 1230 Mz 20',
             document: COMPANY_DOCUMENT,
             phone_cell: '987654321',
@@ -134,6 +134,14 @@ const seedFn = async (systemUserId?: number): Promise<void> => {
             is_active: true,
             created_by: systemUserId,
         }, transaction);
+
+        // Set inicial = plantilla del rol (igual que el alta real).
+        await UserPermissionRepository.grantRoleDefaults(
+            Number(owner.user_id),
+            Number(superAdminRole.role_id),
+            systemUserId,
+            transaction
+        );
 
         // Suscripción Start ACTIVE (gateway MANUAL, como el alta sin MP) ───────
         const now = new Date();
@@ -219,6 +227,13 @@ const seedFn = async (systemUserId?: number): Promise<void> => {
             is_active: true,
             created_by: systemUserId,
         }, transaction);
+
+        await UserPermissionRepository.grantRoleDefaults(
+            Number(admin.user_id),
+            Number(adminRole.role_id),
+            systemUserId,
+            transaction
+        );
     });
 };
 

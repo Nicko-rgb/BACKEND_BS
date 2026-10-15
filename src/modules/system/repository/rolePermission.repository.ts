@@ -1,4 +1,4 @@
-import { Op } from 'sequelize';
+import { Op, QueryTypes } from 'sequelize';
 import sequelize from '../../../config/db';
 import { RolePermission } from '../database/models';
 
@@ -62,4 +62,51 @@ export const countByKeys = async (keys: string[]): Promise<Record<string, number
     });
     rows.forEach((row) => { counts[row.permission_key] = (counts[row.permission_key] ?? 0) + 1; });
     return counts;
+};
+
+/**
+ * Propaga un cambio de plantilla a los usuarios EXISTENTES de ese rol: otorga
+ * las keys agregadas y quita las removidas, directo en sus sets propios
+ * (dsg_bss_user_permissions). La fuente de verdad sigue siendo la tabla de
+ * cada usuario — esto solo copia filas, no crea herencia en caliente.
+ *
+ * Cruza a `users` con SQL crudo (sin importar sus modelos — `system` no puede
+ * depender de `users`, ver nota en permission.repository.ts). Devuelve los
+ * user_id afectados para invalidarles el cache.
+ */
+export const syncTemplateToUsers = async (
+    roleId: number,
+    grantKeys: string[],
+    revokeKeys: string[],
+    grantedBy: number | null
+): Promise<number[]> => {
+    const rows = await sequelize.query<{ user_id: number }>(
+        `SELECT user_id FROM dsg_bss_user WHERE role_id = :roleId`,
+        { replacements: { roleId }, type: QueryTypes.SELECT }
+    );
+    if (rows.length === 0) return [];
+
+    await sequelize.transaction(async (transaction) => {
+        if (grantKeys.length > 0) {
+            await sequelize.query(
+                `INSERT INTO dsg_bss_user_permissions (user_id, permission_key, granted_by, created_at, updated_at)
+                 SELECT u.user_id, rp.permission_key, :grantedBy, NOW(), NOW()
+                 FROM dsg_bss_user u
+                 JOIN dsg_bss_role_permission rp ON rp.role_id = u.role_id
+                 WHERE u.role_id = :roleId AND rp.permission_key IN (:grantKeys)
+                 ON CONFLICT (user_id, permission_key) DO NOTHING`,
+                { replacements: { roleId, grantKeys, grantedBy }, type: QueryTypes.INSERT, transaction }
+            );
+        }
+        if (revokeKeys.length > 0) {
+            await sequelize.query(
+                `DELETE FROM dsg_bss_user_permissions
+                 WHERE permission_key IN (:revokeKeys)
+                   AND user_id IN (SELECT user_id FROM dsg_bss_user WHERE role_id = :roleId)`,
+                { replacements: { roleId, revokeKeys }, type: QueryTypes.DELETE, transaction }
+            );
+        }
+    });
+
+    return rows.map((row) => Number(row.user_id));
 };

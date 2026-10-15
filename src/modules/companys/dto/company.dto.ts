@@ -29,6 +29,10 @@ const toCompanyUsersDto = (
         email: string | null;
         phone: string | null;
         role: string;
+        documentType: string | null;
+        documentNumber: string | null;
+        dateBirth: string | null;
+        country: { id: number; name: string; flagUrl: string; phoneCode: string } | null;
         sucursales: { publicId: string; name: string | null }[];
     }>();
 
@@ -38,13 +42,24 @@ const toCompanyUsersDto = (
 
         const userId = Number(user.user_id);
         if (!byUserId.has(userId)) {
+            const person = user.person ?? null;
+            const country = person?.country ?? null;
             byUserId.set(userId, {
                 publicId: user.public_id,
                 firstName: user.first_name,
                 lastName: user.last_name,
                 email: user.email,
-                phone: user.person?.phone ?? null,
+                phone: person?.phone ?? null,
                 role: assignment.role,
+                documentType: person?.document_type ?? null,
+                documentNumber: person?.document_number ?? null,
+                dateBirth: person?.date_birth ?? null,
+                country: country ? {
+                    id: Number(country.country_id),
+                    name: country.country,
+                    flagUrl: country.flag_url,
+                    phoneCode: country.phone_code,
+                } : null,
                 sucursales: [],
             });
         }
@@ -93,7 +108,6 @@ export const toCompanyListDto = (company: Company, plan: CompanyPlanSummary | nu
  * Detalle de una empresa (página de "Ver empresa")
  */
 export const toCompanyDetailDto = (company: Company, assignments: UserCompany[] = []) => {
-    const owner = company.userAssignments?.[0]?.user ?? null;
     const district = company.ubigeo ?? null;
 
     const nameByCompanyId = new Map<number, string>([
@@ -116,17 +130,6 @@ export const toCompanyDetailDto = (company: Company, assignments: UserCompany[] 
         country: company.country ? { name: company.country.country, flagUrl: company.country.flag_url, phoneCode: company.country.phone_code } : null,
         ubigeo: district ? {
             formatted: formatUbigeo(district)!,
-        } : null,
-        owner: owner ? {
-            publicId: owner.public_id,
-            firstName: owner.first_name,
-            lastName: owner.last_name,
-            email: owner.email,
-            phone: owner.person?.phone ?? null,
-            documentType: owner.person?.document_type ?? null,
-            documentNumber: owner.person?.document_number ?? null,
-            dateBirth: owner.person?.date_birth ?? null,
-            country: owner.person?.country ? { id: owner.person.country.country_id, name: owner.person.country.country, flagUrl: owner.person.country.flag_url, phoneCode: owner.person.country.phone_code } : null,
         } : null,
         subsidiaries: (company.subsidiaries ?? []).map((s) => ({
             publicId: s.public_id,

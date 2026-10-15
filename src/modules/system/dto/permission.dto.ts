@@ -27,9 +27,12 @@ export const toPermissionDto = (permission: Permission, routesCount = 0, referen
     updatedAt: permission.updated_at,
 });
 
-// Query del listado — page/limit de paginationQuerySchema + search opcional (key o label) +
-// module/group opcionales (filtro exacto cada uno, se pueden combinar).
+// Query del listado — page/limit OPCIONALES y sin defaults: si el front los manda hay
+// paginación, si no, trae todo. search opcional (key o label) + module/group
+// opcionales (filtro exacto cada uno, se pueden combinar).
 export const listPermissionsQuerySchema = paginationQuerySchema.keys({
+    page: Joi.number().integer().min(1),
+    limit: Joi.number().integer().min(1).max(100),
     search: Joi.string().trim().max(150).allow('')
         .messages({
             'string.max': 'La búsqueda no puede superar 150 caracteres',

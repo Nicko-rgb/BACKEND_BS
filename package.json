@@ -21,6 +21,7 @@
         "db:setup": "tsx scripts/db.ts db:setup",
         "db:create": "tsx scripts/db.ts db:create",
         "db:reset": "tsx scripts/db.ts db:reset",
+        "cache:flush": "tsx scripts/db.ts cache:flush",
         "db:help": "tsx scripts/db.ts help"
     },
     "keywords": [],

@@ -1,13 +1,6 @@
 /**
  * Baseline: crear tabla dsg_bss_media
  * Almacenamiento polimórfico de archivos multimedia.
- *
- * Vive en `users/database/migrations/` (no en `system`, donde vive el modelo
- * Media) porque tiene FK dura a dsg_bss_user (user_create/user_update),
- * creada por la migración 012 (order: 12). El orden real de ejecución lo
- * define `meta.order` (acá: 15) de forma global, sin importar en qué
- * carpeta viva el archivo — la carpeta es solo organizativa, para que quede
- * junto a la migración de la que depende en vez de junto a su modelo.
  */
 import { DataTypes } from 'sequelize';
 import type { MigrationFile } from '../../../../../scripts/migrationRunner';
@@ -16,7 +9,7 @@ import { idPublicId } from '../../../../shared/utils/ids';
 const migration: MigrationFile = {
     meta: {
         description: 'Baseline: create dsg_bss_media',
-        module: 'users',
+        module: 'system',
         order: 15
     },
 
@@ -36,11 +29,13 @@ const migration: MigrationFile = {
             tenant_id: { type: DataTypes.UUID, allowNull: true, comment: 'Tenant de la entidad dueña — NULL para assets globales sin tenant' },
             public_id: { type: DataTypes.UUID, allowNull: false, unique: true, defaultValue: () => idPublicId(), comment: 'Identificador público único por fila — lo único expuesto en URLs' },
             type: {
-                type: DataTypes.ENUM('IMAGE', 'VIDEO', 'DOCUMENT', 'AUDIO'),
+                type: DataTypes.STRING(50),
+                allowNull: false,
                 defaultValue: 'IMAGE'
             },
             category: {
-                type: DataTypes.ENUM('GALLERY', 'PROFILE', 'COVER', 'THUMBNAIL', 'DOCUMENT'),
+                type: DataTypes.STRING(50),
+                allowNull: false,
                 defaultValue: 'GALLERY'
             },
             file_url: { type: DataTypes.STRING(500), allowNull: false, unique: true, comment: 'URL del archivo — única por fila (1:1 fila↔archivo)' },

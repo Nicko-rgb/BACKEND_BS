@@ -2,8 +2,8 @@ import * as SaaSSubscriptionRepository from '../repository/saasSubscription.repo
 import * as CompanyRepository from '../../companys/repository/company.repository';
 import * as UserCompanyRepository from '../../users/repository/userCompany.repository';
 import { isUnlimitedLimit } from '../utils/planLimits';
-import { hasFullCompanyAccess } from '../../../shared/utils/accessScope';
-import { ConflictError, ForbiddenError, NotFoundError } from '../../../shared/errors/CustomErrors';
+import { assertCompanyScope } from '../../../shared/utils/accessScope';
+import { ConflictError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { CompanyPlanSummary } from '../repository/saasSubscription.repository';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
 
@@ -51,9 +51,7 @@ export const getPlanUsage = async (companyPublicId: string, user: AuthenticatedU
     if (!root) throw new NotFoundError('Empresa no encontrada');
     const companyId = Number(root.company_id);
 
-    if (!hasFullCompanyAccess(user) && !(user.company_ids ?? []).includes(companyId)) {
-        throw new ForbiddenError('No tenés acceso a esta empresa');
-    }
+    assertCompanyScope(user, companyId, 'No tenés acceso a esta empresa');
 
     const plan = await getActivePlanForCompany(companyId);
     if (!plan) throw new NotFoundError('La empresa no tiene un plan activo.');

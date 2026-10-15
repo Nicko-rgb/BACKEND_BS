@@ -4,13 +4,13 @@ import { toPermissionDto } from '../dto/permission.dto';
 import ApiResponse from '../../../shared/utils/ApiResponse';
 import { toPaginationMeta } from '../../../shared/utils/paginate';
 
-// Lista el catálogo de permisos — paginado, o búsqueda completa por key/label sin paginar
+// Lista el catálogo de permisos — con page/limit pagina; sin ellos trae todo.
+// `search` busca por key/label; `module`/`group` filtran (combinables).
 export const listAdmin = async (req: Request, res: Response) => {
-    const { rows, count, usage, referencesCount } = await PermissionService.listAll(req.validatedQuery);
-    const isSearch = Boolean(req.validatedQuery.search);
-    const pagination = isSearch
-        ? { page: 1, limit: count || 1, total: count, totalPages: 1 }
-        : toPaginationMeta(count, req.validatedQuery);
+    const { rows, count, usage, referencesCount, paginated, page, limit } = await PermissionService.listAll(req.validatedQuery);
+    const pagination = paginated
+        ? toPaginationMeta(count, { page, limit })
+        : { page: 1, limit: count || 1, total: count, totalPages: 1 };
     return ApiResponse.ok(res, rows.map((row) => toPermissionDto(row, usage[row.key] ?? 0, referencesCount[row.key] ?? 0)), 'Permisos obtenidos exitosamente', 200, { pagination });
 };
 
@@ -20,10 +20,11 @@ export const listModules = async (_req: Request, res: Response) => {
     return ApiResponse.ok(res, result, 'Módulos y grupos obtenidos exitosamente');
 };
 
-// Catálogo completo, sin paginar — para pickers de checkboxes (ej. asignar permisos a un usuario)
-export const listCatalog = async (_req: Request, res: Response) => {
-    const rows = await PermissionService.listCatalog();
-    return ApiResponse.ok(res, rows.map((row) => toPermissionDto(row)), 'Catálogo de permisos obtenido exitosamente');
+// Servida dinámica para pickers — system ve todo, el resto solo lo repartible.
+export const listAssignable = async (req: Request, res: Response) => {
+    const isSystem = (req.user?.permissions ?? []).includes('system.full_access');
+    const rows = await PermissionService.listAssignable(isSystem);
+    return ApiResponse.ok(res, rows.map((row) => toPermissionDto(row)), 'Permisos asignables obtenidos exitosamente');
 };
 
 // Crea un permiso nuevo

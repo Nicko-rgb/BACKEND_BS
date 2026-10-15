@@ -1,9 +1,10 @@
 /**
- * Modelo RolePermission — Set de permisos base de cada rol
+ * Modelo RolePermission — Plantilla de permisos iniciales de cada rol
  *
- * Fuente de verdad en runtime de qué permisos tiene cada rol — editable
- * desde System > Roles sin tocar código ni usuarios uno por uno. Sembrado
- * inicialmente por database/seeders/003_role_permission.ts.
+ * Al crear un usuario se le copia la plantilla de su rol a su set propio
+ * (dsg_bss_user_permissions) — después vive independiente: editar acá desde
+ * System > Roles solo afecta a usuarios NUEVOS, nunca a existentes.
+ * Sembrado inicialmente por database/seeders/003_role_permission.ts.
  */
 import { DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional } from 'sequelize';
 import sequelize from '../../../../config/db';
@@ -44,5 +45,5 @@ RolePermission.init({
         { unique: true, fields: ['role_id', 'permission_key'], name: 'unique_role_permission' },
         { fields: ['permission_key'], name: 'idx_role_permission_key' },
     ],
-    comment: 'Permisos base asignados a cada rol',
+    comment: 'Plantilla de permisos iniciales asignados a cada rol',
 });

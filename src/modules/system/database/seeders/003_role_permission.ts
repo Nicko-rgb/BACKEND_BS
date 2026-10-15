@@ -1,21 +1,15 @@
 /**
- * Seed: permisos base de cada rol (dsg_bss_role_permission).
+ * Seed: plantilla de permisos iniciales de cada rol (dsg_bss_role_permission).
  * Corre después de roleSeed (order 11) y permissionCatalogSeed (order 10) —
  * ambos deben existir antes por el FK de esta tabla. TRUNCATE + insert dentro
  * de una transacción, mismo patrón que el resto de los seeds essential.
  *
- * Editable después desde System > Roles sin tocar código — esto es solo el
- * punto de partida de un sistema nuevo.
+ * Es PLANTILLA para usuarios nuevos (se copia al crearlos) — editarla después
+ * desde System > Roles NO toca usuarios existentes, esos se editan uno por uno.
  */
 import type { SeederConfig } from '../../../../../scripts/seederRunner';
 import sequelize from '../../../../config/db';
 import { Permission, Role, RolePermission } from '../models';
-
-// Permiso que tiene TODO rol, sin excepción — cualquier usuario autenticado puede cargar y
-// editar sus propios datos (GET/PUT /api/users/me), sin importar su rol ni sus demás permisos.
-// Se agrega una sola vez para todos al construir `rows`, en vez de repetirlo a mano en cada
-// lista de abajo (ver seedFn).
-const UNIVERSAL_PERMISSIONS = ['user.profile_edit'];
 
 const ROLE_PERMISSIONS: Record<string, string[]> = {
     cliente: [
@@ -23,6 +17,9 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
         'booking.view',
         'booking.cancel',
         'payment.create',
+
+        // Perfil propio — todo usuario autenticado puede ver/editar sus datos.
+        'user.profile_edit',
     ],
     empleado: [
         // Empresa (solo lectura de las propias, el scope filtra por company_ids)
@@ -53,6 +50,9 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
         // Otros
         'reports.view',
         'statistics.view',
+
+        // Perfil propio — todo usuario autenticado puede ver/editar sus datos.
+        'user.profile_edit',
     ],
     administrador: [
         // Empresa
@@ -94,6 +94,9 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
         // Otros
         'reports.view',
         'statistics.view',
+
+        // Perfil propio — todo usuario autenticado puede ver/editar sus datos.
+        'user.profile_edit',
     ],
     super_admin: [
         // Empresa
@@ -136,6 +139,9 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
         // Otros
         'reports.view',
         'statistics.view',
+
+        // Perfil propio — todo usuario autenticado puede ver/editar sus datos.
+        'user.profile_edit',
     ],
     system: [
         // El middleware ya bypasea con este solo permiso — ver verificarPermiso.ts.
@@ -152,7 +158,7 @@ const seedFn = async (): Promise<void> => {
     // actualizar acá, esto corta con un mensaje claro en vez de reventar como violación de FK al
     // hacer el bulkCreate (que además tumba TODO db:reset, no solo este seed).
     const catalogKeys = new Set((await Permission.findAll({ attributes: ['key'] })).map((p) => p.key));
-    const allReferencedKeys = new Set([...Object.values(ROLE_PERMISSIONS).flat(), ...UNIVERSAL_PERMISSIONS]);
+    const allReferencedKeys = new Set(Object.values(ROLE_PERMISSIONS).flat());
     const missingKeys = [...allReferencedKeys].filter((key) => !catalogKeys.has(key));
     if (missingKeys.length > 0) {
         throw new Error(
@@ -164,7 +170,7 @@ const seedFn = async (): Promise<void> => {
     const rows = Object.entries(ROLE_PERMISSIONS).flatMap(([roleKey, keys]) => {
         const roleId = roleIdByKey.get(roleKey);
         if (!roleId) return [];
-        return [...keys, ...UNIVERSAL_PERMISSIONS].map((permission_key) => ({ role_id: roleId, permission_key }));
+        return keys.map((permission_key) => ({ role_id: roleId, permission_key }));
     });
 
     const t = await sequelize.transaction();

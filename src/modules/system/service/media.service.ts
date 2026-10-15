@@ -17,9 +17,11 @@ import logger from '../../../config/logger';
 import * as CompanyRepository from '../../companys/repository/company.repository';
 import * as MediaRepository from '../repository/media.repository';
 import { buildFileUrl } from '../../../shared/middlewares/uploadMiddleware';
-import { hasFullCompanyAccess } from '../../../shared/utils/accessScope';
+import { hasFullCompanyAccess, assertCompanyScope } from '../../../shared/utils/accessScope';
 import { BadRequestError, ForbiddenError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
+import { MEDIA_CATEGORIES, MEDIA_TYPES } from '../database/models/Media';
+import type { MediaCategory, MediaType } from '../database/models/Media';
 
 export type SupportedMedibleType = 'Company' | 'Sucursal';
 
@@ -28,8 +30,8 @@ const MEDIBLE_TYPES: SupportedMedibleType[] = ['Company', 'Sucursal'];
 export interface RegisterMediaInput {
     medible_type: SupportedMedibleType;
     medible_public_id: string;
-    category?: string;
-    type?: string;
+    category?: MediaCategory;
+    type?: MediaType;
     is_primary?: boolean;
     description?: string | null;
 }
@@ -48,14 +50,12 @@ const resolveMedible = async (medibleType: SupportedMedibleType, mediblePublicId
 
     if (!company) throw new NotFoundError(`${medibleType === 'Sucursal' ? 'Sucursal no encontrada' : 'Empresa no encontrada'}`);
 
-    if (!hasFullCompanyAccess(user) && !(user.company_ids ?? []).includes(Number(company.company_id))) {
-        throw new ForbiddenError('No tenés acceso a esta entidad');
-    }
+    assertCompanyScope(user, Number(company.company_id), 'No tenés acceso a esta entidad');
 
     return { medibleId: Number(company.company_id), tenantId: company.tenant_id };
 };
 
-const typeFromMimetype = (mimetype: string): string => {
+const typeFromMimetype = (mimetype: string): MediaType => {
     if (mimetype.startsWith('image/')) return 'IMAGE';
     if (mimetype.startsWith('video/')) return 'VIDEO';
     if (mimetype.startsWith('audio/')) return 'AUDIO';
@@ -94,7 +94,14 @@ export const register = async (file: Express.Multer.File | undefined, input: Reg
     const fileUrl = buildFileUrl(file);
     if (!fileUrl) throw new BadRequestError('No se pudo resolver la URL del archivo');
 
-    const category = input.category || 'GALLERY';
+    const category: MediaCategory = input.category || 'GALLERY';
+    if (!(MEDIA_CATEGORIES as readonly string[]).includes(category)) {
+        throw new BadRequestError(`Categoría de archivo no válido`);
+    }
+    const type: MediaType = input.type || typeFromMimetype(file.mimetype);
+    if (!(MEDIA_TYPES as readonly string[]).includes(type)) {
+        throw new BadRequestError(`Tipo de archivo no válido`);
+    }
     const isPrimary = input.is_primary ?? false;
 
     return sequelize.transaction(async (transaction) => {
@@ -106,8 +113,8 @@ export const register = async (file: Express.Multer.File | undefined, input: Reg
             medible_id: medibleId,
             medible_type: input.medible_type,
             tenant_id: tenantId,
-            type: (input.type || typeFromMimetype(file.mimetype)) as 'IMAGE' | 'VIDEO' | 'DOCUMENT' | 'AUDIO',
-            category: category as 'GALLERY' | 'PROFILE' | 'COVER' | 'THUMBNAIL' | 'DOCUMENT',
+            type,
+            category,
             file_url: fileUrl,
             file_name: file.originalname,
             description: input.description || null,
@@ -126,9 +133,7 @@ export const remove = async (publicId: string, user: AuthenticatedUser) => {
     // Scope por id interno de la entidad dueña (la fila ya trae medible_id/tenant).
     // Quien subió el archivo siempre puede borrarlo (cubre assets globales sin entidad).
     const isOwner = Number(media.user_create) === user.user_id;
-    if (!isOwner && !hasFullCompanyAccess(user) && !(user.company_ids ?? []).includes(Number(media.medible_id))) {
-        throw new ForbiddenError('No tenés acceso a este archivo');
-    }
+    if (!isOwner) assertCompanyScope(user, Number(media.medible_id), 'No tenés acceso a este archivo');
 
     removePhysicalFile(media.file_url);
     await MediaRepository.remove(media);

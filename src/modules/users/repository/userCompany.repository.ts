@@ -25,8 +25,9 @@ export const findActiveCompanyIdsByUserId = async (userId: number): Promise<numb
 };
 
 /**
- * Asignaciones activas de una empresa y sus sucursales, con el usuario y su persona — sin el
- * dueño (`super_admin`), que el detalle de empresa ya devuelve por separado.
+ * Asignaciones activas de una empresa y sus sucursales, con el usuario y su persona —
+ * dueño (`super_admin`) incluido: el detalle de empresa lo muestra también en la
+ * lista para gestionar sus permisos desde ahí.
  */
 export const findActiveByCompanyIds = async (companyIds: number[]) => {
     if (companyIds.length === 0) return [];
@@ -35,9 +36,8 @@ export const findActiveByCompanyIds = async (companyIds: number[]) => {
         where: {
             company_id: { [Op.in]: companyIds },
             is_active: true,
-            role: { [Op.ne]: 'super_admin' },
         },
-        include: [{ association: 'user', include: [{ association: 'person' }] }],
+        include: [{ association: 'user', include: [{ association: 'person', include: [{ association: 'country' }] }] }],
         order: [['created_at', 'ASC']],
     });
 };

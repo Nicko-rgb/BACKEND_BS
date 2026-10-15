@@ -17,8 +17,14 @@ import type { User } from '../../../users/database/models';
 import type { Company } from '../../../companys/database/models';
 import type { Space } from '../../../companys/database/models';
 
-type MediaType = 'IMAGE' | 'VIDEO' | 'DOCUMENT' | 'AUDIO';
-type MediaCategory = 'GALLERY' | 'PROFILE' | 'COVER' | 'THUMBNAIL' | 'DOCUMENT';
+// Mapa central — única fuente de verdad. Agregar un valor acá (sin migración,
+// la columna es VARCHAR) y Joi + service lo toman solo.
+export const MEDIA_TYPES = ['IMAGE', 'VIDEO', 'DOCUMENT', 'AUDIO'] as const;
+export type MediaType = (typeof MEDIA_TYPES)[number];
+
+export const MEDIA_CATEGORIES = ['GALLERY', 'PROFILE', 'COVER', 'THUMBNAIL', 'DOCUMENT'] as const;
+export type MediaCategory = (typeof MEDIA_CATEGORIES)[number];
+
 
 export class Media extends Model<InferAttributes<Media>, InferCreationAttributes<Media>> {
     declare media_id: CreationOptional<number>;
@@ -26,8 +32,8 @@ export class Media extends Model<InferAttributes<Media>, InferCreationAttributes
     declare medible_type: string;
     declare tenant_id: string | null;
     declare public_id: CreationOptional<string>;
-    declare type: CreationOptional<MediaType>;
-    declare category: CreationOptional<MediaCategory>;
+    declare type: CreationOptional<string>;
+    declare category: CreationOptional<string>;
     declare file_url: string;
     declare file_name: string;
     declare description: string | null;
@@ -69,12 +75,14 @@ Media.init({
         comment: 'Identificador público único por fila — lo único expuesto en URLs'
     },
     type: {
-        type: DataTypes.ENUM('IMAGE', 'VIDEO', 'DOCUMENT', 'AUDIO'),
+        type: DataTypes.STRING(50),
+        allowNull: false,
         defaultValue: 'IMAGE',
         comment: 'Tipo de archivo multimedia'
     },
     category: {
-        type: DataTypes.ENUM('GALLERY', 'PROFILE', 'COVER', 'THUMBNAIL', 'DOCUMENT'),
+        type: DataTypes.STRING(50),
+        allowNull: false,
         defaultValue: 'GALLERY',
         comment: 'Categoría del archivo multimedia'
     },
