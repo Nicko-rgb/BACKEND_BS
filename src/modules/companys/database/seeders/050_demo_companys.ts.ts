@@ -38,8 +38,8 @@ import * as CountryRepository from '../../../system/repository/country.repositor
 const PERU_COUNTRY_ID = 6;
 const CALLERIA_UBIGEO_ID = 2078; // Callería, Coronel Portillo, Ucayali (distrito/provincia/departamento)
 
-const OWNER_EMAIL = 'mancillanixon7@gmail.com';
-const ADMIN_EMAIL = 'claystm@gmail.com';
+const OWNER_EMAIL = 'dueño@gmail.com';
+const ADMIN_EMAIL = 'admin@gmail.com';
 const DEMO_PASSWORD = '12345678';
 const COMPANY_DOCUMENT = '20123456789';
 
@@ -77,7 +77,7 @@ const seedFn = async (systemUserId?: number): Promise<void> => {
         // Dueño ───────────────────────────────────────────────────────────────
         const owner = await UserRepository.create({
             first_name: 'Nixon',
-            last_name: 'Mancilla',
+            last_name: 'ML',
             email: OWNER_EMAIL,
             password: hashedPassword,
             social_id: null,
@@ -93,8 +93,8 @@ const seedFn = async (systemUserId?: number): Promise<void> => {
             date_birth: '2002-01-15',
             gender: null,
             document_type: 'IDENTITY_CARD',
-            document_number: '71721109',
-            phone: '925075598',
+            document_number: '12345678',
+            phone: '999888777',
             ubigeo_id: CALLERIA_UBIGEO_ID,
             occupation: null,
             civil_state: null,
@@ -105,7 +105,8 @@ const seedFn = async (systemUserId?: number): Promise<void> => {
         }, transaction);
 
         // Empresa ─────────────────────────────────────────────────────────────
-        const company = await CompanyRepository.create({            name: 'Empresa Nixon',
+        const company = await CompanyRepository.create({            
+            name: 'Empresa Pucallpa',
             address: 'Av. Miraflores 1230 Mz 20',
             document: COMPANY_DOCUMENT,
             phone_cell: '987654321',
@@ -168,7 +169,7 @@ const seedFn = async (systemUserId?: number): Promise<void> => {
 
         // Sucursal (hereda RUC y tenant del padre) ────────────────────────────
         const sucursal = await CompanyRepository.create({
-            name: 'Sucursal Nick',
+            name: 'Sucursal Pucallpa',
             address: 'Av. Grau 400 Calleria',
             document: COMPANY_DOCUMENT,
             phone_cell: '987650001',
@@ -191,8 +192,8 @@ const seedFn = async (systemUserId?: number): Promise<void> => {
 
         // Administrador de la sucursal ────────────────────────────────────────
         const admin = await UserRepository.create({
-            first_name: 'Clay',
-            last_name: 'STM',
+            first_name: 'Juan',
+            last_name: 'Lucas L',
             email: ADMIN_EMAIL,
             password: hashedPassword,
             social_id: null,

@@ -6,7 +6,7 @@ import { NotFoundError, ConflictError } from '../../../shared/errors/CustomError
 import type { Permission } from '../database/models';
 // La constante vive en users pero no importa nada — es pura, sin riesgo de
 // dependencia circular (ver nota en permission.repository.ts).
-import { ASSIGNABLE_PERMISSION_KEYS } from '../../users/constants/userPermissions';
+import { ASSIGNABLE_PERMISSION_KEYS } from '../constants/assignablePermissions';
 
 export interface ListPermissionsQuery {
     search?: string;

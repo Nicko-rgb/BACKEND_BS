@@ -109,6 +109,8 @@ export const toCompanyListDto = (company: Company, plan: CompanyPlanSummary | nu
  */
 export const toCompanyDetailDto = (company: Company, assignments: UserCompany[] = []) => {
     const district = company.ubigeo ?? null;
+    const province = district?.parent ?? null;
+    const department = province?.parent ?? null;
 
     const nameByCompanyId = new Map<number, string>([
         [Number(company.company_id), company.name],
@@ -127,8 +129,14 @@ export const toCompanyDetailDto = (company: Company, assignments: UserCompany[] 
         phoneCell: company.phone_cell,
         phone: company.phone,
         isEnabled: company.is_enabled,
-        country: company.country ? { name: company.country.country, flagUrl: company.country.flag_url, phoneCode: company.country.phone_code } : null,
+        country: company.country ? { id: company.country.country_id, name: company.country.country, flagUrl: company.country.flag_url, phoneCode: company.country.phone_code } : null,
         ubigeo: district ? {
+            id: district.ubigeo_id,
+            district: district.name,
+            province: province?.name ?? null,
+            provinceId: province?.ubigeo_id ?? null,
+            department: department?.name ?? null,
+            departmentId: department?.ubigeo_id ?? null,
             formatted: formatUbigeo(district)!,
         } : null,
         subsidiaries: (company.subsidiaries ?? []).map((s) => ({

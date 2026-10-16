@@ -1,6 +1,7 @@
 import * as SaaSSubscriptionRepository from '../repository/saasSubscription.repository';
 import * as CompanyRepository from '../../companys/repository/company.repository';
 import * as UserCompanyRepository from '../../users/repository/userCompany.repository';
+import * as SpaceRepository from '../../companys/repository/space.repository';
 import { isUnlimitedLimit } from '../utils/planLimits';
 import { assertCompanyScope } from '../../../shared/utils/accessScope';
 import { ConflictError, NotFoundError } from '../../../shared/errors/CustomErrors';
@@ -29,7 +30,7 @@ export const getActivePlanForCompany = async (companyId: number): Promise<Compan
  * la empresa para `field` — un paso más en la misma cadena de validaciones que ya hace cada
  * Service de alta (plan activo, documento único, país activo, etc.), reusado acá para no
  * repetir "traer el plan y comparar" en cada lugar que registra algo limitado por plan
- * (sucursales hoy; espacios, usuarios y facturas cuando existan esos altas).
+ * (sucursales, espacios, usuarios; facturas cuando tengan alta).
  */
 export const assertPlanLimit = async (companyId: number, field: PlanLimitField, currentCount: number): Promise<void> => {
     const plan = await getActivePlanForCompany(companyId);
@@ -59,7 +60,7 @@ export const getPlanUsage = async (companyPublicId: string, user: AuthenticatedU
     const primaryCompany = await SaaSSubscriptionRepository.findPrimaryCompany(plan.subscriptionId);
     const sucursalIds = await CompanyRepository.findSucursalIdsByParentIds([companyId]);
     const users = await UserCompanyRepository.countActiveUsersByCompanyIds([companyId, ...sucursalIds]);
+    const spaces = await SpaceRepository.countBySucursalIds(sucursalIds);
 
-    // Espacios y facturas todavía no tienen alta: su uso es 0.
-    return { plan, primaryCompany, usage: { subsidiaries: sucursalIds.length, users, spaces: 0, invoicesMonthly: 0 } };
+    return { plan, primaryCompany, usage: { subsidiaries: sucursalIds.length, users, spaces, invoicesMonthly: 0 } };
 };

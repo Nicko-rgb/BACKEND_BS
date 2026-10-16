@@ -122,6 +122,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
         'user.employee_manage',
         'user.administrator_manage',
         'user.client_manage',
+        'user.permission_manage',
 
         // Reservas
         'booking.create',

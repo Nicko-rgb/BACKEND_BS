@@ -1,9 +1,9 @@
 import { idPublicId } from '../../../shared/utils/ids';
 import sequelize from '../../../config/db';
 import * as CompanyRepository from '../repository/company.repository';
-import * as ConfigurationRepository from '../repository/configuration.repository';
+import * as SucursalConfigRepository from '../repository/sucursalConfig.repository';
 import { assertCompanyScope } from '../../../shared/utils/accessScope';
-import { BadRequestError, ForbiddenError, NotFoundError } from '../../../shared/errors/CustomErrors';
+import { BadRequestError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
 
 type SucursalStatus = 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
@@ -50,7 +50,7 @@ const toMinutes = (value: string): number => {
 export const getBySucursalPublicId = async (sucursalPublicId: string, user: AuthenticatedUser) => {
     const sucursal = await findSucursalOrFail(sucursalPublicId, user);
 
-    const configuration = await ConfigurationRepository.findBySucursalId(Number(sucursal.company_id));
+    const configuration = await SucursalConfigRepository.findBySucursalId(Number(sucursal.company_id));
     if (!configuration) throw new NotFoundError('La sucursal todavía no tiene configuración');
 
     return { configuration, status: sucursal.status as SucursalStatus | null };
@@ -86,13 +86,13 @@ export const saveBySucursalPublicId = async (sucursalPublicId: string, data: Sav
             await CompanyRepository.update(sucursal, { status: data.status, user_update: user.user_id }, transaction);
         }
 
-        const existing = await ConfigurationRepository.findBySucursalId(Number(sucursal.company_id), transaction);
+        const existing = await SucursalConfigRepository.findBySucursalId(Number(sucursal.company_id), transaction);
         if (existing) {
-            const updated = await ConfigurationRepository.update(existing, { ...fields, user_update: user.user_id }, transaction);
+            const updated = await SucursalConfigRepository.update(existing, { ...fields, user_update: user.user_id }, transaction);
             return { configuration: updated };
         }
 
-        const created = await ConfigurationRepository.create({
+        const created = await SucursalConfigRepository.create({
             sucursal_id: Number(sucursal.company_id),
             tenant_id: sucursal.tenant_id,
             public_id: idPublicId(),

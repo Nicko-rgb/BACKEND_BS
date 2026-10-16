@@ -17,7 +17,6 @@ const RESERVED_ROLE_KEYS = ['cliente', 'empleado', 'administrador', 'super_admin
 // Alcance total y bypass de permisos — exclusivos del rol `system` (que solo otro system asigna,
 // ver users/service/userManage.service.ts). Ningún otro rol puede recibirlos desde System > Roles.
 const SYSTEM_SCOPE_LEVEL = 1;
-const SYSTEM_FULL_ACCESS = 'system.full_access';
 
 // dsg_bss_user vive en el módulo `users` — `system` no puede importar su modelo sin crear una
 // dependencia circular (`users` ya importa `system`), así que el chequeo de uso cruza módulos
@@ -114,16 +113,19 @@ export const replacePermissions = async (
     const role = await RoleRepository.findById(id);
     if (!role) throw new NotFoundError('Rol no encontrado');
 
-    if (role.key !== 'system' && keys.includes(SYSTEM_FULL_ACCESS)) {
-        throw new ValidationError(`El permiso "${SYSTEM_FULL_ACCESS}" es exclusivo del rol system`);
-    }
-
     if (keys.length > 0) {
         const found = await PermissionRepository.findByKeys(keys);
         const foundKeys = new Set(found.map((permission) => permission.key));
         const invalid = keys.filter((key) => !foundKeys.has(key));
         if (invalid.length > 0) {
             throw new ValidationError(`Permisos inexistentes: ${invalid.join(', ')}`);
+        }
+        // Módulo system = solo plantilla del rol system.
+        if (role.key !== 'system') {
+            const systemOnes = found.filter((permission) => permission.module === 'system');
+            if (systemOnes.length > 0) {
+                throw new ValidationError(`Los permisos del módulo system son exclusivos del rol system`);
+            }
         }
     }
 

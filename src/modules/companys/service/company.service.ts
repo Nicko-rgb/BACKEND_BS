@@ -14,7 +14,7 @@ import * as UserPermissionRepository from '../../users/repository/userPermission
 import * as CountryRepository from '../../system/repository/country.repository';
 import * as RoleRepository from '../../system/repository/role.repository';
 import { hasFullCompanyAccess, assertCompanyScope } from '../../../shared/utils/accessScope';
-import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from '../../../shared/errors/CustomErrors';
+import { BadRequestError, ConflictError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { PaginationQuery } from '../../../shared/types/pagination';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
 import type { Company } from '../database/models';

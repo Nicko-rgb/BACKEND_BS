@@ -3,8 +3,8 @@ import type { InferAttributes } from 'sequelize';
 import * as CompanyRepository from '../repository/company.repository';
 import * as CountryRepository from '../../system/repository/country.repository';
 import * as PlanLimitsService from '../../saas/service/planLimits.service';
-import { hasFullCompanyAccess, assertCompanyScope } from '../../../shared/utils/accessScope';
-import { BadRequestError, ForbiddenError, NotFoundError } from '../../../shared/errors/CustomErrors';
+import { assertCompanyScope } from '../../../shared/utils/accessScope';
+import { BadRequestError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
 import type { Company } from '../database/models';
 

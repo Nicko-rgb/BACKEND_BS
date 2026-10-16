@@ -1,12 +1,12 @@
 /**
  * uploadMiddleware — Multer con destino dinamico por fieldname
  *
- * Mapa de destinos:
- *   logo, banner, main_image  -> uploads/companys/img/
- *   cover (portada de sucursal, media global) -> uploads/sucursals/img/
+ * Un nivel por entidad (sin subcarpetas por tipo):
+ *   logo, banner, main_image  -> uploads/companys/
+ *   cover (portada de sucursal) -> uploads/sucursal/
  *   yape_qr, plin_qr, qr_image -> uploads/companys/qr/
  *   payment_proof              -> uploads/bookings/proof/
- *   media  (galeria de Space)  -> uploads/spaces/img/ o uploads/spaces/video/
+ *   media  (galeria de Space)  -> uploads/spaces/
  *   document                   -> uploads/docs/
  *   * (desconocido)           -> uploads/misc/
  *
@@ -21,17 +21,17 @@ interface FieldDestination {
     sub: string | null;
 }
 
-// Mapa fieldname -> destino  (sub: null = detectar por mimetype)
+// Mapa fieldname -> destino (sub: '' = plano, sin subcarpeta; null = detectar por mimetype)
 const FIELD_DEST: Record<string, FieldDestination> = {
-    logo: { folder: 'companys', sub: 'img' },
-    banner: { folder: 'companys', sub: 'img' },
-    main_image: { folder: 'companys', sub: 'img' },
-    cover: { folder: 'sucursals', sub: 'img' },
+    logo: { folder: 'companys', sub: '' },
+    banner: { folder: 'companys', sub: '' },
+    main_image: { folder: 'companys', sub: '' },
+    cover: { folder: 'sucursal', sub: '' },
     yape_qr: { folder: 'companys', sub: 'qr' },
     plin_qr: { folder: 'companys', sub: 'qr' },
     qr_image: { folder: 'companys', sub: 'qr' },
     payment_proof: { folder: 'bookings', sub: 'proof' },
-    media: { folder: 'spaces', sub: null },
+    media: { folder: 'spaces', sub: '' },
     document: { folder: 'docs', sub: '' },
 };
 

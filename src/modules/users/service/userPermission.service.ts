@@ -4,26 +4,29 @@ import * as UserCompanyRepository from '../repository/userCompany.repository';
 import * as CompanyRepository from '../../companys/repository/company.repository';
 import * as PermissionRepository from '../../system/repository/permission.repository';
 import { invalidateUserAuthCache } from '../../../shared/utils/authorizationCache';
-import { hasFullCompanyAccess, hasCompanyScope } from '../../../shared/utils/accessScope';
-import { canAssignRole } from '../../../shared/utils/roleHierarchy';
-import { SYSTEM_FULL_ACCESS, isAssignablePermission } from '../constants/userPermissions';
+import { hasCompanyScope } from '../../../shared/utils/accessScope';
+import { SYSTEM_FULL_ACCESS, isAssignablePermission } from '../../system/constants/assignablePermissions';
 import { ForbiddenError, NotFoundError, ValidationError } from '../../../shared/errors/CustomErrors';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
 import type { User } from '../database/models';
 
 /**
- * ¿Puede `granter` gestionar los permisos de `target`? Exige jerarquía de rol
- * (roleHierarchy: solo podés tocar roles que podés asignar, con su permiso) y
- * alcance de empresa (mismo criterio que userManage: system ve todo, el resto
- * solo usuarios dentro de sus empresas; un cliente sin asignaciones se ubica
- * por las empresas de quien lo registró).
+ * ¿Puede `granter` gestionar los permisos de `target`? La ruta ya exige
+ * `user.permission_manage` (system bypasea por full_access) — acá van las
+ * reglas sobre el objetivo:
+ *   - system gestiona a cualquiera (incluido otro system), sin chequeo de alcance;
+ *   - a un `system` o a un `cliente` solo lo toca otro system;
+ *   - al resto, cualquiera con el permiso dentro de sus empresas (un usuario sin
+ *     asignaciones se ubica por las empresas de quien lo registró).
  */
 const assertCanManageUserPermissions = async (granter: AuthenticatedUser, target: User): Promise<void> => {
+    const isSystem = granter.permissions.includes(SYSTEM_FULL_ACCESS);
+    if (isSystem) return;
+
     const targetRole = target.roleRef?.key;
-    if (!targetRole || !canAssignRole(granter, targetRole)) {
+    if (!targetRole || targetRole === 'system' || targetRole === 'cliente') {
         throw new ForbiddenError('No tenés permisos para gestionar este usuario');
     }
-    if (hasFullCompanyAccess(granter)) return;
 
     const targetId = Number(target.user_id);
     let targetCompanyIds = await UserCompanyRepository.findActiveCompanyIdsByUserId(targetId);
@@ -41,11 +44,11 @@ const assertCanManageUserPermissions = async (granter: AuthenticatedUser, target
 /**
  * Valida las keys contra el catálogo y contra la lista manual de asignables:
  * un no-system solo puede otorgar lo de ASSIGNABLE_PERMISSION_KEYS (ver
- * constants/userPermissions). `system.full_access` no se otorga nunca como
- * permiso de usuario — lo tiene el rol system en su plantilla y el middleware
- * ya bypasea con él.
+ * constants/userPermissions). Además, los permisos de módulo `system` son
+ * exclusivos de usuarios con rol system — a nadie más se le pueden asignar,
+ * los otorgue quien los otorgue.
  */
-const assertKeysAssignable = async (keys: string[], granter: AuthenticatedUser): Promise<void> => {
+const assertKeysAssignable = async (keys: string[], granter: AuthenticatedUser, targetRoleKey?: string | null): Promise<void> => {
     if (keys.includes(SYSTEM_FULL_ACCESS)) {
         throw new ValidationError(`El permiso "${SYSTEM_FULL_ACCESS}" es exclusivo del rol system`);
     }
@@ -56,6 +59,14 @@ const assertKeysAssignable = async (keys: string[], granter: AuthenticatedUser):
     const invalid = keys.filter((key) => !foundKeys.has(key));
     if (invalid.length > 0) {
         throw new ValidationError(`Permisos inexistentes: ${invalid.join(', ')}`);
+    }
+
+    // Módulo system = solo usuarios con rol system, sin excepción.
+    if (targetRoleKey !== 'system') {
+        const systemOnes = found.filter((permission) => permission.module === 'system');
+        if (systemOnes.length > 0) {
+            throw new ValidationError(`Los permisos del módulo system son exclusivos del rol system`);
+        }
     }
 
     if (granter.permissions.includes(SYSTEM_FULL_ACCESS)) return;
@@ -90,7 +101,7 @@ export const replaceForUser = async (publicId: string, keys: string[], actingUse
     const targetId = Number(target.user_id);
 
     await assertCanManageUserPermissions(actingUser, target);
-    await assertKeysAssignable(keys, actingUser);
+    await assertKeysAssignable(keys, actingUser, target.roleRef?.key);
 
     await UserPermissionRepository.replaceForUser(targetId, keys, actingUser.user_id);
     await invalidateUserAuthCache(targetId);

@@ -2,8 +2,10 @@ import { createRouter } from '../../../shared/utils/createRouter';
 import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
 import { verificarPermiso } from '../../../shared/middlewares/verificarPermiso';
 import { validateDTO } from '../../../shared/middlewares/validateDTO';
+import upload from '../../../shared/middlewares/uploadMiddleware';
 import { registerSucursalSchema, updateSucursalSchema } from '../dto/sucursal.schema';
-import { registerSucursal, getByPublicId, updateByPublicId } from '../controllers/sucursal.controller';
+import { registerSucursal, getByPublicId, updateByPublicId, getBanner, uploadBanner, removeBanner } from '../controllers/sucursal.controller';
+import { listBySucursal } from '../controllers/space.controller';
 
 const router = createRouter();
 
@@ -40,6 +42,51 @@ router.put('/:publicId',
     verificarPermiso('sucursal.edit'),
     validateDTO(updateSucursalSchema),
     updateByPublicId
+);
+
+/**
+ * @route GET /api/sucursals/:publicId/banner
+ * @desc  Portada actual de la sucursal — null si no tiene
+ * @access solo auth + pertenencia (la sucursal debe estar en el alcance del usuario)
+ */
+router.get('/:publicId/banner',
+    resolveAuthorization,
+    verificarPermiso('sucursal.edit'),
+    getBanner
+);
+
+/**
+ * @route POST /api/sucursals/:publicId/banner
+ * @desc  Sube la portada (campo `cover`, pasa a primaria y desmarca la anterior)
+ * @access solo auth + pertenencia (la sucursal debe estar en el alcance del usuario)
+ */
+router.post('/:publicId/banner',
+    resolveAuthorization,
+    verificarPermiso('sucursal.edit'),
+    upload.single('cover'),
+    uploadBanner
+);
+
+/**
+ * @route DELETE /api/sucursals/:publicId/banner
+ * @desc  Elimina la portada actual (físico + registro)
+ * @access solo auth + pertenencia (la sucursal debe estar en el alcance del usuario)
+ */
+router.delete('/:publicId/banner',
+    resolveAuthorization,
+    verificarPermiso('sucursal.edit'),
+    removeBanner
+);
+
+/**
+ * @route GET /api/sucursals/:publicId/spaces
+ * @desc  Espacios deportivos de la sucursal
+ * @access usuarios con permiso space.view (sobre sucursales de su alcance)
+ */
+router.get('/:publicId/spaces',
+    resolveAuthorization,
+    verificarPermiso('space.view'),
+    listBySucursal
 );
 
 export default router;

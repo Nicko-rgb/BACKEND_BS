@@ -12,6 +12,15 @@ export const findByMedible = async (medibleId: number, medibleType: string) => {
     });
 };
 
+// Primaria de un (medible, categoría) — ej. el banner actual de una sucursal.
+// Solo hay una por grupo (ver unsetPrimary).
+export const findPrimary = async (medibleId: number, medibleType: string, category: string, transaction?: Transaction) => {
+    return Media.findOne({
+        where: { medible_id: medibleId, medible_type: medibleType, category, is_primary: true },
+        transaction,
+    });
+};
+
 // Desmarca las principales del mismo (medible, categoría) — solo una primaria por grupo.
 export const unsetPrimary = async (medibleId: number, medibleType: string, category: string, transaction?: Transaction) => {
     return Media.update(

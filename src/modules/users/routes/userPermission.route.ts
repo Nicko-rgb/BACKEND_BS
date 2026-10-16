@@ -10,22 +10,22 @@ const router = createRouter();
 /**
  * @route GET /api/users/:publicId/permissions
  * @desc  Keys del set efectivo de permisos de un usuario
- * @access usuarios con gestión de usuarios (sobre usuarios de su alcance)
+ * @access con user.permission_manage (sobre usuarios de su alcance; system bypasea)
  */
 router.get('/:publicId/permissions',
     resolveAuthorization,
-    verificarPermiso('user.administrator_manage', 'user.employee_manage'), 
+    verificarPermiso('user.permission_manage'),
     getByUserId
 );
 
 /**
  * @route PUT /api/users/:publicId/permissions
  * @desc  Reemplaza el set completo de permisos de un usuario
- * @access usuarios con gestión de usuarios (sobre usuarios de su alcance)
+ * @access con user.permission_manage (sobre usuarios de su alcance; system bypasea)
  */
 router.put('/:publicId/permissions',
     resolveAuthorization,
-    verificarPermiso('user.administrator_manage', 'user.employee_manage'), 
+    verificarPermiso('user.permission_manage'),
     validateDTO(updateUserPermissionsSchema),
     update
 );

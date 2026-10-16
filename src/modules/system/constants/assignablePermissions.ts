@@ -3,13 +3,17 @@
  *
  * El dueño de empresa (super_admin / administrador) reparte permisos a sus
  * empleados SOLO desde esta lista. Lo usa el picker de permisos
- * (userPermission.service) tanto para filtrar el catálogo como para validar
- * el PUT — un no-system nunca puede otorgar un permiso fuera de esta lista,
- * aunque lo mande a mano en el request.
+ * (users/service/userPermission.service) tanto para filtrar el catálogo como
+ * para validar el PUT — un no-system nunca puede otorgar un permiso fuera de
+ * esta lista, aunque lo mande a mano en el request. La servida dinámica
+ * (system/service/permission.service::listAssignable) también recorta por acá.
+ *
+ * Vive en `system` porque es política del catálogo de permisos, no de usuarios:
+ * `users` ya depende de `system` (no al revés), así que este es su lugar.
  *
  * Para repartir un permiso nuevo hay que agregarlo acá a mano. Quedan fuera a
- * propósito: todo lo de `system.*`, `plan.manage` (SaaS) y `user.manage_all`
- * (solo system).
+ * propósito: todo lo de módulo `system`, `plan.manage` (SaaS),
+ * `user.manage_all` y `user.permission_manage` (solo system).
  */
 
 export const SYSTEM_FULL_ACCESS = 'system.full_access';

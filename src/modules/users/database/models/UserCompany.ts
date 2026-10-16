@@ -4,8 +4,9 @@
  * Relación muchos-a-muchos: un usuario puede tener varias filas, una por cada
  * empresa/sucursal a la que fue asignado (único índice es user_id+company_id,
  * no user_id solo). El campo `role` es varchar — no es FK funcional. Los
- * accesos se evalúan por user_permissions; verificarScope valida el
- * company_id solicitado contra TODOS los company_ids asignados al usuario.
+ * accesos se evalúan por user_permissions; el alcance a empresas lo valida
+ * assertCompanyScope (ver shared/utils/accessScope.ts) contra TODOS los
+ * company_ids asignados al usuario.
  *
  * Jerarquía:
  *   system        → sin restricción (no requiere registro aquí)
