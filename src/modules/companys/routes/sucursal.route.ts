@@ -43,6 +43,8 @@ router.put('/:publicId',
     updateByPublicId
 );
 
+
+/** ____ IMAGEN ______ */
 /**
  * @route GET /api/sucursals/:publicId/banner
  * @desc  Portada actual de la sucursal — null si no tiene

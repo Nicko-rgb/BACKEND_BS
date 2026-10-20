@@ -28,6 +28,25 @@ export const typeFromMimetype = (mimetype: string): MediaType => {
     return 'DOCUMENT';
 };
 
+/** Límite de la descripción de un archivo (mismo criterio que permission.dto: max 500). */
+export const MAX_MEDIA_DESCRIPTION_LENGTH = 500;
+
+/**
+ * Normaliza la descripción antes de guardarla — el backend es la última línea:
+ * recorta los espacios sobrantes, convierte vacío en null (la columna es
+ * nullable y no debe guardar '') y rechaza lo que exceda el límite.
+ */
+const normalizeDescription = (value: string | null | undefined): string | null => {
+    // req.body puede llegar como array si el campo se repite en el multipart.
+    if (typeof value !== 'string') return null;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    if (trimmed.length > MAX_MEDIA_DESCRIPTION_LENGTH) {
+        throw new BadRequestError(`La descripción no puede superar los ${MAX_MEDIA_DESCRIPTION_LENGTH} caracteres`);
+    }
+    return trimmed;
+};
+
 // file_url (/uploads/...) → ruta en disco. Best-effort: si el archivo ya no está,
 // se loguea y se sigue con el borrado de la fila.
 const removePhysicalFile = (fileUrl: string | null): void => {
@@ -74,7 +93,7 @@ export const createRecord = async (input: CreateRecordInput, transaction?: Trans
             category,
             file_url: fileUrl,
             file_name: input.file.originalname,
-            description: input.description || null,
+            description: normalizeDescription(input.description),
             is_primary: isPrimary,
             public_id: idPublicId(),
             user_create: input.user_id,

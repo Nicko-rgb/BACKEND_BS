@@ -33,6 +33,13 @@ export const updateSpace = async (req: Request, res: Response) => {
     return ApiResponse.ok(res, toSpaceDto(space), 'Espacio actualizado exitosamente');
 };
 
+// Cambio de estado del espacio (switch de estado) - para pagina Space.tsx.
+export const toggleSpaceStatus = async (req: Request, res: Response) => {
+    const spacePublicId = String(req.params.spacePublicId);
+    const space = await SpaceService.toggleStatus(spacePublicId, req.validatedData, req.user!);
+    return ApiResponse.ok(res, toSpaceDto(space), 'Estado actualizado');
+};
+
 /* ── Galería de archivos ───────────────────────────────────────── */
 // Archivos de la galería del espacio — lista vacía si todavía no hay.
 export const getGallery = async (req: Request, res: Response) => {

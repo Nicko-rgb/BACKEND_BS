@@ -78,3 +78,14 @@ export const updateSpaceSchema = Joi.object({
     minimum_booking_minutes: SPACE_FIELDS.minimum_booking_minutes,
     maximum_booking_minutes: SPACE_FIELDS.maximum_booking_minutes,
 }).min(1);
+
+// Cambio de estado del espacio — mismo juego que el ENUM de la columna
+// status_space (ACTIVE | MAINTENANCE | INACTIVE). Solo el estado: el resto de
+// los datos del espacio no se tocan.
+export const spaceStatusSchema = Joi.object({
+    status: Joi.string().valid('ACTIVE', 'MAINTENANCE', 'INACTIVE').required()
+        .messages({
+            'any.only': 'El estado debe ser ACTIVE, MAINTENANCE o INACTIVE',
+            'any.required': 'El estado es requerido',
+        }),
+});

@@ -8,7 +8,7 @@ import { idPublicId } from '../../../shared/utils/ids';
 import { assertCompanyScope } from '../../../shared/utils/accessScope';
 import { BadRequestError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
-import type { RegisterSpaceInput, UpdateSpaceInput, SpaceUpdateData } from '../interfaces/space.interface';
+import type { RegisterSpaceInput, UpdateSpaceInput, SpaceUpdateData, SpaceStatusInput } from '../interfaces/space.interface';
 
 /**
  * Espacios de una sucursal (por public_id) — con el mismo scope del alta:
@@ -151,4 +151,29 @@ export const spaceById = async (spacePublicId: string, user: AuthenticatedUser) 
 
     assertCompanyScope(user, space.sucursal_id, 'No tenés acceso a este espacio');
     return space;
+};
+
+/**
+ * Cambio de estado del espacio (ACTIVE | MAINTENANCE | INACTIVE) — lo que mueve
+ * el switch de estado de la página Space.
+ *   - Scope: mismo criterio que update — la sucursal del espacio tiene que estar
+ *     dentro del alcance del usuario (system entra a cualquiera).
+ *   - Solo escribe status_space + auditoría (user_update): el resto de los datos
+ *     del espacio no se tocan.
+ */
+export const toggleStatus = async (spacePublicId: string, data: SpaceStatusInput, user: AuthenticatedUser) => {
+    // 1. Resolver espacio y validar scope sobre SU sucursal
+    const spaceId = await SpaceRepository.getSpaceIdByPublicId(spacePublicId);
+    if (!spaceId) throw new NotFoundError('Espacio deportivo no encontrado');
+
+    const space = await SpaceRepository.findById(spaceId);
+    if (!space) throw new NotFoundError('Espacio deportivo no encontrado');
+
+    assertCompanyScope(user, space.sucursal_id, 'No tenés acceso a este espacio');
+
+    // 2. Solo el estado cambia (el schema Joi ya valida el valor del ENUM)
+    return SpaceRepository.update(space, {
+        status_space: data.status,
+        user_update: user.user_id,
+    });
 };

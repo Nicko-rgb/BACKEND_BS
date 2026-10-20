@@ -43,7 +43,7 @@ export const uploadBanner = async (sucursalPublicId: string, file: Express.Multe
         category: BANNER_CATEGORY,
         is_primary: true,
         replacePrevious: true,
-        description: description || null,
+        description: description ?? null,
         file,
         user_id: user.user_id,
     });

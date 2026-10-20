@@ -65,7 +65,7 @@ export const uploadGalleryFile = async (
         tenant_id: space.tenant_id,
         category: GALLERY_CATEGORY,
         is_primary: false,
-        description: description || null,
+        description: description ?? null,
         file,
         user_id: user.user_id,
     });
