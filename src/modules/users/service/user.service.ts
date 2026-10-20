@@ -3,10 +3,7 @@ import * as UserRepository from '../repository/user.repository';
 import * as CountryRepository from '../../system/repository/country.repository';
 import { BadRequestError, ConflictError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { User, Person } from '../database/models';
-
-// Campos de perfil editables — de User y de Person en un solo payload.
-export type ProfileFields = Partial<Pick<InferAttributes<User>, 'first_name' | 'last_name' | 'email'>>
-    & Partial<Pick<InferAttributes<Person>, 'phone' | 'country_id' | 'document_type' | 'document_number' | 'date_birth'>>;
+import type { ProfileFields } from '../interfaces/user.interface';
 
 // Usuario con su persona y su rol.
 export const getById = async (id: number) => {

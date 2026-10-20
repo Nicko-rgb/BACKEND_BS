@@ -2,8 +2,9 @@ import { createRouter } from '../../../shared/utils/createRouter';
 import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
 import { verificarPermiso } from '../../../shared/middlewares/verificarPermiso';
 import { validateDTO } from '../../../shared/middlewares/validateDTO';
-import { registerSpaceSchema } from '../dto/space.schema';
-import { registerSpace } from '../controllers/space.controller';
+import upload from '../../../shared/middlewares/uploadMiddleware';
+import { registerSpaceSchema, updateSpaceSchema } from '../dto/space.schema';
+import { registerSpace, listBySucursal, spaceById, updateSpace, getGallery, uploadGalleryFile, removeGalleryFile } from '../controllers/space.controller';
 
 const router = createRouter();
 
@@ -20,5 +21,78 @@ router.post('/:sucursalPublicId',
     validateDTO(registerSpaceSchema),
     registerSpace
 );
+
+/**
+ * @route GET /api/spaces/sucursals/:sucursalPublicId/list
+ * @desc  Espacios deportivos de la sucursal
+ * @access usuarios con permiso space.view (sobre sucursales de su alcance)
+ */
+router.get('/sucursals/:sucursalPublicId/list',
+    resolveAuthorization,
+    verificarPermiso('space.view'),
+    listBySucursal
+);
+
+/**
+ * @route GET /api/spaces/space/:spacePublicId
+ * @desc  Detalle de un espacio deportivo
+ * @access usuarios con permiso space.view (sobre espacios que estan dentro de sus sucursales)
+ */
+router.get('/space/:spacePublicId',
+    resolveAuthorization,
+    verificarPermiso('space.view'),
+    spaceById
+);
+
+/**
+ * @route PUT /api/spaces/space/:spacePublicId
+ * @desc  Actualización de un espacio deportivo — valida scope sobre la sucursal
+ *        del espacio (dueño/admin/empleado de esa sucursal, system bypasea),
+ *        catálogos si se envían, y coherencia min/max booking.
+ * @access usuarios con permiso space.edit
+ */
+router.put('/space/:spacePublicId',
+    resolveAuthorization,
+    verificarPermiso('space.edit'),
+    validateDTO(updateSpaceSchema),
+    updateSpace
+);
+
+/* ── Media Gallery de Space ───────────────────────────────────────── */
+
+/**
+ * @route GET /api/spaces/:spacePublicId/gallery
+ * @desc  Archivos de la galería del espacio (imágenes y videos) — lista vacía si no hay
+ * @access usuarios con permiso space.view (sobre espacios dentro de su alcance)
+ */
+router.get('/:spacePublicId/gallery',
+    resolveAuthorization,
+    verificarPermiso('space.view'),
+    getGallery
+);
+
+/**
+ * @route POST /api/spaces/:spacePublicId/gallery
+ * @desc  Sube un archivo a la galería del espacio (campo `media` — imagen o video)
+ * @access usuarios con permiso space.media_manage
+ */
+router.post('/:spacePublicId/gallery',
+    resolveAuthorization,
+    verificarPermiso('space.media_manage'),
+    upload.single('media'),
+    uploadGalleryFile
+);
+
+/**
+ * @route DELETE /api/spaces/:spacePublicId/gallery/:mediaPublicId
+ * @desc  Elimina un archivo de la galería del espacio (registro + archivo físico)
+ * @access usuarios con permiso space.media_manage
+ */
+router.delete('/:spacePublicId/gallery/:mediaPublicId',
+    resolveAuthorization,
+    verificarPermiso('space.media_manage'),
+    removeGalleryFile
+);
+
 
 export default router;

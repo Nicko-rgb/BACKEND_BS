@@ -5,30 +5,16 @@ import * as SucursalConfigRepository from '../repository/sucursalConfig.reposito
 import { assertCompanyScope } from '../../../shared/utils/accessScope';
 import { BadRequestError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
-
-type SucursalStatus = 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
+import type { SaveSucursalConfigInput, SucursalStatus } from '../interfaces/sucursalConfig.interface';
 
 // Payload del upsert — horarios obligatorios, resto opcional (PUT parcial con min(1) en el schema).
 // `status` es de la sucursal (dsg_bss_company), no de la config: si viene se actualiza en la
 // misma transacción del upsert (todo o nada).
-export interface SaveSucursalConfigInput {
-    social_facebook?: string | null;
-    social_instagram?: string | null;
-    social_tiktok?: string | null;
-    social_youtube?: string | null;
-    social_whatsapp?: string | null;
-    whatsapp_message?: string | null;
-    opening_time?: string;
-    closing_time?: string;
-    min_price?: number | null;
-    features?: string | null;
-    status?: SucursalStatus;
-}
 
 // Scope sobre la sucursal ya resuelta — system entra a cualquiera, otro rol solo
 // si está en su company_ids (ver accessScope.ts).
 const assertSucursalAccess = (sucursalCompanyId: number, user: AuthenticatedUser) => {
-    assertCompanyScope(user, Number(sucursalCompanyId), 'No tenés acceso a esta sucursal');
+    assertCompanyScope(user, sucursalCompanyId, 'No tenés acceso a esta sucursal');
 };
 
 // Sucursal por public_id — findSucursalByPublicId ya filtra parent_company_id NOT NULL,
@@ -37,7 +23,7 @@ const findSucursalOrFail = async (sucursalPublicId: string, user: AuthenticatedU
     const sucursal = await CompanyRepository.findSucursalByPublicId(sucursalPublicId);
     if (!sucursal) throw new NotFoundError('Sucursal no encontrada');
 
-    assertSucursalAccess(Number(sucursal.company_id), user);
+    assertSucursalAccess(sucursal.company_id, user);
     return sucursal;
 };
 
@@ -50,7 +36,7 @@ const toMinutes = (value: string): number => {
 export const getBySucursalPublicId = async (sucursalPublicId: string, user: AuthenticatedUser) => {
     const sucursal = await findSucursalOrFail(sucursalPublicId, user);
 
-    const configuration = await SucursalConfigRepository.findBySucursalId(Number(sucursal.company_id));
+    const configuration = await SucursalConfigRepository.findBySucursalId(sucursal.company_id);
     if (!configuration) throw new NotFoundError('La sucursal todavía no tiene configuración');
 
     return { configuration, status: sucursal.status as SucursalStatus | null };
@@ -86,14 +72,14 @@ export const saveBySucursalPublicId = async (sucursalPublicId: string, data: Sav
             await CompanyRepository.update(sucursal, { status: data.status, user_update: user.user_id }, transaction);
         }
 
-        const existing = await SucursalConfigRepository.findBySucursalId(Number(sucursal.company_id), transaction);
+        const existing = await SucursalConfigRepository.findBySucursalId(sucursal.company_id, transaction);
         if (existing) {
             const updated = await SucursalConfigRepository.update(existing, { ...fields, user_update: user.user_id }, transaction);
             return { configuration: updated };
         }
 
         const created = await SucursalConfigRepository.create({
-            sucursal_id: Number(sucursal.company_id),
+            sucursal_id: sucursal.company_id,
             tenant_id: sucursal.tenant_id,
             public_id: idPublicId(),
             ...fields,

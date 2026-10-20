@@ -7,14 +7,7 @@ import type { Permission } from '../database/models';
 // La constante vive en users pero no importa nada — es pura, sin riesgo de
 // dependencia circular (ver nota en permission.repository.ts).
 import { ASSIGNABLE_PERMISSION_KEYS } from '../constants/assignablePermissions';
-
-export interface ListPermissionsQuery {
-    search?: string;
-    module?: string;
-    group?: string;
-    page?: number;
-    limit?: number;
-}
+import type { ListPermissionsQuery } from '../interfaces/permission.interface';
 
 /**
  * Catálogo de permisos en un solo endpoint con paginación dinámica: si el query

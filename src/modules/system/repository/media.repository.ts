@@ -12,6 +12,15 @@ export const findByMedible = async (medibleId: number, medibleType: string) => {
     });
 };
 
+// Archivos de un (medible, categoría) — ej. la galería de un espacio. A diferencia
+// de findByMedible, no trae los de otras categorías (portada, perfil...).
+export const findByMedibleAndCategory = async (medibleId: number, medibleType: string, category: string) => {
+    return Media.findAll({
+        where: { medible_id: medibleId, medible_type: medibleType, category },
+        order: [['created_at', 'DESC']],
+    });
+};
+
 // Primaria de un (medible, categoría) — ej. el banner actual de una sucursal.
 // Solo hay una por grupo (ver unsetPrimary).
 export const findPrimary = async (medibleId: number, medibleType: string, category: string, transaction?: Transaction) => {

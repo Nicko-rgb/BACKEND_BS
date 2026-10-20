@@ -4,15 +4,18 @@ interface SpacePublic {
     publicId: string;
     name: string;
     sport: string | null;
-    status: string;
-    surfaceTypeId: number;
     sportTypeId: number;
+
+    surfaceName: string;
+    surfaceTypeId: number;
+    categoryName: string;
     sportCategoryId: number;
     capacity: number | null;
     dimensions: string;
     equipment: string | null;
     minimumBookingMinutes: number;
     maximumBookingMinutes: number;
+    status: string;
     createdAt: Date;
 }
 
@@ -24,14 +27,17 @@ export const toSpaceDto = (space: Space): SpacePublic => ({
     publicId: space.public_id,
     name: space.name,
     sport: space.sportType?.name ?? null,
-    surfaceTypeId: Number(space.surface_type_id),
-    sportTypeId: Number(space.sport_type_id),
-    sportCategoryId: Number(space.sport_category_id),
-    status: space.status_space,
+    sportTypeId: space.sport_type_id,
+    surfaceName: space.surfaceType?.name ?? '',
+    surfaceTypeId: space.surface_type_id,
+    categoryName: space.sportCategory?.name ?? '',
+    sportCategoryId: space.sport_category_id,
     capacity: space.capacity,
     dimensions: space.dimensions,
     equipment: space.equipment,
     minimumBookingMinutes: space.minimum_booking_minutes,
     maximumBookingMinutes: space.maximum_booking_minutes,
+    status: space.status_space,
     createdAt: space.created_at,
 });
+

@@ -9,10 +9,7 @@ import { DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOpt
 import sequelize from '../../../../config/db';
 import type { User } from './User';
 import type { Country, PaymentType, Ubigeo } from '../../../system/database/models';
-
-type Gender = 'MALE' | 'FEMALE' | 'OTHER' | 'NOT_SPECIFIED';
-type DocumentType = 'IDENTITY_CARD' | 'PASSPORT' | 'LICENSE' | 'OTHER';
-type CivilState = 'SINGLE' | 'MARRIED' | 'DIVORCED' | 'WIDOWED' | 'COMMON-LAW';
+import type { Gender, DocumentType, CivilState } from '../../interfaces/user.interface';
 
 export class Person extends Model<InferAttributes<Person>, InferCreationAttributes<Person>> {
     declare persona_id: CreationOptional<number>;

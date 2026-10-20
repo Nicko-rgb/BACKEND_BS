@@ -1,6 +1,5 @@
 import type { Configuration } from '../database/models';
-
-type SucursalStatus = 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
+import type { SucursalStatus } from '../interfaces/sucursalConfig.interface';
 
 /**
  * Configuración de una sucursal para el frontend — solo `public_id` (nunca

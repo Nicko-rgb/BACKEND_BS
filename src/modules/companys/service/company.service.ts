@@ -1,6 +1,5 @@
 import { idPublicId } from '../../../shared/utils/ids';
 import bcrypt from 'bcryptjs';
-import type { InferAttributes } from 'sequelize';
 import sequelize from '../../../config/db';
 import logger from '../../../config/logger';
 import * as CompanyRepository from '../repository/company.repository';
@@ -15,10 +14,9 @@ import * as CountryRepository from '../../system/repository/country.repository';
 import * as RoleRepository from '../../system/repository/role.repository';
 import { hasFullCompanyAccess, assertCompanyScope } from '../../../shared/utils/accessScope';
 import { BadRequestError, ConflictError, NotFoundError } from '../../../shared/errors/CustomErrors';
-import type { PaginationQuery } from '../../../shared/types/pagination';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
 import type { Company } from '../database/models';
-import type { Person } from '../../users/database/models';
+import type { RegisterCompanyInput, UpdateCompanyInput, ListCompaniesQuery } from '../interfaces/company.interface';
 
 /**
  * Detalle completo de una empresa — le suma los usuarios asignados a ella y a sus sucursales
@@ -28,12 +26,6 @@ const withAssignments = async (company: Company) => {
     const companyIds = [Number(company.company_id), ...(company.subsidiaries ?? []).map((s) => Number(s.company_id))];
     return { company, assignments: await UserCompanyRepository.findActiveByCompanyIds(companyIds) };
 };
-
-export interface ListCompaniesQuery extends PaginationQuery {
-    search?: string;
-    countryId?: number;
-    isEnabled?: string;
-}
 
 /**
  * Empresas principales, paginado, con su dueño (resuelto por include en el repository) y su
@@ -72,18 +64,6 @@ export const getByPublicId = async (publicId: string, user: AuthenticatedUser) =
     return withAssignments(company);
 };
 
-// Payload de autoedición de la propia empresa — todo opcional, incluye `document` (RUC) para
-// poder corregir un dato mal cargado al registrar.
-export interface UpdateCompanyInput {
-    name?: string;
-    document?: string;
-    country_id?: number;
-    ubigeo_id?: number;
-    address?: string;
-    phone_cell?: string;
-    phone?: string | null;
-}
-
 /**
  * Actualiza los datos de la propia empresa — mismo lookup y chequeo de alcance que
  * `getByPublicId` (ver accessScope.ts). Si viene `country_id`, revalida
@@ -115,13 +95,6 @@ export const updateByPublicId = async (publicId: string, data: UpdateCompanyInpu
     const updated = await CompanyRepository.findByPublicId(publicId);
     return withAssignments(updated!);
 };
-
-// Payload del wizard de alta — un objeto por paso del frontend (empresa, dueño, plan).
-export interface RegisterCompanyInput {
-    company: { name: string; document: string; country_id: number; ubigeo_id: number; address: string; phone_cell: string; phone?: string | null; };
-    owner: { first_name: string; last_name: string; email: string; password: string; phone: string; country_id: number; document_type: InferAttributes<Person>['document_type']; document_number: string; date_birth?: string | null; };
-    plan: { plan_public_id: string; billing_period: 'monthly' | 'yearly'; };
-}
 
 /**
  * Alta de empresa — crea Company + User (dueño, rol super_admin) + Person + UserCompany +

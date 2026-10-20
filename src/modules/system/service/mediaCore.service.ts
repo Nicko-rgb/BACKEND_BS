@@ -17,9 +17,9 @@ import logger from '../../../config/logger';
 import * as MediaRepository from '../repository/media.repository';
 import { buildFileUrl } from '../../../shared/middlewares/uploadMiddleware';
 import { BadRequestError } from '../../../shared/errors/CustomErrors';
-import { MEDIA_CATEGORIES, MEDIA_TYPES } from '../database/models/Media';
 import type { Media } from '../database/models/Media';
-import type { MediaCategory, MediaType } from '../database/models/Media';
+import type { CreateRecordInput, MediaCategory, MediaType } from '../interfaces/media.interface';
+import { MEDIA_CATEGORIES, MEDIA_TYPES } from '../interfaces/media.interface';
 
 export const typeFromMimetype = (mimetype: string): MediaType => {
     if (mimetype.startsWith('image/')) return 'IMAGE';
@@ -40,20 +40,6 @@ const removePhysicalFile = (fileUrl: string | null): void => {
         logger.warn(`[MediaCore] No se pudo borrar el archivo ${diskPath}`, { error: err });
     }
 };
-
-export interface CreateRecordInput {
-    medible_id: number;
-    medible_type: string;
-    tenant_id: string | null;
-    category?: MediaCategory | string;
-    type?: MediaType | string;
-    is_primary?: boolean;
-    /** true = elimina la primaria anterior (fila + físico) en vez de conservarla como historial. */
-    replacePrevious?: boolean;
-    description?: string | null;
-    file: Express.Multer.File;
-    user_id: number;
-}
 
 // Crea la fila + desmarca la primaria anterior del mismo (medible, categoría).
 // Si no viene transacción, abre una propia para que unset + create sean atómicos.

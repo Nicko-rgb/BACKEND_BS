@@ -7,24 +7,7 @@ import { assertCompanyScope } from '../../../shared/utils/accessScope';
 import { BadRequestError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
 import type { Company } from '../database/models';
-
-// Payload del alta de sucursal — los campos operativos (horario, precio mínimo,
-// características, redes) viven en dsg_bss_configuration y se manejan aparte, en
-// "Configurar" (ver sucursalConfig.service.ts).
-export interface RegisterSucursalInput {
-    name: string;
-    address: string;
-    country_id: number;
-    ubigeo_id: number;
-    phone_cell: string;
-    phone?: string | null;
-    latitude?: number | null;
-    longitude?: number | null;
-    description?: string | null;
-    website?: string | null;
-}
-
-export type UpdateSucursalInput = Partial<RegisterSucursalInput>;
+import type { RegisterSucursalInput, UpdateSucursalInput } from '../interfaces/sucursal.interface';
 
 /**
  * Alta de una sucursal bajo una empresa existente — hereda `document` (mismo RUC) y
@@ -39,7 +22,7 @@ export const register = async (companyPublicId: string, data: RegisterSucursalIn
     const parent = await CompanyRepository.findByPublicId(companyPublicId);
     if (!parent) throw new NotFoundError('Empresa no encontrada');
 
-    assertCompanyScope(user, Number(parent.company_id), 'No tenés acceso a esta empresa');
+    assertCompanyScope(user, parent.company_id, 'No tenés acceso a esta empresa');
 
     const country = await CountryRepository.findById(data.country_id);
     if (!country) throw new BadRequestError('El país seleccionado no existe.');
@@ -78,7 +61,7 @@ export const register = async (companyPublicId: string, data: RegisterSucursalIn
 // Scope sobre la sucursal ya resuelta — system entra a cualquiera, otro rol solo
 // si está en su company_ids (ver accessScope.ts).
 const assertSucursalAccess = (sucursal: Company, user: AuthenticatedUser) => {
-    assertCompanyScope(user, Number(sucursal.company_id), 'No tenés acceso a esta sucursal');
+    assertCompanyScope(user, sucursal.company_id, 'No tenés acceso a esta sucursal');
 };
 
 export const getByPublicId = async (publicId: string, user: AuthenticatedUser) => {

@@ -5,7 +5,6 @@ import { validateDTO } from '../../../shared/middlewares/validateDTO';
 import upload from '../../../shared/middlewares/uploadMiddleware';
 import { registerSucursalSchema, updateSucursalSchema } from '../dto/sucursal.schema';
 import { registerSucursal, getByPublicId, updateByPublicId, getBanner, uploadBanner, removeBanner } from '../controllers/sucursal.controller';
-import { listBySucursal } from '../controllers/space.controller';
 
 const router = createRouter();
 
@@ -76,17 +75,6 @@ router.delete('/:publicId/banner',
     resolveAuthorization,
     verificarPermiso('sucursal.edit'),
     removeBanner
-);
-
-/**
- * @route GET /api/sucursals/:publicId/spaces
- * @desc  Espacios deportivos de la sucursal
- * @access usuarios con permiso space.view (sobre sucursales de su alcance)
- */
-router.get('/:publicId/spaces',
-    resolveAuthorization,
-    verificarPermiso('space.view'),
-    listBySucursal
 );
 
 export default router;

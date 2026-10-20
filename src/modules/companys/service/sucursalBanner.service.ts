@@ -21,14 +21,14 @@ const resolveSucursal = async (sucursalPublicId: string, user: AuthenticatedUser
     const sucursal = await CompanyRepository.findSucursalByPublicId(sucursalPublicId);
     if (!sucursal) throw new NotFoundError('Sucursal no encontrada');
 
-    assertCompanyScope(user, Number(sucursal.company_id), 'No tenés acceso a esta sucursal');
+    assertCompanyScope(user, sucursal.company_id, 'No tenés acceso a esta sucursal');
     return sucursal;
 };
 
 // Portada actual (primaria de la categoría COVER) — null si no hay.
 export const getBanner = async (sucursalPublicId: string, user: AuthenticatedUser) => {
     const sucursal = await resolveSucursal(sucursalPublicId, user);
-    return MediaRepository.findPrimary(Number(sucursal.company_id), MEDIBLE_TYPE, BANNER_CATEGORY);
+    return MediaRepository.findPrimary(sucursal.company_id, MEDIBLE_TYPE, BANNER_CATEGORY);
 };
 
 // Sube y marca como primaria — reemplaza la anterior (fila + físico), no acumula historial.
@@ -37,7 +37,7 @@ export const uploadBanner = async (sucursalPublicId: string, file: Express.Multe
     const sucursal = await resolveSucursal(sucursalPublicId, user);
 
     return MediaCore.createRecord({
-        medible_id: Number(sucursal.company_id),
+        medible_id: sucursal.company_id,
         medible_type: MEDIBLE_TYPE,
         tenant_id: sucursal.tenant_id,
         category: BANNER_CATEGORY,

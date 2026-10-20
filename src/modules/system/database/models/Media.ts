@@ -17,15 +17,6 @@ import type { User } from '../../../users/database/models';
 import type { Company } from '../../../companys/database/models';
 import type { Space } from '../../../companys/database/models';
 
-// Mapa central — única fuente de verdad. Agregar un valor acá (sin migración,
-// la columna es VARCHAR) y Joi + service lo toman solo.
-export const MEDIA_TYPES = ['IMAGE', 'VIDEO', 'DOCUMENT', 'AUDIO'] as const;
-export type MediaType = (typeof MEDIA_TYPES)[number];
-
-export const MEDIA_CATEGORIES = ['GALLERY', 'PROFILE', 'COVER', 'THUMBNAIL', 'DOCUMENT'] as const;
-export type MediaCategory = (typeof MEDIA_CATEGORIES)[number];
-
-
 export class Media extends Model<InferAttributes<Media>, InferCreationAttributes<Media>> {
     declare media_id: CreationOptional<number>;
     declare medible_id: number;

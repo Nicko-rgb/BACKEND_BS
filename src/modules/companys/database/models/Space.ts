@@ -37,6 +37,8 @@ export class Space extends Model<InferAttributes<Space>, InferCreationAttributes
     declare readonly created_at: CreationOptional<Date>;
     declare readonly updated_at: CreationOptional<Date>;
     declare sportType?: NonAttribute<SportType>;
+    declare surfaceType?: NonAttribute<SurfaceType>;
+    declare sportCategory?: NonAttribute<SportCategory>;
 }
 
 Space.init({

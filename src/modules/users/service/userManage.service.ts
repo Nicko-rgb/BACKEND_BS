@@ -1,6 +1,5 @@
 import bcrypt from 'bcryptjs';
 import { idPublicId } from '../../../shared/utils/ids';
-import type { InferAttributes } from 'sequelize';
 import sequelize from '../../../config/db';
 import * as UserRepository from '../repository/user.repository';
 import * as UserCompanyRepository from '../repository/userCompany.repository';
@@ -15,29 +14,13 @@ import { invalidateUserAuthCache } from '../../../shared/utils/authorizationCach
 import { BadRequestError, ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../../../shared/errors/CustomErrors';
 import type { ManagedRole } from '../../../shared/utils/roleHierarchy';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
-import type { PaginationQuery } from '../../../shared/types/pagination';
-import type { Person, User } from '../database/models';
+import type { User } from '../database/models';
 import type { ManagedAssignment } from '../dto/userManage.dto';
-
-export interface ListUsersQuery extends PaginationQuery {
-    search?: string;
-    role?: string;
-    countryId?: number;
-}
-
-type ManagedProfileInput = Partial<Pick<InferAttributes<User>, 'first_name' | 'last_name' | 'email' | 'is_enabled'>>
-    & Partial<Pick<InferAttributes<Person>, 'phone' | 'country_id' | 'document_type' | 'document_number' | 'date_birth'>>;
-
-export type CreateManagedUserInput = ManagedProfileInput & {
-    password?: string | null;
-    sucursales?: string[];
-    company_public_id?: string;
-};
-
-export type UpdateManagedUserInput = ManagedProfileInput & {
-    role?: string;
-    sucursales?: string[];
-};
+import type {
+    ListUsersQuery,
+    CreateManagedUserInput,
+    UpdateManagedUserInput,
+} from '../interfaces/userManage.interface';
 
 interface CompanyAssignment {
     company_id: number;

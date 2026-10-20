@@ -65,3 +65,16 @@ export const registerSpaceSchema = Joi.object({
     minimum_booking_minutes: SPACE_FIELDS.minimum_booking_minutes,
     maximum_booking_minutes: SPACE_FIELDS.maximum_booking_minutes,
 });
+
+// Actualización de espacio — todos los campos opcionales, al menos uno requerido.
+export const updateSpaceSchema = Joi.object({
+    name: SPACE_FIELDS.name,
+    surface_type_id: SPACE_FIELDS.surface_type_id,
+    sport_type_id: SPACE_FIELDS.sport_type_id,
+    sport_category_id: SPACE_FIELDS.sport_category_id,
+    capacity: SPACE_FIELDS.capacity,
+    dimensions: SPACE_FIELDS.dimensions,
+    equipment: SPACE_FIELDS.equipment,
+    minimum_booking_minutes: SPACE_FIELDS.minimum_booking_minutes,
+    maximum_booking_minutes: SPACE_FIELDS.maximum_booking_minutes,
+}).min(1);
