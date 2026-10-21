@@ -1,0 +1,39 @@
+----- PLAN STAR -----
+    1 sucursal
+    1 cancha
+    2 usuarios
+    Full Pasarela de pagos
+    Notificaciones basicas
+    Reportes básicos
+    Facturación electrónica Limitada
+    Soporte 24/7
+
+    Precio: 59.00 mensual
+    Anual: 576 (20% DSTO)
+
+----- PLAN PRO -----
+    1 a 2 sucursales
+    1 a 3 Canchas por sucursal
+    1 a 5 usuarios por sucursal
+    Full Pasarela de pagos
+    Notificaciones automatizadas
+    Reportes avanzados
+    Facturación electrónica ilimitada
+    Soporte 24/7
+
+    Precio: 89.00  mensual
+    Anual: 854 (20% dsto)
+
+----- PLAN BUSSINES -----
+    Multi Empresa
+    Sucursales ilimitadas
+    Canchas ilimitadas
+    Usuarios ilimitados
+    Full Pasarela de pagos
+    Full Notificaciones automatizadas
+    Facturación electrónica ilimitada
+    Reportes avanzados
+    Soporte 24/7
+
+    Precio: 129.00  mensual
+    Anual: 1238 (20% dsto)

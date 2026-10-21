@@ -1,0 +1,40 @@
+TAREAS PENDIENTES BOOKING SPORT
+-----------------------------------------------
+MODULO RESERVAS:
+    1. Pagos por adelantos
+    2. Pagos en fraciones
+    3. Lanzamiento de promociones y descuentos, cada empresa/sucursal
+       lanza sus paquetes y notificar a sus cleintes
+    4. Devoluciones y postergación de reservas, configirable por parte
+       de cada empresa/sucursal
+
+MODULO SUSCRIPCIONES:
+    1. Integrar pagos recurrentes automáticos a la susucripciones
+    2. Integrar prueba de 7 dias antes de cobro real - en investigación
+
+MODULO EMPRESA: 
+    1. Controlar información de empresa en base a paquetes/plan suscrito
+    2. Plan BUSSINES dice MULTIEMPRESA - Empresa debe tener empresas
+       hermanas para este plan.
+
+    => MODELOS UNICA EMPRESA
+
+                         EMPRESA 1
+                            |
+            ________________|_______________
+            |               |               |
+        SUCURSAL A      SUCURSAL B      SUCURSAL C
+            |               |               |
+      N ESPACIOS...    N ESPACIOS...   N ESPACIOS...
+
+    => MODELO MULTIEMPRESA - PLAN BUSSINES
+
+                                          PLAN BUSSINES
+                        ________________________|________________________
+                        |                                               |
+                        EMPRESA 1                                   EMPRESA 2
+            _____________|_____________                   _____________ |______________
+            |            |            |                   |             |             |
+        SUCURSAL A   SUCURSAL B   SUCURSAL C          SUCURSAL A   SUCURSAL B    SUCURSAL C
+            |            |            |                   |             |             |
+    N ESPACIOS...   N ESPACIOS...  N ESPACIOS...    N ESPACIOS...   N ESPACIOS...  N ESPACIOS...
