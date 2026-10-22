@@ -6,7 +6,7 @@ import ApiResponse from '../../../shared/utils/ApiResponse';
 
 export const loginAdmin = async (req: Request, res: Response) => {
     const result = await AuthService.loginAdmin(req.validatedData);
-    return ApiResponse.ok(res, toLoginAdminDto(result), 'Sesión iniciada exitosamente');
+    return ApiResponse.ok(res, toLoginAdminDto(result), 'Sesión iniciada');
 };
 
 export const passwordRequest = (req: Request, res: Response) => {

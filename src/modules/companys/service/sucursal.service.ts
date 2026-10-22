@@ -7,7 +7,7 @@ import { assertCompanyScope } from '../../../shared/utils/accessScope';
 import { BadRequestError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
 import type { Company } from '../database/models';
-import type { RegisterSucursalInput, UpdateSucursalInput } from '../interfaces/sucursal.interface';
+import type { RegisterSucursalInput, UpdateSucursalInput, SucursalStatusInput } from '../interfaces/sucursal.interface';
 
 /**
  * Alta de una sucursal bajo una empresa existente — hereda `document` (mismo RUC) y
@@ -97,6 +97,21 @@ export const updateByPublicId = async (publicId: string, data: UpdateSucursalInp
     if (data.website !== undefined) updateFields.website = data.website || null;
 
     await CompanyRepository.update(sucursal, updateFields);
+
+    return CompanyRepository.findSucursalByPublicId(publicId) as Promise<Company>;
+};
+
+// Cambio de estado de la sucursal
+export const toggleStatus = async (publicId: string, data: SucursalStatusInput, user: AuthenticatedUser) => {
+    const sucursal = await CompanyRepository.findSucursalByPublicId(publicId);
+    if (!sucursal) throw new NotFoundError('Sucursal no encontrada');
+
+    assertSucursalAccess(sucursal, user);
+
+    await CompanyRepository.update(sucursal, {
+        status: data.status,
+        user_update: user.user_id,
+    });
 
     return CompanyRepository.findSucursalByPublicId(publicId) as Promise<Company>;
 };

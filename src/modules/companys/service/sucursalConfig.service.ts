@@ -5,11 +5,11 @@ import * as SucursalConfigRepository from '../repository/sucursalConfig.reposito
 import { assertCompanyScope } from '../../../shared/utils/accessScope';
 import { BadRequestError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
-import type { SaveSucursalConfigInput, SucursalStatus } from '../interfaces/sucursalConfig.interface';
+import type { SaveSucursalConfigInput } from '../interfaces/sucursalConfig.interface';
 
 // Payload del upsert — horarios obligatorios, resto opcional (PUT parcial con min(1) en el schema).
-// `status` es de la sucursal (dsg_bss_company), no de la config: si viene se actualiza en la
-// misma transacción del upsert (todo o nada).
+// El estado de la sucursal NO se toca acá: vive en dsg_bss_company y se cambia por su
+// propio endpoint (PATCH /sucursals/:publicId/status — ver sucursal.service.ts::toggleStatus).
 
 // Scope sobre la sucursal ya resuelta — system entra a cualquiera, otro rol solo
 // si está en su company_ids (ver accessScope.ts).
@@ -39,7 +39,7 @@ export const getBySucursalPublicId = async (sucursalPublicId: string, user: Auth
     const configuration = await SucursalConfigRepository.findBySucursalId(sucursal.company_id);
     if (!configuration) throw new NotFoundError('La sucursal todavía no tiene configuración');
 
-    return { configuration, status: sucursal.status as SucursalStatus | null };
+    return { configuration };
 };
 
 export const saveBySucursalPublicId = async (sucursalPublicId: string, data: SaveSucursalConfigInput, user: AuthenticatedUser) => {
@@ -68,10 +68,6 @@ export const saveBySucursalPublicId = async (sucursalPublicId: string, data: Sav
     };
 
     const { configuration } = await sequelize.transaction(async (transaction) => {
-        if (data.status) {
-            await CompanyRepository.update(sucursal, { status: data.status, user_update: user.user_id }, transaction);
-        }
-
         const existing = await SucursalConfigRepository.findBySucursalId(sucursal.company_id, transaction);
         if (existing) {
             const updated = await SucursalConfigRepository.update(existing, { ...fields, user_update: user.user_id }, transaction);
@@ -89,6 +85,5 @@ export const saveBySucursalPublicId = async (sucursalPublicId: string, data: Sav
         return { configuration: created };
     });
 
-    const freshSucursal = await CompanyRepository.findSucursalByPublicId(sucursalPublicId);
-    return { configuration, status: (freshSucursal?.status ?? sucursal.status) as SucursalStatus | null };
+    return { configuration };
 };

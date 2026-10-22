@@ -1,13 +1,13 @@
 import type { Configuration } from '../database/models';
-import type { SucursalStatus } from '../interfaces/sucursalConfig.interface';
 
 /**
  * Configuración de una sucursal para el frontend — solo `public_id` (nunca
- * `config_id`, `sucursal_id` ni `tenant_id`) más los 10 campos editables.
- * `status` es de la sucursal (dsg_bss_company), se incluye para precargar el
- * segmentado del tab Operativo.
+ * `config_id`, `sucursal_id` ni `tenant_id`) más los campos editables.
+ *
+ * El estado de la sucursal NO va acá: vive en dsg_bss_company y se expone en el
+ * detalle de la sucursal (sucursal.dto.ts), no en su configuración.
  */
-export const toSucursalConfigDto = (configuration: Configuration, status: SucursalStatus | null) => {
+export const toSucursalConfigDto = (configuration: Configuration) => {
     return {
         publicId: configuration.public_id,
         socialFacebook: configuration.social_facebook,
@@ -20,6 +20,5 @@ export const toSucursalConfigDto = (configuration: Configuration, status: Sucurs
         closingTime: configuration.closing_time,
         minPrice: configuration.min_price,
         features: configuration.features,
-        status,
     };
 };

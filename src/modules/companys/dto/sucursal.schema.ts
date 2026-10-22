@@ -87,3 +87,13 @@ export const registerSucursalSchema = Joi.object({
 export const updateSucursalSchema = Joi.object(SUCURSAL_FIELDS).min(1).messages({
     'object.min': 'Debe enviar al menos un campo para actualizar',
 });
+
+// Cambio de estado de la sucursal (status de dsg_bss_company). Solo el estado:
+// el resto de los datos de la sucursal no se tocan.
+export const sucursalStatusSchema = Joi.object({
+    status: Joi.string().valid('ACTIVE', 'MAINTENANCE', 'INACTIVE').required()
+        .messages({
+            'any.only': 'El estado debe ser ACTIVE, MAINTENANCE o INACTIVE',
+            'any.required': 'El estado es requerido',
+        }),
+});

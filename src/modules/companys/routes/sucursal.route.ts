@@ -3,8 +3,8 @@ import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorizatio
 import { verificarPermiso } from '../../../shared/middlewares/verificarPermiso';
 import { validateDTO } from '../../../shared/middlewares/validateDTO';
 import upload from '../../../shared/middlewares/uploadMiddleware';
-import { registerSucursalSchema, updateSucursalSchema } from '../dto/sucursal.schema';
-import { registerSucursal, getByPublicId, updateByPublicId, getBanner, uploadBanner, removeBanner } from '../controllers/sucursal.controller';
+import { registerSucursalSchema, updateSucursalSchema, sucursalStatusSchema } from '../dto/sucursal.schema';
+import { registerSucursal, getByPublicId, updateByPublicId, toggleStatus, getBanner, uploadBanner, removeBanner } from '../controllers/sucursal.controller';
 
 const router = createRouter();
 
@@ -43,6 +43,17 @@ router.put('/:publicId',
     updateByPublicId
 );
 
+/**
+ * @route PATCH /api/sucursals/:publicId/status
+ * @desc  Cambio de estado de la sucursal (ACTIVE | MAINTENANCE | INACTIVE
+ * @access usuarios con permiso sucursal.edit
+ */
+router.patch('/:publicId/status',
+    resolveAuthorization,
+    verificarPermiso('sucursal.edit'),
+    validateDTO(sucursalStatusSchema),
+    toggleStatus
+);
 
 /** ____ IMAGEN ______ */
 /**

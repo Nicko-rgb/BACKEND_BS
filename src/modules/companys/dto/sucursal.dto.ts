@@ -39,12 +39,6 @@ export const toSucursalDto = (sucursal: Company) => {
             departmentId: department?.ubigeo_id ?? null,
             formatted: [district.name, province?.name, department?.name].filter(Boolean).join(', '),
         } : null,
-        spaces: (sucursal.spaces ?? []).map((space) => ({
-            publicId: space.public_id,
-            name: space.name,
-            sport: space.sportType?.name ?? null,
-            status: space.status_space,
-        })),
         createdAt: sucursal.created_at,
     };
 };

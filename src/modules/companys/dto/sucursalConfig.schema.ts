@@ -36,9 +36,6 @@ export const saveSucursalConfigSchema = Joi.object({
         'number.base': 'El precio mínimo debe ser un número',
         'number.min': 'El precio mínimo debe ser mayor o igual a 0',
     }),
-    status: Joi.string().valid('ACTIVE', 'INACTIVE', 'MAINTENANCE').messages({
-        'any.only': 'El estado debe ser Activa, Inactiva o Mantenimiento',
-    }),
     features: Joi.string().trim().max(2000).allow('', null).messages({
         'string.max': 'Las características no pueden superar 2000 caracteres',
     }),

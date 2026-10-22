@@ -22,3 +22,8 @@ export interface RegisterSucursalInput {
 
 // Actualización parcial — mismo shape que el alta, todos los campos opcionales.
 export type UpdateSucursalInput = Partial<RegisterSucursalInput>;
+
+// Cambio de estado — el status de dsg_bss_company (ACTIVE | MAINTENANCE | INACTIVE).
+export interface SucursalStatusInput {
+    status: 'ACTIVE' | 'MAINTENANCE' | 'INACTIVE';
+}
