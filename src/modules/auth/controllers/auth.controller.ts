@@ -9,8 +9,8 @@ export const loginAdmin = async (req: Request, res: Response) => {
     return ApiResponse.ok(res, toLoginAdminDto(result), 'Sesión iniciada');
 };
 
-export const passwordRequest = (req: Request, res: Response) => {
-    const result = PasswordResetService.requestReset(req.validatedData.email);
+export const passwordRequest = async (req: Request, res: Response) => {
+    const result = await PasswordResetService.processResetRequest(req.validatedData.email);
     return ApiResponse.ok(res, result, 'Si el correo está registrado, recibirás un enlace para restablecer tu contraseña');
 };
 

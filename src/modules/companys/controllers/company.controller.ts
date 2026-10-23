@@ -6,7 +6,7 @@ import { toPaginationMeta } from '../../../shared/utils/paginate';
 
 // Lista las empresas principales, paginado, con su dueño y su plan — el alcance según el rol del caller se resuelve en company.service.ts
 export const list = async (req: Request, res: Response) => {
-    const data = req.validatedData;
+    const data = req.validatedQuery;
     const user = req.user;
     const { rows, count, plans } = await CompanyService.list(data, user!);
     const companys = rows.map((row) => toCompanyListDto(row, plans[row.company_id] ?? null) );

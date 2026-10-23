@@ -1,19 +1,5 @@
 import type { BusinessHour } from '../database/models';
-
-interface HourPublic {
-    // Id interno de la fila — no expone datos sensibles (el bloque solo se
-    // referencia dentro del alcance de su propio espacio).
-    hourId: number;
-    dayOfWeek: string;
-    /** 'HH:mm' en 24 horas. */
-    startTime: string;
-    /** 'HH:mm' en 24 horas — hasta '24:00' (medianoche fin de día). */
-    endTime: string;
-    /** DECIMAL(10,2) viene como string de la BD. */
-    price: string;
-    isClosed: boolean;
-    createdAt: Date;
-}
+import { HourPublic } from '../interfaces/hour.interface';
 
 /**
  * Forma de un bloque de horario para el frontend — la BD guarda 'HH:mm:ss:00'

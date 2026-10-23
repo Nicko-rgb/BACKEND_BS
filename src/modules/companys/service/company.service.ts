@@ -5,7 +5,7 @@ import logger from '../../../config/logger';
 import * as CompanyRepository from '../repository/company.repository';
 import * as SaaSSubscriptionRepository from '../../saas/repository/saasSubscription.repository';
 import * as SaaSPlanRepository from '../../saas/repository/saasPlan.repository';
-import * as NotificationService from '../../notificacions/service/notification.service';
+import { notify } from '../../notificacions/service/notification.service';
 import { NotificationEvents } from '../../notificacions/constants/notificationEvents';
 import * as UserRepository from '../../users/repository/user.repository';
 import * as UserCompanyRepository from '../../users/repository/userCompany.repository';
@@ -236,7 +236,7 @@ export const register = async (payload: RegisterCompanyInput, user: Authenticate
 
     // Fuera de la transacción — un fallo del email no debe revertir el alta, ya está activa.
     try {
-        await NotificationService.notify(NotificationEvents.COMPANY_REGISTERED, {
+        await notify(NotificationEvents.COMPANY_REGISTERED, '[Company]', {
             ownerId: newUser.user_id,
             ownerEmail,
             ownerName: `${owner.first_name} ${owner.last_name}`,

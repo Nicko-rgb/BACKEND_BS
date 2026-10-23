@@ -19,3 +19,19 @@ export interface RegisterHourInput {
 
 // Actualización parcial — mismo shape que el alta, todos los campos opcionales.
 export type UpdateHourInput = Partial<RegisterHourInput>;
+
+
+export interface HourPublic {
+    // Id interno de la fila — no expone datos sensibles (el bloque solo se
+    // referencia dentro del alcance de su propio espacio).
+    hourId: number;
+    dayOfWeek: string;
+    /** 'HH:mm' en 24 horas. */
+    startTime: string;
+    /** 'HH:mm' en 24 horas — hasta '24:00' (medianoche fin de día). */
+    endTime: string;
+    /** DECIMAL(10,2) viene como string de la BD. */
+    price: string;
+    isClosed: boolean;
+    createdAt: Date;
+}

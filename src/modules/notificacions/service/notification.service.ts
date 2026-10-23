@@ -11,7 +11,7 @@ import logger from '../../../config/logger';
  * cliente que corresponda y, si el evento define `dbFields`, se deja el registro en `Notification` —
  * con `delivery_status: 'FAILED'` si el envío no salió, nunca lanza por eso. Devuelve si el envío salió.
  */
-export const notify = async <E extends NotificationEvent>(event: E, payload: NotificationPayloads[E]): Promise<boolean> => {
+export const notify = async <E extends NotificationEvent>(event: E, source: string, payload: NotificationPayloads[E]): Promise<boolean> => {
     const emailConfig = EMAIL_EVENT_CONFIG[event];
 
     if (!emailConfig) {
@@ -21,7 +21,7 @@ export const notify = async <E extends NotificationEvent>(event: E, payload: Not
 
     let deliveryStatus: 'SENT' | 'FAILED' = 'SENT';
     try {
-        await sendMail({ to: emailConfig.to(payload), subject: emailConfig.subject(payload), html: emailConfig.html(payload) });
+        await sendMail({ to: emailConfig.to(payload), subject: emailConfig.subject(payload), html: emailConfig.html(payload), source: source  });
     } catch (err) {
         logger.error(`[NotificationService] Error enviando evento ${event}`, { error: err });
         deliveryStatus = 'FAILED';

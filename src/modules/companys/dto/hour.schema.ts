@@ -29,6 +29,7 @@ const HOUR_FIELDS = {
     price: Joi.number().min(0.01).max(99999999.99).precision(2)
         .messages({
             'number.base': 'El precio debe ser un número',
+            'number.decimala': 'Debe ser un decimal, separado por coma',
             'number.min': 'El precio debe ser mayor a 0',
             'number.max': 'El precio no puede superar 99999999.99',
             'any.required': 'El precio es requerido',

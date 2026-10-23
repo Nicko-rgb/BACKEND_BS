@@ -25,48 +25,40 @@ const frontUrlFor = (roleKey: string | undefined): string => {
  * Si el correo es de un usuario habilitado (y no pidió otro enlace hace poco), invalida sus
  * enlaces previos, guarda el hash de un token nuevo y le envía el enlace. Devuelve si se envió.
  */
-const processResetRequest = async (email: string): Promise<boolean> => {
-    const user = await UserRepository.findByEmailForLogin(email);
-    if (!user || !user.is_enabled) return false;
+export const processResetRequest = async (email: string): Promise<boolean> => {
+    try {
+        const user = await UserRepository.findByEmailForLogin(email);
+        if (!user || !user.is_enabled) {
+            return false
+        }
 
-    const userId = Number(user.user_id);
-    const lastToken = await PasswordResetTokenRepository.findLatestByUser(userId);
-    if (lastToken && Date.now() - lastToken.created_at.getTime() < RESET_REQUEST_COOLDOWN_MS) return false;
+        const userId = Number(user.user_id);
+        const lastToken = await PasswordResetTokenRepository.findLatestByUser(userId);
+        if (lastToken && Date.now() - lastToken.created_at.getTime() < RESET_REQUEST_COOLDOWN_MS) return false;
 
-    const token = crypto.randomBytes(32).toString('base64url');
+        const token = crypto.randomBytes(32).toString('base64url');
 
-    await sequelize.transaction(async (transaction) => {
-        await PasswordResetTokenRepository.invalidateActiveByUser(userId, transaction);
-        await PasswordResetTokenRepository.create({
-            user_id: userId,
-            token_hash: hashResetToken(token),
-            expires_at: new Date(Date.now() + RESET_TOKEN_TTL_MINUTES * 60 * 1000),
-        }, transaction);
-    });
-
-    return notify(NotificationEvents.FORGOT_PASSWORD, {
-        email,
-        name: user.first_name || email,
-        resetUrl: `${frontUrlFor(user.roleRef?.key)}${RESET_PASSWORD_PATH}#token=${token}`,
-        expiresInMinutes: RESET_TOKEN_TTL_MINUTES,
-    });
-};
-
-/**
- * Procesa la solicitud en segundo plano: la respuesta tarda lo mismo exista o no el correo.
- * Nunca lanza — los errores solo se loguean. Devuelve la vigencia del enlace para informarla.
- */
-export const requestReset = (email: string): { expiresInMinutes: number } => {
-    processResetRequest(email)
-        .then((isSent) => {
-            if (isSent) logger.info(`[PasswordReset] Correo de recuperación enviado a ${email}`);
-            else logger.warn(`[PasswordReset] Correo de recuperación no enviado a ${email}`);
-        })
-        .catch((error) => {
-            logger.error(`[PasswordReset] Correo de recuperación no enviado a ${email}`, { error: error.message });
+        await sequelize.transaction(async (transaction) => {
+            await PasswordResetTokenRepository.invalidateActiveByUser(userId, transaction);
+            await PasswordResetTokenRepository.create({
+                user_id: userId,
+                token_hash: hashResetToken(token),
+                expires_at: new Date(Date.now() + RESET_TOKEN_TTL_MINUTES * 60 * 1000),
+            }, transaction);
         });
 
-    return { expiresInMinutes: RESET_TOKEN_TTL_MINUTES };
+        const isSent = await notify(NotificationEvents.FORGOT_PASSWORD, '[PasswordReset]', {
+            email,
+            name: user.first_name || email,
+            resetUrl: `${frontUrlFor(user.roleRef?.key)}${RESET_PASSWORD_PATH}#token=${token}`,
+            expiresInMinutes: RESET_TOKEN_TTL_MINUTES,
+        });
+
+        return isSent;
+    } catch (error: any) {
+        logger.error(`[PasswordReset] Correo de recuperación no enviado a ${email}`, { error: error.message });
+        return false;
+    }
 };
 
 // Comprueba que el enlace siga vigente, sin consumirlo — usado al abrir la página de nueva contraseña
@@ -96,11 +88,9 @@ export const resetPassword = async (token: string, password: string): Promise<vo
     const user = await UserRepository.findById(userId);
     if (!user?.email) return;
 
-    const isSent = await notify(NotificationEvents.PASSWORD_CHANGED, {
+    await notify(NotificationEvents.PASSWORD_CHANGED, '[PasswordReset]', {
         email: user.email,
         name: user.first_name || user.email,
         loginUrl: `${frontUrlFor(user.roleRef?.key)}${LOGIN_PATH}`,
     });
-
-    if (!isSent) logger.warn(`[PasswordReset] Aviso de cambio de contraseña no enviado a ${user.email}`);
 };

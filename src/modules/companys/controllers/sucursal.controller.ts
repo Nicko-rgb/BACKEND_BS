@@ -7,7 +7,10 @@ import ApiResponse from '../../../shared/utils/ApiResponse';
 
 // Alta de sucursal — companyPublicId es el public_id de la empresa padre (ver sucursal.service.ts → register).
 export const registerSucursal = async (req: Request, res: Response) => {
-    const sucursal = await SucursalService.register(String(req.params.companyPublicId), req.validatedData, req.user!);
+    const companyPublicId = String(req.params.companyPublicId);
+    const data = req.validatedData;
+    const user = req.user;
+    const sucursal = await SucursalService.register(companyPublicId, data, user!);
     return ApiResponse.created(res, toSucursalDto(sucursal), 'Sucursal registrada exitosamente');
 };
 
@@ -36,8 +39,6 @@ export const toggleStatus = async (req: Request, res: Response) => {
     const sucursal = await SucursalService.toggleStatus(publicId, statusData, user!);
     return ApiResponse.ok(res, toSucursalDto(sucursal), 'Estado actualizado');
 };
-
-
 
 // Portada actual de la sucursal — null si no tiene.
 export const getBanner = async (req: Request, res: Response) => {
