@@ -1,7 +1,7 @@
 import { createRouter } from '../../../shared/utils/createRouter';
 import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
 import { verificarPermiso } from '../../../shared/middlewares/verificarPermiso';
-import { validateDTO, validateQuery } from '../../../shared/middlewares/validateDTO';
+import { validateDTO, validatePublicId, validateQuery } from '../../../shared/middlewares/validateDTO';
 import { listCompaniesQuerySchema, registerCompanySchema, updateCompanySchema } from '../dto/company.schema';
 import { list, registerCompany, getByPublicId, updateByPublicId } from '../controllers/company.controller';
 
@@ -41,6 +41,7 @@ router.post('/register',
 router.get('/:publicId',
     resolveAuthorization,
     verificarPermiso('company.view'),
+    validatePublicId('publicId'),
     getByPublicId
 );
 
@@ -53,6 +54,7 @@ router.get('/:publicId',
 router.put('/:publicId',
     resolveAuthorization,
     verificarPermiso('company.edit'),
+    validatePublicId('publicId'),
     validateDTO(updateCompanySchema),
     updateByPublicId
 );

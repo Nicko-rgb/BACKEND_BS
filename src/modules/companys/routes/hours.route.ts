@@ -1,7 +1,7 @@
 import { createRouter } from '../../../shared/utils/createRouter';
 import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
 import { verificarPermiso } from '../../../shared/middlewares/verificarPermiso';
-import { validateDTO } from '../../../shared/middlewares/validateDTO';
+import { validateDTO, validatePublicId } from '../../../shared/middlewares/validateDTO';
 import { registerHourSchema, updateHourSchema } from '../dto/hour.schema';
 import { listHours, registerHour, updateHour, toggleHourClosed } from '../controllers/hour.controller';
 
@@ -16,6 +16,7 @@ const router = createRouter();
 router.get('/space/:spacePublicId/list',
     resolveAuthorization,
     verificarPermiso('space.business_hour_manage'),
+    validatePublicId('spacePublicId'),
     listHours
 );
 
@@ -29,6 +30,7 @@ router.get('/space/:spacePublicId/list',
 router.post('/space/:spacePublicId/hour',
     resolveAuthorization,
     verificarPermiso('space.business_hour_manage'),
+    validatePublicId('spacePublicId'),
     validateDTO(registerHourSchema),
     registerHour
 );
@@ -43,6 +45,7 @@ router.post('/space/:spacePublicId/hour',
 router.put('/space/:spacePublicId/hour/:hourId',
     resolveAuthorization,
     verificarPermiso('space.business_hour_manage'),
+    validatePublicId('spacePublicId'),
     validateDTO(updateHourSchema),
     updateHour
 );
@@ -56,6 +59,7 @@ router.put('/space/:spacePublicId/hour/:hourId',
 router.patch('/space/:spacePublicId/hour/:hourId/close',
     resolveAuthorization,
     verificarPermiso('space.business_hour_manage'),
+    validatePublicId('spacePublicId'),
     toggleHourClosed
 );
 

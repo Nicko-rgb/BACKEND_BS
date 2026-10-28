@@ -1,7 +1,7 @@
 import { createRouter } from '../../../shared/utils/createRouter';
 import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
 import { verificarPermiso } from '../../../shared/middlewares/verificarPermiso';
-import { validateDTO } from '../../../shared/middlewares/validateDTO';
+import { validateDTO, validatePublicId } from '../../../shared/middlewares/validateDTO';
 import { saveSucursalConfigSchema } from '../dto/sucursalConfig.schema';
 import { getConfiguration, saveConfiguration } from '../controllers/sucursalConfig.controller';
 
@@ -15,6 +15,7 @@ const router = createRouter();
 router.get('/:sucursalPublicId',
     resolveAuthorization,
     verificarPermiso('sucursal.view'),
+    validatePublicId('sucursalPublicId'),
     getConfiguration
 );
 
@@ -26,6 +27,7 @@ router.get('/:sucursalPublicId',
 router.put('/:sucursalPublicId',
     resolveAuthorization,
     verificarPermiso('sucursal.config'),
+    validatePublicId('sucursalPublicId'),
     validateDTO(saveSucursalConfigSchema),
     saveConfiguration
 );

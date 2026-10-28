@@ -1,7 +1,7 @@
 import { createRouter } from '../../../shared/utils/createRouter';
 import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
 import { verificarPermiso } from '../../../shared/middlewares/verificarPermiso';
-import { validateDTO } from '../../../shared/middlewares/validateDTO';
+import { validateDTO, validatePublicId } from '../../../shared/middlewares/validateDTO';
 import upload from '../../../shared/middlewares/uploadMiddleware';
 import { registerSucursalSchema, updateSucursalSchema, sucursalStatusSchema } from '../dto/sucursal.schema';
 import { registerSucursal, getByPublicId, updateByPublicId, toggleStatus, getBanner, uploadBanner, removeBanner } from '../controllers/sucursal.controller';
@@ -16,6 +16,7 @@ const router = createRouter();
 router.post('/:companyPublicId',
     resolveAuthorization,
     verificarPermiso('sucursal.create'),
+    validatePublicId('companyPublicId'),
     validateDTO(registerSucursalSchema),
     registerSucursal
 );
@@ -28,6 +29,7 @@ router.post('/:companyPublicId',
 router.get('/:publicId',
     resolveAuthorization,
     verificarPermiso('sucursal.view'),
+    validatePublicId('publicId'),
     getByPublicId
 );
 
@@ -39,6 +41,7 @@ router.get('/:publicId',
 router.put('/:publicId',
     resolveAuthorization,
     verificarPermiso('sucursal.edit'),
+    validatePublicId('publicId'),
     validateDTO(updateSucursalSchema),
     updateByPublicId
 );
@@ -51,6 +54,7 @@ router.put('/:publicId',
 router.patch('/:publicId/status',
     resolveAuthorization,
     verificarPermiso('sucursal.edit'),
+    validatePublicId('publicId'),
     validateDTO(sucursalStatusSchema),
     toggleStatus
 );
@@ -64,6 +68,7 @@ router.patch('/:publicId/status',
 router.get('/:publicId/banner',
     resolveAuthorization,
     verificarPermiso('sucursal.edit'),
+    validatePublicId('publicId'),
     getBanner
 );
 
@@ -75,6 +80,7 @@ router.get('/:publicId/banner',
 router.post('/:publicId/banner',
     resolveAuthorization,
     verificarPermiso('sucursal.edit'),
+    validatePublicId('publicId'),
     upload.single('cover'),
     uploadBanner
 );
@@ -87,6 +93,7 @@ router.post('/:publicId/banner',
 router.delete('/:publicId/banner',
     resolveAuthorization,
     verificarPermiso('sucursal.edit'),
+    validatePublicId('publicId'),
     removeBanner
 );
 

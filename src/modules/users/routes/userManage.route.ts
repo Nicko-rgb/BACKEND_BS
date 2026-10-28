@@ -1,7 +1,7 @@
 import { createRouter } from '../../../shared/utils/createRouter';
 import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
 import { verificarPermiso } from '../../../shared/middlewares/verificarPermiso';
-import { validateQuery, validateDTOByParam } from '../../../shared/middlewares/validateDTO';
+import { validateQuery, validateDTOByParam, validatePublicId } from '../../../shared/middlewares/validateDTO';
 import { listUsersQuerySchema, createUserSchemas, updateUserSchemas } from '../dto/userManage.schema';
 import { list, getById, create, update } from '../controllers/userManage.controller';
 
@@ -23,7 +23,7 @@ router.get('/', resolveAuthorization, verificarPermiso('user.manage_all'), valid
  * @desc  Detalle de un usuario de ese rol, con sus asignaciones de empresa/sucursal
  * @access permiso de gestión del rol
  */
-router.get('/:role/:publicId', resolveAuthorization, verificarPermiso('user.manage_all', 'user.administrator_manage', 'user.employee_manage', 'user.client_manage'), getById);
+router.get('/:role/:publicId', resolveAuthorization, verificarPermiso('user.manage_all', 'user.administrator_manage', 'user.employee_manage', 'user.client_manage'), validatePublicId('publicId'), getById);
 
 /**
  * @route POST /api/users/manage/:role
@@ -37,6 +37,6 @@ router.post('/:role', resolveAuthorization, verificarPermiso('user.manage_all', 
  * @desc  Edición de un usuario de ese rol (su rol actual) — nunca contraseña
  * @access permiso de gestión del rol
  */
-router.put('/:role/:publicId', resolveAuthorization, verificarPermiso('user.manage_all', 'user.administrator_manage', 'user.employee_manage', 'user.client_manage'), validateDTOByParam('role', updateUserSchemas), update);
+router.put('/:role/:publicId', resolveAuthorization, verificarPermiso('user.manage_all', 'user.administrator_manage', 'user.employee_manage', 'user.client_manage'), validatePublicId('publicId'), validateDTOByParam('role', updateUserSchemas), update);
 
 export default router;

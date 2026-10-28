@@ -1,7 +1,7 @@
 import { createRouter } from '../../../shared/utils/createRouter';
 import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
 import { verificarPermiso } from '../../../shared/middlewares/verificarPermiso';
-import { validateDTO } from '../../../shared/middlewares/validateDTO';
+import { validateDTO, validatePublicId } from '../../../shared/middlewares/validateDTO';
 import upload from '../../../shared/middlewares/uploadMiddleware';
 import { registerSpaceSchema, updateSpaceSchema, spaceStatusSchema } from '../dto/space.schema';
 import { registerSpace, listBySucursal, spaceById, updateSpace, getGallery, uploadGalleryFile, removeGalleryFile, toggleSpaceStatus } from '../controllers/space.controller';
@@ -18,6 +18,7 @@ const router = createRouter();
 router.post('/:sucursalPublicId',
     resolveAuthorization,
     verificarPermiso('space.create'),
+    validatePublicId('sucursalPublicId'),
     validateDTO(registerSpaceSchema),
     registerSpace
 );
@@ -30,6 +31,7 @@ router.post('/:sucursalPublicId',
 router.get('/sucursals/:sucursalPublicId/list-spaces',
     resolveAuthorization,
     verificarPermiso('space.view'),
+    validatePublicId('sucursalPublicId'),
     listBySucursal
 );
 
@@ -41,6 +43,7 @@ router.get('/sucursals/:sucursalPublicId/list-spaces',
 router.get('/space/:spacePublicId/data-space',
     resolveAuthorization,
     verificarPermiso('space.view'),
+    validatePublicId('spacePublicId'),
     spaceById
 );
 
@@ -54,6 +57,7 @@ router.get('/space/:spacePublicId/data-space',
 router.put('/space/:spacePublicId',
     resolveAuthorization,
     verificarPermiso('space.edit'),
+    validatePublicId('spacePublicId'),
     validateDTO(updateSpaceSchema),
     updateSpace
 );
@@ -68,6 +72,7 @@ router.put('/space/:spacePublicId',
 router.patch('/space/:spacePublicId/status',
     resolveAuthorization,
     verificarPermiso('space.edit'),
+    validatePublicId('spacePublicId'),
     validateDTO(spaceStatusSchema),
     toggleSpaceStatus
 );
@@ -82,6 +87,7 @@ router.patch('/space/:spacePublicId/status',
 router.get('/space/:spacePublicId/gallerys-space',
     resolveAuthorization,
     verificarPermiso('space.view'),
+    validatePublicId('spacePublicId'),
     getGallery
 );
 
@@ -93,6 +99,7 @@ router.get('/space/:spacePublicId/gallerys-space',
 router.post('/space/:spacePublicId/gallery',
     resolveAuthorization,
     verificarPermiso('space.media_manage'),
+    validatePublicId('spacePublicId'),
     upload.single('media'),
     uploadGalleryFile
 );
@@ -105,6 +112,7 @@ router.post('/space/:spacePublicId/gallery',
 router.delete('/space/:spacePublicId/gallery/:mediaPublicId',
     resolveAuthorization,
     verificarPermiso('space.media_manage'),
+    validatePublicId('spacePublicId', 'mediaPublicId'),
     removeGalleryFile
 );
 

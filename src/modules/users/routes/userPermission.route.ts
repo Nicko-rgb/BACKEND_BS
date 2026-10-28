@@ -1,7 +1,7 @@
 import { createRouter } from '../../../shared/utils/createRouter';
 import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
 import { verificarPermiso } from '../../../shared/middlewares/verificarPermiso';
-import { validateDTO } from '../../../shared/middlewares/validateDTO';
+import { validateDTO, validatePublicId } from '../../../shared/middlewares/validateDTO';
 import { updateUserPermissionsSchema } from '../dto/userPermission.schema';
 import { getByUserId, update } from '../controllers/userPermission.controller';
 
@@ -15,6 +15,7 @@ const router = createRouter();
 router.get('/:publicId/permissions',
     resolveAuthorization,
     verificarPermiso('user.permission_manage'),
+    validatePublicId('publicId'),
     getByUserId
 );
 
@@ -26,6 +27,7 @@ router.get('/:publicId/permissions',
 router.put('/:publicId/permissions',
     resolveAuthorization,
     verificarPermiso('user.permission_manage'),
+    validatePublicId('publicId'),
     validateDTO(updateUserPermissionsSchema),
     update
 );

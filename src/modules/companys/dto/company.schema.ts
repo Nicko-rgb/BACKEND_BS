@@ -1,5 +1,6 @@
 import Joi from 'joi';
 import { paginationQuerySchema } from '../../../shared/dto/pagination.schema';
+import { publicIdSchema } from '../../../shared/dto/publicId.schema';
 
 // Query del listado de empresas — page/limit de paginationQuerySchema + search opcional (nombre o
 // documento) + filtros exactos opcionales por país y estado.
@@ -147,7 +148,7 @@ export const registerCompanySchema = Joi.object({
     }).required().messages({ 'any.required': 'Los datos del dueño son requeridos' }),
 
     plan: Joi.object({
-        plan_public_id: Joi.string().guid().required()
+        plan_public_id: publicIdSchema.required()
             .messages({
                 'string.guid': 'El plan seleccionado no es válido',
                 'any.required': 'El plan es requerido',

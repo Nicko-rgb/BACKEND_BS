@@ -1,7 +1,7 @@
 import { createRouter } from '../../../shared/utils/createRouter';
 import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
 import { verificarPermiso } from '../../../shared/middlewares/verificarPermiso';
-import { validateDTO } from '../../../shared/middlewares/validateDTO';
+import { validateDTO, validatePublicId } from '../../../shared/middlewares/validateDTO';
 import { updatePlanSchema } from '../dto/plan.schema';
 import { list, listActive, update, remove } from '../controllers/plan.controller';
 
@@ -26,13 +26,13 @@ router.get('/plans/active', listActive);
  * @desc  Actualiza un plan existente
  * @access system
  */
-router.put('/plans/:publicId', resolveAuthorization, verificarPermiso('plan.manage'), validateDTO(updatePlanSchema), update);
+router.put('/plans/:publicId', resolveAuthorization, verificarPermiso('plan.manage'), validatePublicId('publicId'), validateDTO(updatePlanSchema), update);
 
 /**
  * @route DELETE /api/saas/plans/:publicId
  * @desc  Elimina un plan — bloqueado si tiene suscripciones asociadas
  * @access system
  */
-router.delete('/plans/:publicId', resolveAuthorization, verificarPermiso('plan.manage'), remove);
+router.delete('/plans/:publicId', resolveAuthorization, verificarPermiso('plan.manage'), validatePublicId('publicId'), remove);
 
 export default router;

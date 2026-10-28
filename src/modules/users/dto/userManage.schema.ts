@@ -1,5 +1,6 @@
 import Joi from 'joi';
 import { paginationQuerySchema } from '../../../shared/dto/pagination.schema';
+import { publicIdSchema } from '../../../shared/dto/publicId.schema';
 import { PROFILE_FIELDS } from './user.schema';
 import type { ManagedRole } from '../../../shared/utils/roleHierarchy';
 
@@ -83,7 +84,7 @@ const CLIENT_ACCESS_CREATE = {
 const SUCURSAL_ROLE = Joi.string().valid('administrador', 'empleado')
     .messages({ 'any.only': 'El rol debe ser administrador o empleado' });
 
-const SUCURSALES = Joi.array().items(Joi.string().guid()).min(1).unique()
+const SUCURSALES = Joi.array().items(publicIdSchema).min(1).unique()
     .messages({
         'array.base': 'Las sucursales no son válidas',
         'array.min': 'Seleccioná al menos una sucursal',
@@ -116,7 +117,7 @@ export const createUserSchemas: Record<ManagedRole, Joi.ObjectSchema> = {
     super_admin: Joi.object({
         ...PERSONAL_CREATE,
         ...ADMIN_ACCESS_CREATE,
-        company_public_id: Joi.string().guid().required()
+        company_public_id: publicIdSchema.required()
             .messages({ 'string.guid': 'La empresa seleccionada no es válida', 'any.required': 'La empresa es requerida' }),
     }),
     administrador: Joi.object({ ...PERSONAL_CREATE, ...ADMIN_ACCESS_CREATE, sucursales: SUCURSALES.required() }),
