@@ -27,7 +27,7 @@ export const spaceById = async (req: Request, res: Response) => {
     const spacePublicId = String(req.params.spacePublicId);
     const user = req.user;
     const space = await SpaceService.spaceById(spacePublicId, user!);
-    return ApiResponse.ok(res, toSpaceDto(space), 'Espacio deportivo obtenido exitosamente');
+    return ApiResponse.ok(res, toSpaceDto(space), 'Información de espacio');
 };
 
 // Actualización de un espacio deportivo - para pagina Space.tsx.
