@@ -12,9 +12,9 @@ const migration: MigrationFile = {
         order: 2
     },
 
-    async up(queryInterface, sequelize) {
+    async up(queryInterface, sequelize, transaction) {
         const [rows]: any = await sequelize.query(
-            `SELECT to_regclass('public.dsg_bss_ubigeo') IS NOT NULL AS exists`
+            `SELECT to_regclass('public.dsg_bss_ubigeo') IS NOT NULL AS exists`, { transaction }
         );
         if (rows[0].exists) {
             console.log('    ⏭️  dsg_bss_ubigeo ya existe — baseline registrado');
@@ -42,15 +42,15 @@ const migration: MigrationFile = {
             },
             created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
             updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
-        });
+        }, { transaction });
 
-        await queryInterface.addIndex('dsg_bss_ubigeo', ['country_id', 'level'], { name: 'idx_ubigeo_country_level' });
-        await queryInterface.addIndex('dsg_bss_ubigeo', ['parent_id'], { name: 'idx_ubigeo_parent_id' });
-        await queryInterface.addIndex('dsg_bss_ubigeo', ['code'], { unique: true, name: 'idx_ubigeo_code' });
+        await queryInterface.addIndex('dsg_bss_ubigeo', ['country_id', 'level'], { transaction, name: 'idx_ubigeo_country_level' });
+        await queryInterface.addIndex('dsg_bss_ubigeo', ['parent_id'], { transaction, name: 'idx_ubigeo_parent_id' });
+        await queryInterface.addIndex('dsg_bss_ubigeo', ['code'], { transaction, unique: true, name: 'idx_ubigeo_code' });
     },
 
-    async down(queryInterface) {
-        await queryInterface.dropTable('dsg_bss_ubigeo');
+    async down(queryInterface, _sequelize, transaction) {
+        await queryInterface.dropTable('dsg_bss_ubigeo', { transaction });
     }
 };
 

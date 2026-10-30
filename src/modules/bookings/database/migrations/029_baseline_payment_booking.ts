@@ -12,9 +12,9 @@ const migration: MigrationFile = {
         order: 29
     },
 
-    async up(queryInterface, sequelize) {
+    async up(queryInterface, sequelize, transaction) {
         const [rows]: any = await sequelize.query(
-            `SELECT to_regclass('public.dsg_bss_payment_booking') IS NOT NULL AS exists`
+            `SELECT to_regclass('public.dsg_bss_payment_booking') IS NOT NULL AS exists`, { transaction }
         );
         if (rows[0].exists) {
             console.log('    ⏭️  dsg_bss_payment_booking ya existe — baseline registrado');
@@ -75,16 +75,16 @@ const migration: MigrationFile = {
             },
             created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
             updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
-        });
+        }, { transaction });
 
-        await queryInterface.addIndex('dsg_bss_payment_booking', ['payment_type_id'], { name: 'idx_payment_type' });
-        await queryInterface.addIndex('dsg_bss_payment_booking', ['status'], { name: 'idx_payment_status' });
-        await queryInterface.addIndex('dsg_bss_payment_booking', ['payment_date'], { name: 'idx_payment_date' });
-        await queryInterface.addIndex('dsg_bss_payment_booking', ['tenant_id'], { name: 'idx_payment_tenant' });
+        await queryInterface.addIndex('dsg_bss_payment_booking', ['payment_type_id'], { transaction, name: 'idx_payment_type' });
+        await queryInterface.addIndex('dsg_bss_payment_booking', ['status'], { transaction, name: 'idx_payment_status' });
+        await queryInterface.addIndex('dsg_bss_payment_booking', ['payment_date'], { transaction, name: 'idx_payment_date' });
+        await queryInterface.addIndex('dsg_bss_payment_booking', ['tenant_id'], { transaction, name: 'idx_payment_tenant' });
     },
 
-    async down(queryInterface) {
-        await queryInterface.dropTable('dsg_bss_payment_booking');
+    async down(queryInterface, _sequelize, transaction) {
+        await queryInterface.dropTable('dsg_bss_payment_booking', { transaction });
     }
 };
 

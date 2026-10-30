@@ -64,6 +64,9 @@ class GlobalErrorHandler {
      * Maneja errores de manera centralizada
      */
     static handleError(error: AppError, req: Request, res: Response, _next: NextFunction) {
+        if (error.parent?.code === '23P01') {
+            return ApiResponse.error(req, res, 'SCHEDULE_CONFLICT', 'El horario se cruza con otro bloque existente.', null, 409);
+        }
         const statusCode = error.statusCode || 500;
 
         // Log estructurado del error con contexto del request

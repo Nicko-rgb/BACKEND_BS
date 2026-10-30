@@ -13,7 +13,7 @@ const migration: MigrationFile = {
         order: 28
     },
 
-    async up(queryInterface) {
+    async up(queryInterface, _sequelize, transaction) {
         await queryInterface.createTable('dsg_bss_saas_subscriptions', {
             subscription_id: {
                 type: DataTypes.BIGINT,
@@ -102,18 +102,18 @@ const migration: MigrationFile = {
                 allowNull: false,
                 defaultValue: DataTypes.NOW
             }
-        });
+        }, { transaction });
 
-        await queryInterface.addIndex('dsg_bss_saas_subscriptions', ['stripe_subscription_id']);
-        await queryInterface.addIndex('dsg_bss_saas_subscriptions', ['public_id'], { unique: true, name: 'unique_saas_subscription_public_id' });
+        await queryInterface.addIndex('dsg_bss_saas_subscriptions', ['stripe_subscription_id'], { transaction });
+        await queryInterface.addIndex('dsg_bss_saas_subscriptions', ['public_id'], { transaction, unique: true, name: 'unique_saas_subscription_public_id' });
         // Índice para buscar suscripciones MP por preapproval_id (webhook) ───────────
-        await queryInterface.addIndex('dsg_bss_saas_subscriptions', ['mp_preapproval_id'], {
+        await queryInterface.addIndex('dsg_bss_saas_subscriptions', ['mp_preapproval_id'], { transaction,
             name: 'idx_saas_sub_mp_preapproval_id'
         });
     },
 
-    async down(queryInterface) {
-        await queryInterface.dropTable('dsg_bss_saas_subscriptions');
+    async down(queryInterface, _sequelize, transaction) {
+        await queryInterface.dropTable('dsg_bss_saas_subscriptions', { transaction });
     }
 };
 

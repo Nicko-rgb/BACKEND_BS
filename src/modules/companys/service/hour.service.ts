@@ -5,6 +5,8 @@
  * tiene que estar dentro del alcance del usuario (su sucursal en company_ids).
  */
 import * as SpaceRepository from '../repository/space.repository';
+import sequelize from '../../../config/db';
+import type { Transaction } from 'sequelize';
 import * as HourRepository from '../repository/hour.repository';
 import { assertCompanyScope } from '../../../shared/utils/accessScope';
 import { BadRequestError, NotFoundError } from '../../../shared/errors/CustomErrors';
@@ -17,11 +19,13 @@ import { DAY_LABELS } from '../interfaces/hour.interface';
  * Resuelve el espacio por public_id y valida que esté dentro del alcance del
  * usuario — el scope se evalúa sobre la sucursal a la que pertenece el espacio.
  */
-const resolveSpace = async (spacePublicId: string, user: AuthenticatedUser) => {
+const resolveSpace = async (spacePublicId: string, user: AuthenticatedUser, transaction?: Transaction) => {
     const spaceId = await SpaceRepository.getSpaceIdByPublicId(spacePublicId);
     if (!spaceId) throw new NotFoundError('Espacio deportivo no encontrado');
 
-    const space = await SpaceRepository.findById(spaceId);
+    const space = transaction
+        ? await SpaceRepository.lockById(spaceId, transaction)
+        : await SpaceRepository.findById(spaceId);
     if (!space) throw new NotFoundError('Espacio deportivo no encontrado');
 
     assertCompanyScope(user, space.sucursal_id, 'No tenés acceso a este espacio');
@@ -99,10 +103,11 @@ const resolveManagingSpace = async (
     spacePublicId: string,
     hourId: number,
     user: AuthenticatedUser,
+    transaction: Transaction,
 ): Promise<{ space: Space; hour: BusinessHour }> => {
-    const space = await resolveSpace(spacePublicId, user);
+    const space = await resolveSpace(spacePublicId, user, transaction);
 
-    const hour = await HourRepository.findById(hourId);
+    const hour = await HourRepository.findById(hourId, transaction);
     if (!hour || hour.space_id !== space.space_id) {
         throw new NotFoundError('Horario no encontrado');
     }
@@ -129,8 +134,8 @@ export const list = async (spacePublicId: string, user: AuthenticatedUser) => {
  *   - Reemplazo transaccional (delete + insert): o queda la semana nueva
  *     completa o la vieja intacta. Devuelve las filas nuevas con sus hour_id.
  */
-export const replaceSchedule = async (spacePublicId: string, data: SaveScheduleInput, user: AuthenticatedUser) => {
-    const space = await resolveSpace(spacePublicId, user);
+export const replaceSchedule = async (spacePublicId: string, data: SaveScheduleInput, user: AuthenticatedUser) => sequelize.transaction(async (transaction) => {
+    const space = await resolveSpace(spacePublicId, user, transaction);
 
     // El cierre '00:00' se normaliza a '24:00' ANTES de validar: si no, el
     // chequeo de rango lo vería como las 00:00 del inicio del día y lo rechazaría.
@@ -153,32 +158,32 @@ export const replaceSchedule = async (spacePublicId: string, data: SaveScheduleI
         user_create: user.user_id,
     }));
 
-    return HourRepository.replaceBySpace(space.space_id as number, rows);
-};
+    return HourRepository.replaceBySpace(space.space_id as number, rows, transaction);
+});
 
 /**
  * Habilita o deshabilita UN bloque (is_closed)
  */
-export const toggleClosed = async (spacePublicId: string, hourId: number, user: AuthenticatedUser) => {
-    const { hour } = await resolveManagingSpace(spacePublicId, hourId, user);
+export const toggleClosed = async (spacePublicId: string, hourId: number, user: AuthenticatedUser) => sequelize.transaction(async (transaction) => {
+    const { hour } = await resolveManagingSpace(spacePublicId, hourId, user, transaction);
     return HourRepository.update(hour, {
         is_closed: !hour.is_closed,
         user_update: user.user_id,
-    });
-};
+    }, transaction);
+});
 
 /**
  * Habilita o deshabilita un DÍA completo — todos sus bloques, con su is_closed.
  */
-export const toggleDayClosed = async (spacePublicId: string, day: DayOfWeek, user: AuthenticatedUser) => {
-    const space = await resolveSpace(spacePublicId, user);
+export const toggleDayClosed = async (spacePublicId: string, day: DayOfWeek, user: AuthenticatedUser) => sequelize.transaction(async (transaction) => {
+    const space = await resolveSpace(spacePublicId, user, transaction);
     const spaceId = space.space_id as number;
 
-    const rows = await HourRepository.findBySpaceAndDay(spaceId, day);
+    const rows = await HourRepository.findBySpaceAndDay(spaceId, day, transaction);
     if (rows.length === 0) throw new NotFoundError('El día no tiene horarios registrados');
 
     const isDayClosed = rows.every((row) => row.is_closed);
 
     // Una sola sentencia para el día entero: no hay estado intermedio visible.
-    return HourRepository.updateClosedByDay(spaceId, day, !isDayClosed, user.user_id);
-};
+    return HourRepository.updateClosedByDay(spaceId, day, !isDayClosed, user.user_id, transaction);
+});

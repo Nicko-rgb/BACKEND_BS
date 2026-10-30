@@ -1,8 +1,12 @@
-import type { CreationAttributes, InferAttributes } from 'sequelize';
+import type { CreationAttributes, InferAttributes, Transaction } from 'sequelize';
 import { Space } from '../database/models';
 
-export const create = async (data: CreationAttributes<Space>) => {
-    return Space.create(data);
+export const create = async (data: CreationAttributes<Space>, transaction?: Transaction) => {
+    return Space.create(data, { transaction });
+};
+
+export const lockById = async (spaceId: number, transaction: Transaction) => {
+    return Space.findByPk(spaceId, { transaction, lock: transaction.LOCK.UPDATE });
 };
 
 // Espacios de una sucursal — con su tipo de deporte para las cards.
@@ -46,8 +50,8 @@ export const update = async (space: Space, data: Partial<InferAttributes<Space>>
 
 // Cuántos espacios tiene una sucursal — usado por planLimits para validar
 // maxSpaces del plan antes de registrar uno nuevo.
-export const countBySucursalId = async (sucursalId: number): Promise<number> => {
-    return Space.count({ where: { sucursal_id: sucursalId } });
+export const countBySucursalId = async (sucursalId: number, transaction?: Transaction): Promise<number> => {
+    return Space.count({ where: { sucursal_id: sucursalId }, transaction });
 };
 
 // Cuántos espacios hay en un conjunto de sucursales — para el medidor de uso

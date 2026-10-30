@@ -17,7 +17,7 @@ export interface ListUsersQuery extends PaginationQuery {
 
 // Perfil que se puede tocar al crear o editar — el perfil más el flag de estado.
 export type ManagedProfileInput = ProfileFields & {
-    is_enabled?: boolean | null;
+    is_enabled?: boolean;
 };
 
 // Alta de usuario con el rol de la ruta.

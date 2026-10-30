@@ -189,6 +189,7 @@ Los tokens de color viven **solo** en `shared/styles/colors.css` y traen su valo
 1. `POST /api/auth/login` con credenciales.
 2. Se verifican contra `dsg_bss_user` (bcrypt) y se comprueba `is_enabled`.
 3. Se emite el JWT con identidad básica.
+   El JWT incluye `jti` y una sesión persistida en PostgreSQL; logout y recuperación de contraseña permiten revocarla.
 4. En cada request, `resolveAuthorization` resuelve **en caliente** (con caché Redis invalidable, TTL 5 min) `role`, `permissions`, `company_ids` y `scope_level` desde la BD.
 5. `verificarPermiso` valida el permiso de la acción.
 6. El service valida el alcance (`assertCompanyScope`) contra `company_ids`.
@@ -258,3 +259,4 @@ El scope se valida siempre contra `space.sucursal_id` — el espacio no se puede
 | [`DIAGRAMA_RELACIONES.md`](./DIAGRAMA_RELACIONES.md) | Relaciones entre entidades de la base |
 | [`DEPLOYE_GUIDE.md`](./DEPLOYE_GUIDE.md) | Guía de despliegue |
 | [`pendiente-integracion-pagos-mercadopago.md`](./pendiente-integracion-pagos-mercadopago.md) | Estado de la integración con MercadoPago |
+| [`correcciones-concurrencia-sesiones.md`](./correcciones-concurrencia-sesiones.md) | Migraciones, bloqueos concurrentes, sesiones revocables y despliegue |

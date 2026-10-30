@@ -31,6 +31,7 @@ import { startAllJobs } from './src/jobs';
 import redisClient from './src/config/redisConfig';
 import { initSocket } from './src/config/socketConfig';
 import { createApp } from './src/app';
+import { validateJwtDurations } from './src/config/jwtConfig';
 
 dotenv.config();
 
@@ -61,7 +62,7 @@ process.on('unhandledRejection', (reason) => {
 // Falla rápido en el arranque en lugar de errores críticos en runtime
 const REQUIRED_ENV_VARS = [
     'DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'MAIL_FROM',
-    'JWT_SECRET', 'JWT_EXPIRES_BOOKING', 'CORS_ORIGIN', 'PORT', 'NODE_ENV', 'MP_CREDENTIALS_ENCRYPTION_KEY',
+    'JWT_SECRET', 'JWT_EXPIRES', 'JWT_EXPIRES_BOOKING', 'CORS_ORIGIN', 'PORT', 'NODE_ENV', 'MP_CREDENTIALS_ENCRYPTION_KEY',
     'FRONT_ADMIN_BOOKING', 'FRONT_BOOKING_APP',
 ];
 const missingVars = REQUIRED_ENV_VARS.filter(v => !process.env[v]);
@@ -70,6 +71,8 @@ if (missingVars.length > 0) {
     console.error('[ENV] Revisa tu archivo .env o las variables del sistema.');
     process.exit(1);
 }
+
+validateJwtDurations();
 
 const isDev = process.env.NODE_ENV === 'development';
 

@@ -14,9 +14,9 @@ const migration: MigrationFile = {
         order: 11
     },
 
-    async up(queryInterface, sequelize) {
+    async up(queryInterface, sequelize, transaction) {
         const [rows]: any = await sequelize.query(
-            `SELECT to_regclass('public.dsg_bss_menu_items') IS NOT NULL AS exists`
+            `SELECT to_regclass('public.dsg_bss_menu_items') IS NOT NULL AS exists`, { transaction }
         );
         if (rows[0].exists) {
             console.log('    ⏭️  dsg_bss_menu_items ya existe — baseline registrado');
@@ -40,14 +40,14 @@ const migration: MigrationFile = {
             is_active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
             created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
             updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
-        });
+        }, { transaction });
 
-        await queryInterface.addIndex('dsg_bss_menu_items', ['app_access', 'is_active'], { name: 'idx_menu_app_active' });
-        await queryInterface.addIndex('dsg_bss_menu_items', ['group_title', 'sort_order'], { name: 'idx_menu_group_order' });
+        await queryInterface.addIndex('dsg_bss_menu_items', ['app_access', 'is_active'], { transaction, name: 'idx_menu_app_active' });
+        await queryInterface.addIndex('dsg_bss_menu_items', ['group_title', 'sort_order'], { transaction, name: 'idx_menu_group_order' });
     },
 
-    async down(queryInterface) {
-        await queryInterface.dropTable('dsg_bss_menu_items');
+    async down(queryInterface, _sequelize, transaction) {
+        await queryInterface.dropTable('dsg_bss_menu_items', { transaction });
     }
 };
 

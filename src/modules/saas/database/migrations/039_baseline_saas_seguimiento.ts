@@ -11,7 +11,7 @@ const migration: MigrationFile = {
         order: 39
     },
 
-    async up(queryInterface) {
+    async up(queryInterface, _sequelize, transaction) {
         await queryInterface.createTable('dsg_bss_saas_seguimiento', {
             seguimiento_id: {
                 type: DataTypes.BIGINT,
@@ -69,11 +69,11 @@ const migration: MigrationFile = {
                 allowNull: false,
                 defaultValue: DataTypes.NOW
             }
-        });
+        }, { transaction });
     },
 
-    async down(queryInterface) {
-        await queryInterface.dropTable('dsg_bss_saas_seguimiento');
+    async down(queryInterface, _sequelize, transaction) {
+        await queryInterface.dropTable('dsg_bss_saas_seguimiento', { transaction });
     }
 };
 

@@ -14,7 +14,7 @@ const migration: MigrationFile = {
 
     async up(queryInterface, sequelize, transaction) {
         const [rows]: any = await sequelize.query(
-            `SELECT to_regclass('public.dsg_bss_booking') IS NOT NULL AS exists`
+            `SELECT to_regclass('public.dsg_bss_booking') IS NOT NULL AS exists`, { transaction }
         );
         if (rows[0].exists) {
             console.log('    ⏭️  dsg_bss_booking ya existe — baseline registrado');
@@ -63,12 +63,12 @@ const migration: MigrationFile = {
             approved_at: { type: DataTypes.DATE, allowNull: true },
             created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
             updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
-        });
+        }, { transaction });
 
-        await queryInterface.addIndex('dsg_bss_booking', ['space_id', 'booking_date', 'status'], { name: 'idx_booking_space_date_status' });
-        await queryInterface.addIndex('dsg_bss_booking', ['space_id', 'booking_date', 'start_time', 'end_time'], { name: 'idx_booking_space_time_range' });
-        await queryInterface.addIndex('dsg_bss_booking', ['user_id'], { name: 'idx_booking_user' });
-        await queryInterface.addIndex('dsg_bss_booking', ['payment_id'], { name: 'idx_booking_payment' });
+        await queryInterface.addIndex('dsg_bss_booking', ['space_id', 'booking_date', 'status'], { transaction, name: 'idx_booking_space_date_status' });
+        await queryInterface.addIndex('dsg_bss_booking', ['space_id', 'booking_date', 'start_time', 'end_time'], { transaction, name: 'idx_booking_space_time_range' });
+        await queryInterface.addIndex('dsg_bss_booking', ['user_id'], { transaction, name: 'idx_booking_user' });
+        await queryInterface.addIndex('dsg_bss_booking', ['payment_id'], { transaction, name: 'idx_booking_payment' });
 
         // Barrera anti doble-reserva a nivel de BD — requiere btree_gist para combinar
         // columnas escalares (=) con rangos (&&) en el mismo índice EXCLUDE ─────────────
@@ -89,8 +89,8 @@ const migration: MigrationFile = {
         );
     },
 
-    async down(queryInterface) {
-        await queryInterface.dropTable('dsg_bss_booking');
+    async down(queryInterface, _sequelize, transaction) {
+        await queryInterface.dropTable('dsg_bss_booking', { transaction });
     }
 };
 

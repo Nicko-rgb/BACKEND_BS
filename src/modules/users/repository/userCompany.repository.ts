@@ -15,10 +15,11 @@ export const bulkCreate = async (rows: CreationAttributes<UserCompany>[], transa
 
 // company_id de las asignaciones activas de un usuario — usado por authorizationResolver para
 // recalcular company_ids en caliente (antes se calculaba una sola vez, en el login).
-export const findActiveCompanyIdsByUserId = async (userId: number): Promise<number[]> => {
+export const findActiveCompanyIdsByUserId = async (userId: number, transaction?: Transaction): Promise<number[]> => {
     const rows = await UserCompany.findAll({
         where: { user_id: userId, is_active: true },
         attributes: ['company_id'],
+        transaction,
     });
 
     return rows.map((row) => Number(row.company_id));
@@ -43,13 +44,14 @@ export const findActiveByCompanyIds = async (companyIds: number[]) => {
 };
 
 // Usuarios distintos con asignación activa en esas empresas/sucursales — el dueño incluido.
-export const countActiveUsersByCompanyIds = async (companyIds: number[]): Promise<number> => {
+export const countActiveUsersByCompanyIds = async (companyIds: number[], transaction?: Transaction): Promise<number> => {
     if (companyIds.length === 0) return 0;
 
     return UserCompany.count({
         where: { company_id: { [Op.in]: companyIds }, is_active: true },
         distinct: true,
         col: 'user_id',
+        transaction,
     });
 };
 

@@ -99,7 +99,7 @@ export async function discoverMigrations(): Promise<DiscoveredMigration[]> {
         // Orden alfabético dentro de la carpeta — solo desempata si dos
         // migraciones tuvieran el mismo `order` (no debería pasar) ───────────
         const files = fs.readdirSync(migrationsDir)
-            .filter(f => f.endsWith('.ts'))
+            .filter(f => /\.(ts|js)$/.test(f) && !f.endsWith('.d.ts'))
             .sort();
 
         for (const file of files) {
@@ -177,6 +177,12 @@ export async function runPendingMigrations(): Promise<RunPendingMigrationsResult
         const startTime = Date.now();
 
         try {
+            await sequelize.query('SELECT pg_advisory_xact_lock(71001, 1)', { transaction });
+            const existing = await MigrationMeta.findOne({ where: { migration_name: migration.name }, transaction });
+            if (existing?.status === 'applied') {
+                await transaction.commit();
+                continue;
+            }
             // Cargar el archivo de migración ─────────────────────────────────
             const migrationFile: MigrationFile = require(migration.filePath);
 
@@ -190,13 +196,14 @@ export async function runPendingMigrations(): Promise<RunPendingMigrationsResult
             const executionTime = Date.now() - startTime;
 
             // Registrar en la tabla de tracking ──────────────────────────────
-            await MigrationMeta.create({
+            await MigrationMeta.upsert({
                 migration_name: migration.name,
                 module: migration.module,
                 batch: nextBatch,
                 checksum,
                 executed_at: new Date(),
                 status: 'applied',
+                rolled_back_at: null,
                 execution_time_ms: executionTime
             }, { transaction });
 
@@ -342,6 +349,12 @@ export async function rollbackBatch(batchNumber: number | null = null): Promise<
         const transaction = await sequelize.transaction();
 
         try {
+            await sequelize.query('SELECT pg_advisory_xact_lock(71001, 1)', { transaction });
+            await record.reload({ transaction });
+            if (record.status !== 'applied') {
+                await transaction.commit();
+                continue;
+            }
             const migrationFile: MigrationFile = require(migration.filePath);
 
             if (typeof migrationFile.down !== 'function') {

@@ -50,8 +50,8 @@ resuelto correctamente al vendedor de prueba de la app), y por API real desde el
   formulario — no hace falta `MP_TEST_PAYER_EMAIL`, y de hecho hay que asegurarse de que
   `resolvePayerEmail` (`saasCheckout.service.ts`) nunca lo use ahí (ya está resuelto: solo
   aplica si `NODE_ENV === 'development'`).
-- **`FRONT_ADMIN_BOOKING`**: cambiar de la URL de ngrok/local a la URL real donde esté
-  desplegado el `ADMIN_APP`. Es solo el rebote del navegador después de autorizar — no
+- **`FRONT_ADMIN_BOOKING`**: configurar la URL donde esté desplegado el `ADMIN_APP`.
+  Es solo el rebote del navegador después de autorizar — no
   afecta la activación (eso lo hace el webhook), pero conviene que sea prolijo.
 - **Webhook**: la URL pública real del backend + `/api/saas/webhooks/mercadopago` hay que
   cargarla en MercadoPago bajo **"Modo productivo"** (pestaña aparte de "Modo de prueba" en

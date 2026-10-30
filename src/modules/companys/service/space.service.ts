@@ -1,3 +1,4 @@
+import sequelize from '../../../config/db';
 import * as CompanyRepository from '../repository/company.repository';
 import * as SpaceRepository from '../repository/space.repository';
 import * as SurfaceTypeRepository from '../../system/repository/surfaceType.repository';
@@ -50,26 +51,29 @@ export const register = async (sucursalPublicId: string, data: RegisterSpaceInpu
     if (sportType.is_active === false) throw new BadRequestError('El tipo de deporte no está disponible actualmente');
 
     const rootId = sucursal.parent_company_id ?? sucursal.company_id;
-    const currentSpaces = await SpaceRepository.countBySucursalId(sucursalId);
-    await PlanLimitsService.assertPlanLimit(rootId, 'maxSpaces', currentSpaces);
+    return sequelize.transaction(async (transaction) => {
+        await PlanLimitsService.lockCompanies([rootId], transaction);
+        const currentSpaces = await SpaceRepository.countBySucursalId(sucursalId, transaction);
+        await PlanLimitsService.assertPlanLimit(rootId, 'maxSpaces', currentSpaces, transaction);
 
-    return SpaceRepository.create({
-        sucursal_id: sucursalId,
-        tenant_id: sucursal.tenant_id,
-        public_id: idPublicId(),
-        name: data.name.trim(),
-        surface_type_id: data.surface_type_id,
-        sport_type_id: data.sport_type_id,
-        sport_category_id: data.sport_category_id,
-        status_space: 'ACTIVE',
-        description: null,
-        capacity: data.capacity ?? null,
-        dimensions: data.dimensions.trim(),
-        equipment: data.equipment?.trim() || null,
-        minimum_booking_minutes: data.minimum_booking_minutes ?? 60,
-        maximum_booking_minutes: data.maximum_booking_minutes ?? 480,
-        user_create: user.user_id,
-        user_update: null,
+        return SpaceRepository.create({
+            sucursal_id: sucursalId,
+            tenant_id: sucursal.tenant_id,
+            public_id: idPublicId(),
+            name: data.name.trim(),
+            surface_type_id: data.surface_type_id,
+            sport_type_id: data.sport_type_id,
+            sport_category_id: data.sport_category_id,
+            status_space: 'ACTIVE',
+            description: null,
+            capacity: data.capacity ?? null,
+            dimensions: data.dimensions.trim(),
+            equipment: data.equipment?.trim() || null,
+            minimum_booking_minutes: data.minimum_booking_minutes ?? 60,
+            maximum_booking_minutes: data.maximum_booking_minutes ?? 480,
+            user_create: user.user_id,
+            user_update: null,
+        }, transaction);
     });
 };
 

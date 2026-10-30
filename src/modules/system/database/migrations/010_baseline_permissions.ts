@@ -12,9 +12,9 @@ const migration: MigrationFile = {
         order: 10
     },
 
-    async up(queryInterface, sequelize) {
+    async up(queryInterface, sequelize, transaction) {
         const [rows]: any = await sequelize.query(
-            `SELECT to_regclass('public.dsg_bss_permissions') IS NOT NULL AS exists`
+            `SELECT to_regclass('public.dsg_bss_permissions') IS NOT NULL AS exists`, { transaction }
         );
         if (rows[0].exists) {
             console.log('    ⏭️  dsg_bss_permissions ya existe — baseline registrado');
@@ -38,15 +38,15 @@ const migration: MigrationFile = {
             },
             created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
             updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
-        });
+        }, { transaction });
 
-        await queryInterface.addIndex('dsg_bss_permissions', ['module'], { name: 'idx_permission_module' });
-        await queryInterface.addIndex('dsg_bss_permissions', ['group_name'], { name: 'idx_permission_group_name' });
-        await queryInterface.addIndex('dsg_bss_permissions', ['app_access'], { name: 'idx_permission_app_access' });
+        await queryInterface.addIndex('dsg_bss_permissions', ['module'], { transaction, name: 'idx_permission_module' });
+        await queryInterface.addIndex('dsg_bss_permissions', ['group_name'], { transaction, name: 'idx_permission_group_name' });
+        await queryInterface.addIndex('dsg_bss_permissions', ['app_access'], { transaction, name: 'idx_permission_app_access' });
     },
 
-    async down(queryInterface) {
-        await queryInterface.dropTable('dsg_bss_permissions');
+    async down(queryInterface, _sequelize, transaction) {
+        await queryInterface.dropTable('dsg_bss_permissions', { transaction });
     }
 };
 

@@ -25,7 +25,7 @@ export interface ProfileFields {
     last_name?: string | null;
     email?: string | null;
     phone?: string | null;
-    country_id?: number | null;
+    country_id?: number;
     document_type?: DocumentType | null;
     document_number?: string | null;
     date_birth?: string | null;

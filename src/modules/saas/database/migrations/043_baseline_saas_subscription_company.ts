@@ -13,7 +13,7 @@ const migration: MigrationFile = {
         order: 43
     },
 
-    async up(queryInterface) {
+    async up(queryInterface, _sequelize, transaction) {
         await queryInterface.createTable('dsg_bss_saas_subscription_company', {
             subscription_company_id: {
                 type: DataTypes.BIGINT,
@@ -45,28 +45,31 @@ const migration: MigrationFile = {
             },
             created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
             updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
-        });
+        }, { transaction });
 
         await queryInterface.addIndex('dsg_bss_saas_subscription_company', {
             fields: ['subscription_id', 'company_id'],
             unique: true,
-            name: 'unique_saas_subscription_company'
+            name: 'unique_saas_subscription_company',
+            transaction,
         });
         await queryInterface.addIndex('dsg_bss_saas_subscription_company', {
             fields: ['company_id'],
-            name: 'idx_saas_subscription_company_company'
+            name: 'idx_saas_subscription_company_company',
+            transaction,
         });
         // Como máximo una empresa primaria por suscripción — lo garantiza la DB (índice único parcial), no el Service.
         await queryInterface.addIndex('dsg_bss_saas_subscription_company', {
             fields: ['subscription_id'],
             unique: true,
             name: 'unique_saas_subscription_company_primary',
-            where: { is_primary: true }
+            where: { is_primary: true },
+            transaction,
         });
     },
 
-    async down(queryInterface) {
-        await queryInterface.dropTable('dsg_bss_saas_subscription_company');
+    async down(queryInterface, _sequelize, transaction) {
+        await queryInterface.dropTable('dsg_bss_saas_subscription_company', { transaction });
     }
 };
 

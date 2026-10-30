@@ -12,9 +12,9 @@ const migration: MigrationFile = {
         order: 23
     },
 
-    async up(queryInterface, sequelize) {
+    async up(queryInterface, sequelize, transaction) {
         const [rows]: any = await sequelize.query(
-            `SELECT to_regclass('public.dsg_bss_ratings') IS NOT NULL AS exists`
+            `SELECT to_regclass('public.dsg_bss_ratings') IS NOT NULL AS exists`, { transaction }
         );
         if (rows[0].exists) {
             console.log('    ⏭️  dsg_bss_ratings ya existe — baseline registrado');
@@ -59,15 +59,15 @@ const migration: MigrationFile = {
             rated_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
             created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
             updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
-        });
+        }, { transaction });
 
-        await queryInterface.addIndex('dsg_bss_ratings', ['sucursal_id', 'status'], { name: 'idx_rating_sucursal_status' });
-        await queryInterface.addIndex('dsg_bss_ratings', ['user_id'], { name: 'idx_rating_user_id' });
-        await queryInterface.addIndex('dsg_bss_ratings', ['booking_id'], { name: 'idx_rating_booking_id' });
+        await queryInterface.addIndex('dsg_bss_ratings', ['sucursal_id', 'status'], { transaction, name: 'idx_rating_sucursal_status' });
+        await queryInterface.addIndex('dsg_bss_ratings', ['user_id'], { transaction, name: 'idx_rating_user_id' });
+        await queryInterface.addIndex('dsg_bss_ratings', ['booking_id'], { transaction, name: 'idx_rating_booking_id' });
     },
 
-    async down(queryInterface) {
-        await queryInterface.dropTable('dsg_bss_ratings');
+    async down(queryInterface, _sequelize, transaction) {
+        await queryInterface.dropTable('dsg_bss_ratings', { transaction });
     }
 };
 

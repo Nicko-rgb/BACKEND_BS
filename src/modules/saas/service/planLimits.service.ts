@@ -7,6 +7,14 @@ import { assertCompanyScope } from '../../../shared/utils/accessScope';
 import { ConflictError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { CompanyPlanSummary } from '../repository/saasSubscription.repository';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
+import type { Transaction } from 'sequelize';
+
+export const lockCompanies = async (companyIds: number[], transaction: Transaction): Promise<void> => {
+    for (const companyId of [...new Set(companyIds)].sort((left, right) => left - right)) {
+        const company = await CompanyRepository.lockById(companyId, transaction);
+        if (!company) throw new NotFoundError('Empresa no encontrada');
+    }
+};
 
 // Los 4 límites numéricos que trae un plan — quien registra un recurso limitado (sucursal,
 // espacio, usuario, factura) pasa cuál le corresponde a assertPlanLimit.
@@ -21,8 +29,8 @@ const LIMIT_LABELS: Record<PlanLimitField, string> = {
 
 // Plan/suscripción activa de una empresa raíz — reusa el mismo join que ya arma el listado de
 // companys (saasSubscription.repository.ts::findPlanByCompanyId), no se resuelve de nuevo acá.
-export const getActivePlanForCompany = async (companyId: number): Promise<CompanyPlanSummary | null> => {
-    return SaaSSubscriptionRepository.findPlanByCompanyId(companyId);
+export const getActivePlanForCompany = async (companyId: number, transaction?: Transaction): Promise<CompanyPlanSummary | null> => {
+    return SaaSSubscriptionRepository.findPlanByCompanyId(companyId, transaction);
 };
 
 /**
@@ -32,8 +40,8 @@ export const getActivePlanForCompany = async (companyId: number): Promise<Compan
  * repetir "traer el plan y comparar" en cada lugar que registra algo limitado por plan
  * (sucursales, espacios, usuarios; facturas cuando tengan alta).
  */
-export const assertPlanLimit = async (companyId: number, field: PlanLimitField, currentCount: number): Promise<void> => {
-    const plan = await getActivePlanForCompany(companyId);
+export const assertPlanLimit = async (companyId: number, field: PlanLimitField, currentCount: number, transaction: Transaction): Promise<void> => {
+    const plan = await getActivePlanForCompany(companyId, transaction);
     if (!plan) throw new NotFoundError('La empresa no tiene un plan activo.');
 
     const limit = plan[field];

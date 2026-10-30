@@ -11,7 +11,7 @@ const migration: MigrationFile = {
         order: 42
     },
 
-    async up(queryInterface) {
+    async up(queryInterface, _sequelize, transaction) {
         await queryInterface.createTable('dsg_bss_saas_invoices', {
             invoice_id: {
                 type: DataTypes.BIGINT,
@@ -114,15 +114,15 @@ const migration: MigrationFile = {
                 allowNull: false,
                 defaultValue: DataTypes.NOW
             }
-        });
+        }, { transaction });
 
-        await queryInterface.addIndex('dsg_bss_saas_invoices', ['company_id']);
-        await queryInterface.addIndex('dsg_bss_saas_invoices', ['public_id'], { unique: true, name: 'unique_saas_invoice_public_id' });
-        await queryInterface.addIndex('dsg_bss_saas_invoices', ['subscription_id']);
+        await queryInterface.addIndex('dsg_bss_saas_invoices', ['company_id'], { transaction });
+        await queryInterface.addIndex('dsg_bss_saas_invoices', ['public_id'], { transaction, unique: true, name: 'unique_saas_invoice_public_id' });
+        await queryInterface.addIndex('dsg_bss_saas_invoices', ['subscription_id'], { transaction });
     },
 
-    async down(queryInterface) {
-        await queryInterface.dropTable('dsg_bss_saas_invoices');
+    async down(queryInterface, _sequelize, transaction) {
+        await queryInterface.dropTable('dsg_bss_saas_invoices', { transaction });
     }
 };
 

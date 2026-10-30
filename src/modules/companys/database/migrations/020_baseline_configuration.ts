@@ -14,9 +14,9 @@ const migration: MigrationFile = {
         order: 20
     },
 
-    async up(queryInterface, sequelize) {
+    async up(queryInterface, sequelize, transaction) {
         const [rows]: any = await sequelize.query(
-            `SELECT to_regclass('public.dsg_bss_configuration') IS NOT NULL AS exists`
+            `SELECT to_regclass('public.dsg_bss_configuration') IS NOT NULL AS exists`, { transaction }
         );
         if (rows[0].exists) {
             console.log('    ⏭️  dsg_bss_configuration ya existe — baseline registrado');
@@ -62,14 +62,14 @@ const migration: MigrationFile = {
             },
             created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
             updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
-        });
+        }, { transaction });
 
-        await queryInterface.addIndex('dsg_bss_configuration', ['public_id'], { unique: true, name: 'unique_configuration_public_id' });
-        await queryInterface.addIndex('dsg_bss_configuration', ['tenant_id'], { name: 'idx_configuration_tenant' });
+        await queryInterface.addIndex('dsg_bss_configuration', ['public_id'], { transaction, unique: true, name: 'unique_configuration_public_id' });
+        await queryInterface.addIndex('dsg_bss_configuration', ['tenant_id'], { transaction, name: 'idx_configuration_tenant' });
     },
 
-    async down(queryInterface) {
-        await queryInterface.dropTable('dsg_bss_configuration');
+    async down(queryInterface, _sequelize, transaction) {
+        await queryInterface.dropTable('dsg_bss_configuration', { transaction });
     }
 };
 

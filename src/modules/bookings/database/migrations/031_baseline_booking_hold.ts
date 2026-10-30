@@ -14,7 +14,7 @@ const migration: MigrationFile = {
 
     async up(queryInterface, sequelize, transaction) {
         const [rows]: any = await sequelize.query(
-            `SELECT to_regclass('public.dsg_bss_booking_hold') IS NOT NULL AS exists`
+            `SELECT to_regclass('public.dsg_bss_booking_hold') IS NOT NULL AS exists`, { transaction }
         );
         if (rows[0].exists) {
             console.log('    ⏭️  dsg_bss_booking_hold ya existe — baseline registrado');
@@ -49,12 +49,12 @@ const migration: MigrationFile = {
             },
             created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
             updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
-        });
+        }, { transaction });
 
-        await queryInterface.addIndex('dsg_bss_booking_hold', ['space_id', 'booking_date', 'status'], { name: 'idx_hold_space_date_status' });
-        await queryInterface.addIndex('dsg_bss_booking_hold', ['status', 'expires_at'], { name: 'idx_hold_expires_status' });
-        await queryInterface.addIndex('dsg_bss_booking_hold', ['user_id', 'status'], { name: 'idx_hold_user_status' });
-        await queryInterface.addIndex('dsg_bss_booking_hold', ['space_id', 'booking_date', 'start_time', 'end_time', 'status'], {
+        await queryInterface.addIndex('dsg_bss_booking_hold', ['space_id', 'booking_date', 'status'], { transaction, name: 'idx_hold_space_date_status' });
+        await queryInterface.addIndex('dsg_bss_booking_hold', ['status', 'expires_at'], { transaction, name: 'idx_hold_expires_status' });
+        await queryInterface.addIndex('dsg_bss_booking_hold', ['user_id', 'status'], { transaction, name: 'idx_hold_user_status' });
+        await queryInterface.addIndex('dsg_bss_booking_hold', ['space_id', 'booking_date', 'start_time', 'end_time', 'status'], { transaction,
             unique: true,
             name: 'idx_hold_unique_active_slot',
             where: { status: 'ACTIVE' }
@@ -79,8 +79,8 @@ const migration: MigrationFile = {
         );
     },
 
-    async down(queryInterface) {
-        await queryInterface.dropTable('dsg_bss_booking_hold');
+    async down(queryInterface, _sequelize, transaction) {
+        await queryInterface.dropTable('dsg_bss_booking_hold', { transaction });
     }
 };
 

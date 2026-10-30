@@ -1,5 +1,8 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import { randomUUID } from 'crypto';
+import sequelize from '../../../config/db';
+import * as AuthSessionRepository from '../repository/authSession.repository';
 import * as UserRepository from '../../users/repository/user.repository';
 import { resolveAuthorization } from './authorizationResolver.service';
 import { UnauthorizedError, ForbiddenError } from '../../../shared/errors/CustomErrors';
@@ -44,9 +47,29 @@ export const loginAdmin = async ({ email, password }: LoginAdminInput) => {
         app: 'admin',
     };
 
-    const token = jwt.sign(payload, process.env.JWT_SECRET as string, {
-        expiresIn: (process.env.JWT_EXPIRES) as jwt.SignOptions['expiresIn'],
+    const token = await sequelize.transaction(async (transaction) => {
+        const currentUser = await UserRepository.lockById(userId, transaction);
+        if (!currentUser || !currentUser.is_enabled || currentUser.password !== user.password || currentUser.role_id !== user.role_id) {
+            throw new UnauthorizedError('Las credenciales cambiaron. Vuelve a iniciar sesión.');
+        }
+        const jti = randomUUID();
+        const signedToken = jwt.sign(payload, process.env.JWT_SECRET as string, {
+            expiresIn: process.env.JWT_EXPIRES as jwt.SignOptions['expiresIn'],
+            jwtid: jti,
+            algorithm: 'HS256',
+        });
+        const decoded = jwt.decode(signedToken) as jwt.JwtPayload;
+        if (!decoded.exp || decoded.exp <= Math.floor(Date.now() / 1000)) {
+            throw new Error('JWT_EXPIRES debe indicar una duración positiva válida.');
+        }
+        await AuthSessionRepository.create(jti, userId, new Date(decoded.exp * 1000), transaction);
+        return signedToken;
     });
 
     return { token, user, permissions, companyIds, scopeLevel };
+};
+
+export const logout = async (user: AuthenticatedUser): Promise<void> => {
+    if (!user.jti) throw new UnauthorizedError('Sesión inválida');
+    await AuthSessionRepository.revoke(user.jti, user.user_id);
 };

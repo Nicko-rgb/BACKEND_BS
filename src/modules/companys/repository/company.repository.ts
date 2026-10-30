@@ -45,12 +45,13 @@ export const findAllPrincipal = async (pagination: PaginationQuery, search?: str
 
 // Ids de las sucursales (parent_company_id) hijas de las empresas dadas — usado por
 // authorizationResolver para expandir el scope de super_admin en caliente en cada request.
-export const findSucursalIdsByParentIds = async (parentIds: number[]): Promise<number[]> => {
+export const findSucursalIdsByParentIds = async (parentIds: number[], transaction?: Transaction): Promise<number[]> => {
     if (parentIds.length === 0) return [];
 
     const sucursales = await Company.findAll({
         where: { parent_company_id: { [Op.in]: parentIds } },
         attributes: ['company_id'],
+        transaction,
     });
 
     // company_id es BIGINT — Sequelize lo devuelve como string, ver mismo comentario en
@@ -66,8 +67,12 @@ export const findByDocument = async (document: string) => {
 
 // Cuántas sucursales tiene ya una empresa — usado por sucursal.service.ts::register para
 // validar contra `max_subsidiaries` del plan antes de crear una más (ver saas/service/planLimits.service.ts).
-export const countSucursalesByParentId = async (parentCompanyId: number): Promise<number> => {
-    return Company.count({ where: { parent_company_id: parentCompanyId } });
+export const countSucursalesByParentId = async (parentCompanyId: number, transaction?: Transaction): Promise<number> => {
+    return Company.count({ where: { parent_company_id: parentCompanyId }, transaction });
+};
+
+export const lockById = async (companyId: number, transaction: Transaction) => {
+    return Company.findByPk(companyId, { transaction, lock: transaction.LOCK.UPDATE });
 };
 
 // Empresa principal por id — solo su id, para quien no necesita el detalle completo.

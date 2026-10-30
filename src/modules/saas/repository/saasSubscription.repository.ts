@@ -33,7 +33,7 @@ export interface CompanyPlanSummary {
  * Ordenado por created_at DESC: si una empresa llegara a tener más de una fila (ej. una
  * suscripción vieja cancelada y una nueva), se queda con la más reciente.
  */
-export const findPlansByCompanyIds = async (companyIds: number[]): Promise<Record<number, CompanyPlanSummary>> => {
+export const findPlansByCompanyIds = async (companyIds: number[], transaction?: Transaction): Promise<Record<number, CompanyPlanSummary>> => {
     const result: Record<number, CompanyPlanSummary> = {};
     if (companyIds.length === 0) return result;
 
@@ -41,6 +41,7 @@ export const findPlansByCompanyIds = async (companyIds: number[]): Promise<Recor
         where: { company_id: { [Op.in]: companyIds } },
         include: [{ association: 'subscription', include: [{ association: 'plan' }] }],
         order: [['created_at', 'DESC']],
+        transaction,
     });
 
     rows.forEach((row) => {
@@ -71,8 +72,8 @@ export const findPlansByCompanyIds = async (companyIds: number[]): Promise<Recor
 // Plan/suscripción de una sola empresa — mismo criterio que findPlansByCompanyIds (queda la
 // más reciente si hubiera más de una fila), para no repetir el join en cada lugar que solo
 // necesita una empresa puntual (ej. planLimits.service.ts).
-export const findPlanByCompanyId = async (companyId: number): Promise<CompanyPlanSummary | null> => {
-    const result = await findPlansByCompanyIds([companyId]);
+export const findPlanByCompanyId = async (companyId: number, transaction?: Transaction): Promise<CompanyPlanSummary | null> => {
+    const result = await findPlansByCompanyIds([companyId], transaction);
     return result[companyId] ?? null;
 };
 

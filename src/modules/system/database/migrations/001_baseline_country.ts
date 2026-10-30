@@ -12,9 +12,9 @@ const migration: MigrationFile = {
         order: 1
     },
 
-    async up(queryInterface, sequelize) {
+    async up(queryInterface, sequelize, transaction) {
         const [rows]: any = await sequelize.query(
-            `SELECT to_regclass('public.dsg_bss_country') IS NOT NULL AS exists`
+            `SELECT to_regclass('public.dsg_bss_country') IS NOT NULL AS exists`, { transaction }
         );
         if (rows[0].exists) {
             console.log('    ⏭️  dsg_bss_country ya existe — baseline registrado');
@@ -39,14 +39,14 @@ const migration: MigrationFile = {
             user_update: { type: DataTypes.BIGINT, allowNull: true },
             created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
             updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
-        });
+        }, { transaction });
 
-        await queryInterface.addIndex('dsg_bss_country', ['iso_country'], { unique: true, name: 'idx_country_iso_unique' });
-        await queryInterface.addIndex('dsg_bss_country', ['language'], { name: 'idx_country_language' });
+        await queryInterface.addIndex('dsg_bss_country', ['iso_country'], { transaction, unique: true, name: 'idx_country_iso_unique' });
+        await queryInterface.addIndex('dsg_bss_country', ['language'], { transaction, name: 'idx_country_language' });
     },
 
-    async down(queryInterface) {
-        await queryInterface.dropTable('dsg_bss_country');
+    async down(queryInterface, _sequelize, transaction) {
+        await queryInterface.dropTable('dsg_bss_country', { transaction });
     }
 };
 

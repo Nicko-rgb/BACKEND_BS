@@ -18,9 +18,9 @@ const migration: MigrationFile = {
         order: 0
     },
 
-    async up(queryInterface, sequelize) {
+    async up(queryInterface, sequelize, transaction) {
         const [rows]: any = await sequelize.query(
-            `SELECT to_regclass('public.dsg_bss_seed_meta') IS NOT NULL AS exists`
+            `SELECT to_regclass('public.dsg_bss_seed_meta') IS NOT NULL AS exists`, { transaction }
         );
         if (rows[0].exists) {
             console.log('    ⏭️  dsg_bss_seed_meta ya existe — baseline registrado');
@@ -31,11 +31,11 @@ const migration: MigrationFile = {
             id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
             seed_name: { type: DataTypes.STRING(100), allowNull: false, unique: true },
             executed_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
-        });
+        }, { transaction });
     },
 
-    async down(queryInterface) {
-        await queryInterface.dropTable('dsg_bss_seed_meta');
+    async down(queryInterface, _sequelize, transaction) {
+        await queryInterface.dropTable('dsg_bss_seed_meta', { transaction });
     }
 };
 

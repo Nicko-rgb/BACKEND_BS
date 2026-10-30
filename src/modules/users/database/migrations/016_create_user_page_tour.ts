@@ -13,9 +13,9 @@ const migration: MigrationFile = {
         order: 16
     },
 
-    async up(queryInterface, sequelize) {
+    async up(queryInterface, sequelize, transaction) {
         const [rows]: any = await sequelize.query(
-            `SELECT to_regclass('public.dsg_bss_user_page_tour') IS NOT NULL AS exists`
+            `SELECT to_regclass('public.dsg_bss_user_page_tour') IS NOT NULL AS exists`, { transaction }
         );
         if (rows[0].exists) {
             console.log('    ⏭️  dsg_bss_user_page_tour ya existe — baseline registrado');
@@ -58,16 +58,16 @@ const migration: MigrationFile = {
                 allowNull: false,
                 defaultValue: DataTypes.NOW,
             },
-        });
+        }, { transaction });
 
         // Índice para consultar todos los tours de un usuario ─────────────────────────
-        await queryInterface.addIndex('dsg_bss_user_page_tour', ['user_id'], {
+        await queryInterface.addIndex('dsg_bss_user_page_tour', ['user_id'], { transaction,
             name: 'idx_user_page_tour_user_id',
         });
     },
 
-    async down(queryInterface) {
-        await queryInterface.dropTable('dsg_bss_user_page_tour');
+    async down(queryInterface, _sequelize, transaction) {
+        await queryInterface.dropTable('dsg_bss_user_page_tour', { transaction });
     },
 };
 

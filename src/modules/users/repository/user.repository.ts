@@ -17,6 +17,10 @@ export const findByEmail = async (email: string) => {
     return User.findOne({ where: { email } });
 };
 
+export const lockById = async (userId: number, transaction: Transaction) => {
+    return User.findByPk(userId, { transaction, lock: transaction.LOCK.UPDATE });
+};
+
 // Crea el usuario dentro de una transacción — usado por el alta de empresa (dueño nuevo).
 export const create = async (data: CreationAttributes<User>, transaction: Transaction) => {
     return User.create(data, { transaction });

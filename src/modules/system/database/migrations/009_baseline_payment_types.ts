@@ -12,9 +12,9 @@ const migration: MigrationFile = {
         order: 9
     },
 
-    async up(queryInterface, sequelize) {
+    async up(queryInterface, sequelize, transaction) {
         const [rows]: any = await sequelize.query(
-            `SELECT to_regclass('public.dsg_bss_payment_types') IS NOT NULL AS exists`
+            `SELECT to_regclass('public.dsg_bss_payment_types') IS NOT NULL AS exists`, { transaction }
         );
         if (rows[0].exists) {
             console.log('    ⏭️  dsg_bss_payment_types ya existe — baseline registrado');
@@ -48,15 +48,15 @@ const migration: MigrationFile = {
             api_config: { type: DataTypes.JSON, allowNull: true },
             created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
             updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
-        });
+        }, { transaction });
 
-        await queryInterface.addIndex('dsg_bss_payment_types', ['country_id', 'code'], { unique: true, name: 'unique_payment_type_por_country' });
-        await queryInterface.addIndex('dsg_bss_payment_types', ['category'], { name: 'idx_category_payment_type' });
-        await queryInterface.addIndex('dsg_bss_payment_types', ['is_enabled'], { name: 'idx_is_enabled_payment_type' });
+        await queryInterface.addIndex('dsg_bss_payment_types', ['country_id', 'code'], { transaction, unique: true, name: 'unique_payment_type_por_country' });
+        await queryInterface.addIndex('dsg_bss_payment_types', ['category'], { transaction, name: 'idx_category_payment_type' });
+        await queryInterface.addIndex('dsg_bss_payment_types', ['is_enabled'], { transaction, name: 'idx_is_enabled_payment_type' });
     },
 
-    async down(queryInterface) {
-        await queryInterface.dropTable('dsg_bss_payment_types');
+    async down(queryInterface, _sequelize, transaction) {
+        await queryInterface.dropTable('dsg_bss_payment_types', { transaction });
     }
 };
 

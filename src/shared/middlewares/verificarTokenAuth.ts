@@ -1,15 +1,12 @@
 /**
  * Middleware de autenticación JWT.
- * Verifica el token Bearer y, si el token tiene `jti`, consulta la blacklist
- * de Redis para detectar tokens revocados (sesiones cerradas).
  */
 import jwt from 'jsonwebtoken';
 import type { Request, Response, NextFunction } from 'express';
-import redisClient from '../../config/redisConfig';
+import * as AuthSessionRepository from '../../modules/auth/repository/authSession.repository';
 import { UnauthorizedError } from '../errors/CustomErrors';
 import type { AuthenticatedUser } from '../types/auth';
 
-// Ahora es async para poder consultar la blacklist de Redis
 export const verificarTokenAuth = async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
     const authHeader = req.headers.authorization;
 
@@ -21,15 +18,14 @@ export const verificarTokenAuth = async (req: Request, _res: Response, next: Nex
     const token = authHeader.split(' ')[1];
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as AuthenticatedUser & { jti?: string };
-
-        // Verificar blacklist solo si el token tiene jti (tokens nuevos con logout)
-        if (decoded.jti) {
-            const isBlacklisted = await redisClient.get(`blacklist:${decoded.jti}`);
-            if (isBlacklisted) {
-                next(new UnauthorizedError('Sesión cerrada. Vuelve a iniciar sesión.'));
-                return;
-            }
+        const decoded = jwt.verify(token, process.env.JWT_SECRET as string, { algorithms: ['HS256'] }) as AuthenticatedUser & jwt.JwtPayload;
+        if (!decoded || typeof decoded !== 'object' || !decoded.exp ||
+            !Number.isSafeInteger(decoded.user_id) || decoded.user_id <= 0 ||
+            typeof decoded.jti !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(decoded.jti)) {
+            throw new UnauthorizedError('Sesión inválida. Vuelve a iniciar sesión.');
+        }
+        if (!await AuthSessionRepository.findActive(decoded.jti, decoded.user_id)) {
+            throw new UnauthorizedError('Sesión cerrada. Vuelve a iniciar sesión.');
         }
 
         req.user = decoded;

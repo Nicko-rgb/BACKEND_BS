@@ -3,7 +3,6 @@
  * módulo companys. Nada de lógica de negocio acá: eso vive en hour.service.
  */
 import type { CreationAttributes, InferAttributes, Transaction } from 'sequelize';
-import sequelize from '../../../config/db';
 import { BusinessHour } from '../database/models';
 import type { DayOfWeek } from '../interfaces/hour.interface';
 
@@ -18,20 +17,21 @@ export const findBySpace = async (spaceId: number, transaction?: Transaction) =>
 };
 
 // Bloques de UN día específico del espacio — para el toggle por día.
-export const findBySpaceAndDay = async (spaceId: number, dayOfWeek: DayOfWeek) => {
+export const findBySpaceAndDay = async (spaceId: number, dayOfWeek: DayOfWeek, transaction?: Transaction) => {
     return BusinessHour.findAll({
         where: { space_id: spaceId, day_of_week: dayOfWeek },
+        transaction,
         order: [['start_time', 'ASC']],
     });
 };
 
-export const findById = async (hourId: number) => {
-    return BusinessHour.findByPk(hourId);
+export const findById = async (hourId: number, transaction?: Transaction) => {
+    return BusinessHour.findByPk(hourId, { transaction });
 };
 
 // Actualiza parcialmente un bloque — usado por toggleClosed.
-export const update = async (hour: BusinessHour, data: Partial<InferAttributes<BusinessHour>>) => {
-    return hour.update(data);
+export const update = async (hour: BusinessHour, data: Partial<InferAttributes<BusinessHour>>, transaction?: Transaction) => {
+    return hour.update(data, { transaction });
 };
 
 /**
@@ -42,26 +42,25 @@ export const updateClosedByDay = async (
     dayOfWeek: DayOfWeek,
     isClosed: boolean,
     userUpdate: number,
+    transaction: Transaction,
 ) => {
     await BusinessHour.update(
         { is_closed: isClosed, user_update: userUpdate },
-        { where: { space_id: spaceId, day_of_week: dayOfWeek } },
+        { where: { space_id: spaceId, day_of_week: dayOfWeek }, transaction },
     );
 
-    return findBySpaceAndDay(spaceId, dayOfWeek);
+    return findBySpaceAndDay(spaceId, dayOfWeek, transaction);
 };
 
 /**
  * Reemplaza la semana completa del espacio
  */
-export const replaceBySpace = async (spaceId: number, rows: CreationAttributes<BusinessHour>[]) => {
-    return sequelize.transaction(async (transaction) => {
-        await BusinessHour.destroy({ where: { space_id: spaceId }, transaction });
+export const replaceBySpace = async (spaceId: number, rows: CreationAttributes<BusinessHour>[], transaction: Transaction) => {
+    await BusinessHour.destroy({ where: { space_id: spaceId }, transaction });
 
-        if (rows.length > 0) {
-            await BusinessHour.bulkCreate(rows, { transaction });
-        }
+    if (rows.length > 0) {
+        await BusinessHour.bulkCreate(rows, { transaction });
+    }
 
-        return findBySpace(spaceId, transaction);
-    });
+    return findBySpace(spaceId, transaction);
 };

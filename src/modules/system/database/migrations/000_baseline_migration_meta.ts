@@ -18,9 +18,9 @@ const migration: MigrationFile = {
         order: 0
     },
 
-    async up(queryInterface, sequelize) {
+    async up(queryInterface, sequelize, transaction) {
         const [rows]: any = await sequelize.query(
-            `SELECT to_regclass('public.dsg_bss_migration_meta') IS NOT NULL AS exists`
+            `SELECT to_regclass('public.dsg_bss_migration_meta') IS NOT NULL AS exists`, { transaction }
         );
         if (rows[0].exists) {
             console.log('    ⏭️  dsg_bss_migration_meta ya existe — baseline registrado');
@@ -37,11 +37,11 @@ const migration: MigrationFile = {
             rolled_back_at: { type: DataTypes.DATE, allowNull: true, defaultValue: null },
             status: { type: DataTypes.STRING(20), allowNull: false, defaultValue: 'applied' },
             execution_time_ms: { type: DataTypes.INTEGER, allowNull: true }
-        });
+        }, { transaction });
     },
 
-    async down(queryInterface) {
-        await queryInterface.dropTable('dsg_bss_migration_meta');
+    async down(queryInterface, _sequelize, transaction) {
+        await queryInterface.dropTable('dsg_bss_migration_meta', { transaction });
     }
 };
 

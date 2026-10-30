@@ -16,10 +16,10 @@ const migration: MigrationFile = {
         order: 25
     },
 
-    async up(queryInterface, sequelize) {
+    async up(queryInterface, sequelize, transaction) {
         // Seguro en producción: no crea si ya existe ──────────────────────────
         const [rows]: any = await sequelize.query(
-            `SELECT to_regclass('public.dsg_bss_user_company') IS NOT NULL AS exists`
+            `SELECT to_regclass('public.dsg_bss_user_company') IS NOT NULL AS exists`, { transaction }
         );
         if (rows[0].exists) {
             console.log('    ⏭️  dsg_bss_user_company ya existe — baseline registrado');
@@ -54,16 +54,16 @@ const migration: MigrationFile = {
             },
             created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
             updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
-        });
+        }, { transaction });
 
-        await queryInterface.addIndex('dsg_bss_user_company', ['user_id', 'company_id'], { unique: true, name: 'unique_user_company' });
-        await queryInterface.addIndex('dsg_bss_user_company', ['user_id'], { name: 'idx_user_company_user' });
-        await queryInterface.addIndex('dsg_bss_user_company', ['company_id'], { name: 'idx_user_company_company' });
-        await queryInterface.addIndex('dsg_bss_user_company', ['tenant_id'], { name: 'idx_user_company_tenant' });
+        await queryInterface.addIndex('dsg_bss_user_company', ['user_id', 'company_id'], { transaction, unique: true, name: 'unique_user_company' });
+        await queryInterface.addIndex('dsg_bss_user_company', ['user_id'], { transaction, name: 'idx_user_company_user' });
+        await queryInterface.addIndex('dsg_bss_user_company', ['company_id'], { transaction, name: 'idx_user_company_company' });
+        await queryInterface.addIndex('dsg_bss_user_company', ['tenant_id'], { transaction, name: 'idx_user_company_tenant' });
     },
 
-    async down(queryInterface) {
-        await queryInterface.dropTable('dsg_bss_user_company');
+    async down(queryInterface, _sequelize, transaction) {
+        await queryInterface.dropTable('dsg_bss_user_company', { transaction });
     }
 };
 

@@ -12,9 +12,9 @@ const migration: MigrationFile = {
         order: 6
     },
 
-    async up(queryInterface, sequelize) {
+    async up(queryInterface, sequelize, transaction) {
         const [rows]: any = await sequelize.query(
-            `SELECT to_regclass('public.dsg_bss_sport_category') IS NOT NULL AS exists`
+            `SELECT to_regclass('public.dsg_bss_sport_category') IS NOT NULL AS exists`, { transaction }
         );
         if (rows[0].exists) {
             console.log('    ⏭️  dsg_bss_sport_category ya existe — baseline registrado');
@@ -27,11 +27,11 @@ const migration: MigrationFile = {
             name: { type: DataTypes.STRING(64), allowNull: false },
             created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
             updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
-        });
+        }, { transaction });
     },
 
-    async down(queryInterface) {
-        await queryInterface.dropTable('dsg_bss_sport_category');
+    async down(queryInterface, _sequelize, transaction) {
+        await queryInterface.dropTable('dsg_bss_sport_category', { transaction });
     }
 };
 

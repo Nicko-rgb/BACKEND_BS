@@ -12,9 +12,9 @@ const migration: MigrationFile = {
         order: 19
     },
 
-    async up(queryInterface, sequelize) {
+    async up(queryInterface, sequelize, transaction) {
         const [rows]: any = await sequelize.query(
-            `SELECT to_regclass('public.dsg_bss_business_hour') IS NOT NULL AS exists`
+            `SELECT to_regclass('public.dsg_bss_business_hour') IS NOT NULL AS exists`, { transaction }
         );
         if (rows[0].exists) {
             console.log('    ⏭️  dsg_bss_business_hour ya existe — baseline registrado');
@@ -55,14 +55,29 @@ const migration: MigrationFile = {
             },
             created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
             updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
-        });
+        }, { transaction });
 
-        await queryInterface.addIndex('dsg_bss_business_hour', ['space_id'], { name: 'idx_business_hour_space' });
-        await queryInterface.addIndex('dsg_bss_business_hour', ['day_of_week'], { name: 'idx_business_hour_day' });
+        await queryInterface.addIndex('dsg_bss_business_hour', ['space_id'], { transaction, name: 'idx_business_hour_space' });
+        await queryInterface.addIndex('dsg_bss_business_hour', ['day_of_week'], { transaction, name: 'idx_business_hour_day' });
+
+        await sequelize.query('CREATE EXTENSION IF NOT EXISTS btree_gist', { transaction });
+        await sequelize.query(`
+            ALTER TABLE dsg_bss_business_hour
+            ADD CONSTRAINT chk_business_hour_range CHECK (end_time > start_time),
+            ADD CONSTRAINT excl_business_hour_no_overlap EXCLUDE USING gist (
+                space_id WITH =,
+                day_of_week WITH =,
+                numrange(
+                    EXTRACT(EPOCH FROM start_time)::numeric,
+                    EXTRACT(EPOCH FROM end_time)::numeric,
+                    '[)'
+                ) WITH &&
+            )
+        `, { transaction });
     },
 
-    async down(queryInterface) {
-        await queryInterface.dropTable('dsg_bss_business_hour');
+    async down(queryInterface, _sequelize, transaction) {
+        await queryInterface.dropTable('dsg_bss_business_hour', { transaction });
     }
 };
 

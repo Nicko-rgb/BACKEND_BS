@@ -3,7 +3,8 @@ import { validateDTO } from '../../../shared/middlewares/validateDTO';
 import { loginAdminSchema } from '../dto/loginAdmin.schema';
 import { passwordRequestSchema } from '../dto/passwordRequest.schema';
 import { passwordResetSchema, passwordResetValidateSchema } from '../dto/passwordReset.schema';
-import { loginAdmin, passwordRequest, passwordReset, passwordResetValidateToken } from '../controllers/auth.controller';
+import { loginAdmin, logout, passwordRequest, passwordReset, passwordResetValidateToken } from '../controllers/auth.controller';
+import { verificarTokenAuth } from '../../../shared/middlewares/verificarTokenAuth';
 
 const router = createRouter();
 
@@ -14,6 +15,7 @@ const router = createRouter();
  * @access Público
  */
 router.post('/auth/login', validateDTO(loginAdminSchema), loginAdmin);
+router.post('/auth/logout', verificarTokenAuth, logout);
 
 /**
  * @route POST /api/auth/password-request

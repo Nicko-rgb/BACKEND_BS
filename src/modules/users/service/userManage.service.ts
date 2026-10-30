@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import type { Transaction } from 'sequelize';
 import { idPublicId } from '../../../shared/utils/ids';
 import sequelize from '../../../config/db';
 import * as UserRepository from '../repository/user.repository';
@@ -69,15 +70,16 @@ const resolveOwnerAssignment = async (user: AuthenticatedUser, publicId: string)
  * Cupo de usuarios del plan en cada empresa raíz a la que se suma el usuario: cuenta los usuarios
  * distintos de la empresa y sus sucursales, dueño incluido. Si ya pertenece a esa empresa, no suma.
  */
-const assertUserLimit = async (assignments: CompanyAssignment[], existingUserId?: number) => {
-    const currentCompanyIds = existingUserId ? await UserCompanyRepository.findActiveCompanyIdsByUserId(existingUserId) : [];
+const assertUserLimit = async (assignments: CompanyAssignment[], transaction: Transaction, existingUserId?: number) => {
+    await PlanLimitsService.lockCompanies(assignments.map((assignment) => assignment.root_company_id), transaction);
+    const currentCompanyIds = existingUserId ? await UserCompanyRepository.findActiveCompanyIdsByUserId(existingUserId, transaction) : [];
 
     for (const rootId of new Set(assignments.map((assignment) => assignment.root_company_id))) {
-        const companyIds = [rootId, ...await CompanyRepository.findSucursalIdsByParentIds([rootId])];
+        const companyIds = [rootId, ...await CompanyRepository.findSucursalIdsByParentIds([rootId], transaction)];
         if (companyIds.some((companyId) => currentCompanyIds.includes(companyId))) continue;
 
-        const currentUsers = await UserCompanyRepository.countActiveUsersByCompanyIds(companyIds);
-        await PlanLimitsService.assertPlanLimit(rootId, 'maxUsers', currentUsers);
+        const currentUsers = await UserCompanyRepository.countActiveUsersByCompanyIds(companyIds, transaction);
+        await PlanLimitsService.assertPlanLimit(rootId, 'maxUsers', currentUsers, transaction);
     }
 };
 
@@ -167,11 +169,11 @@ export const create = async (roleParam: string, data: CreateManagedUserInput, us
     let assignments: CompanyAssignment[] = [];
     if (SUCURSAL_ROLES.includes(role)) assignments = await resolveSucursalAssignments(user, data.sucursales ?? []);
     if (role === 'super_admin') assignments = await resolveOwnerAssignment(user, data.company_public_id!);
-    await assertUserLimit(assignments);
 
     const hashedPassword = data.password ? await bcrypt.hash(data.password, 10) : null;
 
     const newUserPublicId = await sequelize.transaction(async (transaction) => {
+        await assertUserLimit(assignments, transaction);
         const newUser = await UserRepository.create({
             first_name: data.first_name!,
             last_name: data.last_name!,
@@ -252,11 +254,13 @@ export const update = async (roleParam: string, publicId: string, data: UpdateMa
 
     const targetId = Number(target.user_id);
     const assignments = sucursales ? await resolveSucursalAssignments(user, sucursales) : null;
-    if (assignments) await assertUserLimit(assignments, targetId);
     const assignedRole = nextRoleId !== undefined ? nextRole! : role;
 
     await sequelize.transaction(async (transaction) => {
-        await applyProfileChanges(target, nextRoleId !== undefined ? { ...profile, role_id: nextRoleId } : profile, transaction);
+        const lockedTarget = await UserRepository.lockById(targetId, transaction);
+        if (!lockedTarget) throw new NotFoundError('Usuario no encontrado');
+        if (assignments) await assertUserLimit(assignments, transaction, targetId);
+        await applyProfileChanges(lockedTarget, nextRoleId !== undefined ? { ...profile, role_id: nextRoleId } : profile, transaction);
 
         if (assignments) {
             const scopeCompanyIds = hasFullCompanyAccess(user) ? undefined : (user.company_ids ?? []);

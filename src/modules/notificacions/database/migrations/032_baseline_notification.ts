@@ -12,9 +12,9 @@ const migration: MigrationFile = {
         order: 32
     },
 
-    async up(queryInterface, sequelize) {
+    async up(queryInterface, sequelize, transaction) {
         const [rows]: any = await sequelize.query(
-            `SELECT to_regclass('public.dsg_bss_notification') IS NOT NULL AS exists`
+            `SELECT to_regclass('public.dsg_bss_notification') IS NOT NULL AS exists`, { transaction }
         );
         if (rows[0].exists) {
             console.log('    ⏭️  dsg_bss_notification ya existe — baseline registrado');
@@ -88,19 +88,19 @@ const migration: MigrationFile = {
             },
             created_at: { type: DataTypes.DATE, allowNull: true },
             updated_at: { type: DataTypes.DATE, allowNull: true }
-        });
+        }, { transaction });
 
-        await queryInterface.addIndex('dsg_bss_notification', ['client_id'], { name: 'idx_notification_client' });
-        await queryInterface.addIndex('dsg_bss_notification', ['company_id'], { name: 'idx_notification_company' });
-        await queryInterface.addIndex('dsg_bss_notification', ['notification_type'], { name: 'idx_notification_type' });
-        await queryInterface.addIndex('dsg_bss_notification', ['delivery_status'], { name: 'idx_notification_status' });
-        await queryInterface.addIndex('dsg_bss_notification', ['client_id', 'read_status'], { name: 'idx_notification_read' });
-        await queryInterface.addIndex('dsg_bss_notification', ['scheduled_for'], { name: 'idx_notification_scheduled' });
-        await queryInterface.addIndex('dsg_bss_notification', ['tenant_id'], { name: 'idx_notification_tenant' });
+        await queryInterface.addIndex('dsg_bss_notification', ['client_id'], { transaction, name: 'idx_notification_client' });
+        await queryInterface.addIndex('dsg_bss_notification', ['company_id'], { transaction, name: 'idx_notification_company' });
+        await queryInterface.addIndex('dsg_bss_notification', ['notification_type'], { transaction, name: 'idx_notification_type' });
+        await queryInterface.addIndex('dsg_bss_notification', ['delivery_status'], { transaction, name: 'idx_notification_status' });
+        await queryInterface.addIndex('dsg_bss_notification', ['client_id', 'read_status'], { transaction, name: 'idx_notification_read' });
+        await queryInterface.addIndex('dsg_bss_notification', ['scheduled_for'], { transaction, name: 'idx_notification_scheduled' });
+        await queryInterface.addIndex('dsg_bss_notification', ['tenant_id'], { transaction, name: 'idx_notification_tenant' });
     },
 
-    async down(queryInterface) {
-        await queryInterface.dropTable('dsg_bss_notification');
+    async down(queryInterface, _sequelize, transaction) {
+        await queryInterface.dropTable('dsg_bss_notification', { transaction });
     }
 };
 

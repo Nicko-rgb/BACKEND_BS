@@ -1,3 +1,4 @@
+import sequelize from '../../../config/db';
 import { idPublicId } from '../../../shared/utils/ids';
 import type { InferAttributes } from 'sequelize';
 import * as CompanyRepository from '../repository/company.repository';
@@ -15,8 +16,7 @@ import type { RegisterSucursalInput, UpdateSucursalInput, SucursalStatusInput } 
  * su propio `public_id` único (lo único expuesto en URLs). Arranca en `status: 'ACTIVE'` y
  * `is_enabled: null` (esa columna es exclusiva de empresa principal). Antes de crearla valida
  * que la empresa no haya alcanzado el límite de sucursales de su plan (ver
- * saas/service/planLimits.service.ts::assertPlanLimit). Sin transacción: es un solo insert, a
- * diferencia del alta de empresa (que crea User+Person+Company+... juntos).
+ * saas/service/planLimits.service.ts::assertPlanLimit).
  */
 export const register = async (companyPublicId: string, data: RegisterSucursalInput, user: AuthenticatedUser) => {
     const parent = await CompanyRepository.findByPublicId(companyPublicId);
@@ -28,31 +28,34 @@ export const register = async (companyPublicId: string, data: RegisterSucursalIn
     if (!country) throw new BadRequestError('El país seleccionado no existe.');
     if (!country.is_active) throw new BadRequestError('El país seleccionado no está disponible actualmente.');
 
-    const currentSucursales = await CompanyRepository.countSucursalesByParentId(parent.company_id);
-    await PlanLimitsService.assertPlanLimit(parent.company_id, 'maxSubsidiaries', currentSucursales);
+    const sucursal = await sequelize.transaction(async (transaction) => {
+        await PlanLimitsService.lockCompanies([parent.company_id], transaction);
+        const currentSucursales = await CompanyRepository.countSucursalesByParentId(parent.company_id, transaction);
+        await PlanLimitsService.assertPlanLimit(parent.company_id, 'maxSubsidiaries', currentSucursales, transaction);
 
-    const publicId = idPublicId();
+        const publicId = idPublicId();
 
-    const sucursal = await CompanyRepository.create({
-        name: data.name,
-        address: data.address,
-        document: parent.document,
-        phone_cell: data.phone_cell,
-        phone: data.phone || null,
-        website: data.website || null,
-        country_id: data.country_id,
-        ubigeo_id: data.ubigeo_id,
-        tenant_id: parent.tenant_id,
-        public_id: publicId,
-        parent_company_id: parent.company_id,
-        status: 'ACTIVE',
-        postal_code: null,
-        latitude: data.latitude != null ? String(data.latitude) : null,
-        longitude: data.longitude != null ? String(data.longitude) : null,
-        description: data.description || null,
-        is_enabled: null,
-        user_create: user.user_id,
-        user_update: null,
+        return CompanyRepository.create({
+            name: data.name,
+            address: data.address,
+            document: parent.document,
+            phone_cell: data.phone_cell,
+            phone: data.phone || null,
+            website: data.website || null,
+            country_id: data.country_id,
+            ubigeo_id: data.ubigeo_id,
+            tenant_id: parent.tenant_id,
+            public_id: publicId,
+            parent_company_id: parent.company_id,
+            status: 'ACTIVE',
+            postal_code: null,
+            latitude: data.latitude != null ? String(data.latitude) : null,
+            longitude: data.longitude != null ? String(data.longitude) : null,
+            description: data.description || null,
+            is_enabled: null,
+            user_create: user.user_id,
+            user_update: null,
+        }, transaction);
     });
 
     return CompanyRepository.findSucursalByPublicId(sucursal.public_id) as Promise<Company>;

@@ -13,10 +13,10 @@ const migration: MigrationFile = {
         order: 26
     },
 
-    async up(queryInterface, sequelize) {
+    async up(queryInterface, sequelize, transaction) {
         // Seguro en producción: no crea si ya existe ──────────────────────────
         const [rows]: any = await sequelize.query(
-            `SELECT to_regclass('public.dsg_bss_user_favorites') IS NOT NULL AS exists`
+            `SELECT to_regclass('public.dsg_bss_user_favorites') IS NOT NULL AS exists`, { transaction }
         );
         if (rows[0].exists) {
             console.log('    ⏭️  dsg_bss_user_favorites ya existe — baseline registrado');
@@ -41,13 +41,13 @@ const migration: MigrationFile = {
             },
             created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
             updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
-        });
+        }, { transaction });
 
-        await queryInterface.addIndex('dsg_bss_user_favorites', ['user_id', 'sucursal_id'], { unique: true, name: 'unique_user_sucursal_favorite' });
+        await queryInterface.addIndex('dsg_bss_user_favorites', ['user_id', 'sucursal_id'], { transaction, unique: true, name: 'unique_user_sucursal_favorite' });
     },
 
-    async down(queryInterface) {
-        await queryInterface.dropTable('dsg_bss_user_favorites');
+    async down(queryInterface, _sequelize, transaction) {
+        await queryInterface.dropTable('dsg_bss_user_favorites', { transaction });
     }
 };
 

@@ -38,7 +38,7 @@ import * as CountryRepository from '../../../system/repository/country.repositor
 const PERU_COUNTRY_ID = 6;
 const CALLERIA_UBIGEO_ID = 2078; // Callería, Coronel Portillo, Ucayali (distrito/provincia/departamento)
 
-const OWNER_EMAIL = 'dueño@gmail.com';
+const OWNER_EMAIL = 'dueno@gmail.com';
 const ADMIN_EMAIL = 'admin@gmail.com';
 const DEMO_PASSWORD = '12345678';
 const COMPANY_DOCUMENT = '20123456789';

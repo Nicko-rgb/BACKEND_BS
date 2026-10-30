@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
+import * as AuthSessionRepository from '../repository/authSession.repository';
 import sequelize from '../../../config/db';
 import { BadRequestError } from '../../../shared/errors/CustomErrors';
 import logger from '../../../config/logger';
@@ -53,7 +54,8 @@ export const processResetRequest = async (email: string): Promise<boolean> => {
             resetUrl: `${frontUrlFor(user.roleRef?.key)}${RESET_PASSWORD_PATH}#token=${token}`,
             expiresInMinutes: RESET_TOKEN_TTL_MINUTES,
         });
-
+        console.log('EMAIL: ', isSent);
+        
         return isSent;
     } catch (error: any) {
         logger.error(`[PasswordReset] Correo de recuperación no enviado a ${email}`, { error: error.message });
@@ -79,6 +81,7 @@ export const resetPassword = async (token: string, password: string): Promise<vo
         if (!resetToken) throw new BadRequestError('El enlace no es válido o ya expiró');
 
         await UserRepository.updatePassword(resetToken.user_id, hashedPassword, transaction);
+        await AuthSessionRepository.revokeByUser(resetToken.user_id, transaction);
         return resetToken.user_id;
     });
 
