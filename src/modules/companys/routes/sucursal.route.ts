@@ -1,6 +1,5 @@
 import { createRouter } from '../../../shared/utils/createRouter';
 import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
-import { verificarPermiso } from '../../../shared/middlewares/verificarPermiso';
 import { validateDTO, validatePublicId } from '../../../shared/middlewares/validateDTO';
 import upload from '../../../shared/middlewares/uploadMiddleware';
 import { registerSucursalSchema, updateSucursalSchema, sucursalStatusSchema } from '../dto/sucursal.schema';
@@ -14,8 +13,7 @@ const router = createRouter();
  * @access system, super_admin (dueño de esa empresa)
  */
 router.post('/:companyPublicId',
-    resolveAuthorization,
-    verificarPermiso('sucursal.create'),
+    resolveAuthorization('sucursal.create'),
     validatePublicId('companyPublicId'),
     validateDTO(registerSucursalSchema),
     registerSucursal
@@ -27,8 +25,7 @@ router.post('/:companyPublicId',
  * @access system, super_admin,
  */
 router.get('/:publicId',
-    resolveAuthorization,
-    verificarPermiso('sucursal.view'),
+    resolveAuthorization('sucursal.view'),
     validatePublicId('publicId'),
     getByPublicId
 );
@@ -39,8 +36,7 @@ router.get('/:publicId',
  * @access system, super_admin (dueño de la empresa)
  */
 router.put('/:publicId',
-    resolveAuthorization,
-    verificarPermiso('sucursal.edit'),
+    resolveAuthorization('sucursal.edit'),
     validatePublicId('publicId'),
     validateDTO(updateSucursalSchema),
     updateByPublicId
@@ -52,8 +48,7 @@ router.put('/:publicId',
  * @access usuarios con permiso sucursal.edit
  */
 router.patch('/:publicId/status',
-    resolveAuthorization,
-    verificarPermiso('sucursal.edit'),
+    resolveAuthorization('sucursal.edit'),
     validatePublicId('publicId'),
     validateDTO(sucursalStatusSchema),
     toggleStatus
@@ -66,8 +61,7 @@ router.patch('/:publicId/status',
  * @access solo auth + pertenencia (la sucursal debe estar en el alcance del usuario)
  */
 router.get('/:publicId/banner',
-    resolveAuthorization,
-    verificarPermiso('sucursal.edit'),
+    resolveAuthorization('sucursal.edit'),
     validatePublicId('publicId'),
     getBanner
 );
@@ -78,8 +72,7 @@ router.get('/:publicId/banner',
  * @access solo auth + pertenencia (la sucursal debe estar en el alcance del usuario)
  */
 router.post('/:publicId/banner',
-    resolveAuthorization,
-    verificarPermiso('sucursal.edit'),
+    resolveAuthorization('sucursal.edit'),
     validatePublicId('publicId'),
     upload.single('cover'),
     uploadBanner
@@ -91,8 +84,7 @@ router.post('/:publicId/banner',
  * @access solo auth + pertenencia (la sucursal debe estar en el alcance del usuario)
  */
 router.delete('/:publicId/banner',
-    resolveAuthorization,
-    verificarPermiso('sucursal.edit'),
+    resolveAuthorization('sucursal.edit'),
     validatePublicId('publicId'),
     removeBanner
 );

@@ -50,7 +50,7 @@ const toCompanyUsersDto = (
                 lastName: user.last_name,
                 email: user.email,
                 phone: person?.phone ?? null,
-                role: assignment.role,
+                role: user.roleRef?.key ?? '',
                 documentType: person?.document_type ?? null,
                 documentNumber: person?.document_number ?? null,
                 dateBirth: person?.date_birth ?? null,
@@ -64,9 +64,10 @@ const toCompanyUsersDto = (
             });
         }
 
+        const entityId = assignment.is_owner ? nameByCompanyId.keys().next().value! : Number(assignment.company_id);
         byUserId.get(userId)!.sucursales.push({
-            publicId: publicByCompanyId.get(Number(assignment.company_id)) ?? String(assignment.company_id),
-            name: nameByCompanyId.get(Number(assignment.company_id)) ?? null,
+            publicId: publicByCompanyId.get(entityId)!,
+            name: nameByCompanyId.get(entityId) ?? null,
         });
     });
 
@@ -77,7 +78,7 @@ const toCompanyUsersDto = (
  * Objeto de respuesta para frontend para el listado de empresas, incluiye datos basicos
  */
 export const toCompanyListDto = (company: Company, plan: CompanyPlanSummary | null = null) => {
-    const owner = company.userAssignments?.[0]?.user ?? null;
+    const owner = company.ownerAssignments?.[0]?.user ?? null;
 
     return {
         publicId: company.public_id,

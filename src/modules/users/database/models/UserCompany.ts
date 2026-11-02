@@ -1,18 +1,7 @@
 /**
- * Modelo UserCompany - Asignación contextual de usuarios a empresas/sucursales
- *
- * Relación muchos-a-muchos: un usuario puede tener varias filas, una por cada
- * empresa/sucursal a la que fue asignado (único índice es user_id+company_id,
- * no user_id solo). El campo `role` es varchar — no es FK funcional. Los
- * accesos se evalúan por user_permissions; el alcance a empresas lo valida
- * assertCompanyScope (ver shared/utils/accessScope.ts) contra TODOS los
- * company_ids asignados al usuario.
- *
- * Jerarquía:
- *   system        → sin restricción (no requiere registro aquí)
- *   super_admin   → una o varias empresas principales (company con parent_company_id NULL)
- *   administrador → una o varias sucursales
- *   empleado      → una o varias sucursales
+ * Membresía de usuario en una empresa o sucursal.
+ * is_owner identifica al único dueño del tenant, asignado a su empresa primaria.
+ * El resto obtiene alcance de la entidad asignada; el rol vive solo en User.
  */
 import { DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional, NonAttribute } from 'sequelize';
 import sequelize from '../../../../config/db';
@@ -22,9 +11,7 @@ export class UserCompany extends Model<InferAttributes<UserCompany>, InferCreati
     declare user_company_id: CreationOptional<number>;
     declare user_id: number;
     declare company_id: number;
-    // Clasificador de rol en este contexto (no FK — no controla accesos, solo display).
-    // Valores: 'super_admin', 'administrador', 'empleado'
-    declare role: string;
+    declare is_owner: CreationOptional<boolean>;
     declare tenant_id: string;
     declare is_active: CreationOptional<boolean>;
     declare created_by: number | null;
@@ -54,10 +41,11 @@ UserCompany.init({
         references: { model: 'dsg_bss_company', key: 'company_id' },
         comment: 'Empresa o sucursal a la que pertenece el usuario'
     },
-    role: {
-        type: DataTypes.STRING(50),
+    is_owner: {
+        type: DataTypes.BOOLEAN,
         allowNull: false,
-        comment: 'Clasificador del rol del usuario en esta empresa/sucursal (solo display)'
+        defaultValue: false,
+        comment: 'Dueño único del grupo, asignado exclusivamente a la empresa primaria'
     },
     tenant_id: {
         type: DataTypes.UUID,
@@ -97,12 +85,12 @@ UserCompany.init({
         { unique: true, fields: ['user_id', 'company_id'], name: 'unique_user_company' },
         { fields: ['user_id'], name: 'idx_user_company_user' },
         { fields: ['company_id'], name: 'idx_user_company_company' },
-        { fields: ['tenant_id'], name: 'idx_user_company_tenant' }
+        { fields: ['tenant_id'], name: 'idx_user_company_tenant' },
+        { unique: true, fields: ['tenant_id'], where: { is_owner: true }, name: 'unique_user_company_tenant_owner' }
     ],
     comment: 'Asignación de usuarios a empresas/sucursales con su rol contextual'
 });
 
-// TODO: wire UserCompany→Company cuando se porte `companys`.
 export function associateUserCompany(models: { User: typeof User }): void {
     UserCompany.belongsTo(models.User, { foreignKey: 'user_id', as: 'user' });
 }

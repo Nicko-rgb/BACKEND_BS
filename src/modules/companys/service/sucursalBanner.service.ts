@@ -2,8 +2,8 @@
  * Portada de sucursal — endpoints finos del módulo companys sobre el core
  * global de media (system/service/mediaCore.service.ts).
  *
- * Sin verificarPermiso a propósito: solo auth + pertenencia (la sucursal debe
- * estar en el company_ids del usuario). La mecánica (primaria anterior,
+ * La ruta exige sucursal.edit y este service valida pertenencia (la sucursal
+ * debe estar en el company_ids del usuario). La mecánica (primaria anterior,
  * físico, validación de type) vive en el core — acá solo se resuelve la
  * sucursal y su scope.
  */

@@ -20,7 +20,7 @@ import type { RegisterSucursalInput, UpdateSucursalInput, SucursalStatusInput } 
  */
 export const register = async (companyPublicId: string, data: RegisterSucursalInput, user: AuthenticatedUser) => {
     const parent = await CompanyRepository.findByPublicId(companyPublicId);
-    if (!parent) throw new NotFoundError('Empresa no encontrada');
+    if (!parent) throw new NotFoundError('Empresa de sucursal no encontrada');
 
     assertCompanyScope(user, parent.company_id, 'No tenés acceso a esta empresa');
 

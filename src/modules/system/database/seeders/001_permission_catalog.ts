@@ -1,7 +1,7 @@
 /**
  * Seed: catálogo de permisos (dsg_bss_permissions).
  * TRUNCATE + insert dentro de una transacción — mismo patrón que
- * saas/001_saas_plans.ts. Cubre TODAS las keys usadas hoy en `verificarPermiso(...)`
+ * saas/001_saas_plans.ts. Cubre TODAS las keys usadas hoy en `resolveAuthorization(...)`
  * en las rutas (para que esos endpoints sean protegibles) más las que asigna
  * 003_role_permission.ts a cada rol — el FK de role_permission.permission_key exige
  * que existan acá antes de sembrar esa tabla (por eso el `order` de este seed es

@@ -6,7 +6,8 @@
  * espacios deportivos, horarios de funcionamiento y medios.
  *
  * Empresa y sucursal comparten esta misma tabla: si `parent_company_id`
- * es null es la empresa principal, si tiene valor es una sucursal.
+ * es null es una empresa (primaria o hermana), si tiene valor es una sucursal.
+ * SaaSSubscriptionCompany.is_primary identifica a la titular de la suscripción.
  */
 import { DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional, NonAttribute } from 'sequelize';
 import sequelize from '../../../../config/db';
@@ -47,6 +48,7 @@ export class Company extends Model<InferAttributes<Company>, InferCreationAttrib
 
     // Asociaciones (poblado por include, no columnas propias) ─────────────────
     declare userAssignments?: NonAttribute<UserCompany[]>;
+    declare ownerAssignments?: NonAttribute<UserCompany[]>;
     declare country?: NonAttribute<Country>;
     declare ubigeo?: NonAttribute<Ubigeo>;
     declare subsidiaries?: NonAttribute<Company[]>;
@@ -70,7 +72,7 @@ Company.init({
     tenant_id: {
         type: DataTypes.UUID,
         allowNull: false,
-        comment: 'Tenant raíz (empresa principal) — se duplica en sucursales que heredan el del padre'
+        comment: 'Grupo de suscripción — primaria, hermanas y sucursales comparten el mismo tenant'
     },
     public_id: {
         type: DataTypes.UUID,
@@ -235,6 +237,10 @@ export function associateCompany(models: {
     Company.hasMany(models.UserFavorite, {
         foreignKey: 'sucursal_id',
         as: 'favoritedBy'
+    });
+    Company.hasMany(models.UserCompany, {
+        foreignKey: 'tenant_id', sourceKey: 'tenant_id', constraints: false,
+        scope: { is_owner: true }, as: 'ownerAssignments'
     });
     Company.hasMany(models.UserCompany, {
         foreignKey: 'company_id',

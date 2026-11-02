@@ -4,7 +4,7 @@ import sequelize from '../../../config/db';
 import logger from '../../../config/logger';
 import * as CompanyRepository from '../repository/company.repository';
 import * as SaaSSubscriptionRepository from '../../saas/repository/saasSubscription.repository';
-import * as SaaSPlanRepository from '../../saas/repository/saasPlan.repository';
+import { resolveRegistrationCoverage } from './companyRegistrationScope.service';
 import { notify } from '../../notificacions/service/notification.service';
 import { NotificationEvents } from '../../notificacions/constants/notificationEvents';
 import * as UserRepository from '../../users/repository/user.repository';
@@ -24,7 +24,10 @@ import type { RegisterCompanyInput, UpdateCompanyInput, ListCompaniesQuery } fro
  */
 const withAssignments = async (company: Company) => {
     const companyIds = [Number(company.company_id), ...(company.subsidiaries ?? []).map((s) => Number(s.company_id))];
-    return { company, assignments: await UserCompanyRepository.findActiveByCompanyIds(companyIds) };
+    const assignments = await UserCompanyRepository.findActiveByCompanyIds(companyIds);
+    const owner = await UserCompanyRepository.findOwnerByTenantId(company.tenant_id);
+    if (owner && !assignments.some((row) => Number(row.user_id) === Number(owner.user_id))) assignments.push(owner);
+    return { company, assignments };
 };
 
 /**
@@ -33,11 +36,11 @@ const withAssignments = async (company: Company) => {
  * modelos de `saas` sin crear una dependencia circular, ver nota en Company.ts).
  *
  * Alcance de datos por ROL, no por permiso (regla general del sistema, ver
- * shared/utils/accessScope.ts) — `company.view` (verificarPermiso, en la ruta) solo
+ * shared/utils/accessScope.ts) — `company.view` (resolveAuthorization, en la ruta) solo
  * habilita la acción de listar; hasta dónde ve cada uno lo decide acá el rol: `system`
  * ve el catálogo completo, cualquier otro rol (hoy solo `super_admin` tiene `company.view`)
- * queda acotado a `user.company_ids` — las empresas raíz que tiene asignadas por
- * UserCompany, ya expandido en el JWT del login.
+ * queda acotado a `user.company_ids`, resuelto desde sus membresías y propiedad
+ * en cada request. El JWT no contiene el árbol.
  */
 export const list = async (query: ListCompaniesQuery, user: AuthenticatedUser) => {
     const search = query.search?.trim() || undefined;
@@ -97,31 +100,31 @@ export const updateByPublicId = async (publicId: string, data: UpdateCompanyInpu
 };
 
 /**
- * Alta de empresa — crea Company + User (dueño, rol super_admin) + Person + UserCompany +
- * SaaSSubscription en una sola transacción, activa de una: `company.is_enabled: 'A'`,
- * `user.is_enabled: true`, `subscription.status: 'ACTIVE'`, `gateway: 'MANUAL'` — sin
+ * Alta de primaria: Company + User (dueño) + Person + UserCompany + suscripción.
+ * Alta de hermana: Company + vínculo a la suscripción y dueño existentes.
+ * Solo system crea tenant y SaaSSubscription nuevos. Los usuarios acotados crean una
+ * hermana en su grupo, con el mismo tenant y suscripción, si permite multiempresa.
+ * Todo sucede en una transacción: empresa y dueño habilitados. La suscripción nueva
+ * de una primaria usa `status: 'ACTIVE'`, `gateway: 'MANUAL'` — sin
  * comunicarse con MercadoPago. La integración de cobro (link de pago + trial + webhook,
  * ver saas/service/saasCheckout.service.ts y saasWebhook.service.ts, ya construida y
  * probada en sandbox) queda deshabilitada hasta que la app esté en un servidor real con
  * credenciales de producción — ver docs/pendiente-integracion-pagos-mercadopago.md.
  *
- * `user_create`/`created_by` de todo lo creado apunta al `system` que ejecuta el alta, nunca
+ * `user_create`/`created_by` de todo lo creado apunta al usuario que ejecuta el alta, nunca
  * al dueño nuevo — quien registra la empresa acá no es el dueño.
  */
 export const register = async (payload: RegisterCompanyInput, user: AuthenticatedUser) => {
     const { company, owner, plan: planInput } = payload;
 
-    const plan = await SaaSPlanRepository.findByPublicId(planInput.plan_public_id);
-    if (!plan || !plan.is_active) {
-        throw new BadRequestError('El plan seleccionado no existe o no está activo.');
-    }
-
     if (await CompanyRepository.findByDocument(company.document)) {
         throw new ConflictError('Ya existe una empresa registrada con este número de documento.');
     }
 
-    const ownerEmail = owner.email.trim();
-    if (await UserRepository.findByEmail(ownerEmail)) {
+    if (hasFullCompanyAccess(user) && !owner) throw new BadRequestError('La empresa primaria requiere un dueño.');
+    if (!hasFullCompanyAccess(user) && owner) throw new BadRequestError('La empresa hermana hereda al dueño del grupo.');
+    const ownerEmail = owner?.email.trim();
+    if (ownerEmail && await UserRepository.findByEmail(ownerEmail)) {
         throw new ConflictError('Ya existe un usuario registrado con este correo electrónico.');
     }
 
@@ -129,53 +132,58 @@ export const register = async (payload: RegisterCompanyInput, user: Authenticate
     if (!country) throw new BadRequestError('El país seleccionado no existe.');
     if (!country.is_active) throw new BadRequestError('El país seleccionado no está disponible actualmente.');
 
-    const superAdminRole = await RoleRepository.findByKey('super_admin');
-    if (!superAdminRole || !superAdminRole.is_active) throw new BadRequestError('El rol no está configurado o activo en el sistema.');
+    const superAdminRole = owner ? await RoleRepository.findByKey('super_admin') : null;
+    if (owner && (!superAdminRole || !superAdminRole.is_active)) throw new BadRequestError('El rol no está configurado o activo en el sistema.');
 
-    const tenantId = idPublicId();
     const publicId = idPublicId();
     const ownerPublicId = idPublicId();
-    const subscriptionPublicId = idPublicId();
-    const hashedPassword = await bcrypt.hash(owner.password, 10);
+    const hashedPassword = owner ? await bcrypt.hash(owner.password, 10) : null;
 
-    const { newCompany, newUser } = await sequelize.transaction(async (transaction) => {
-        const newUser = await UserRepository.create({
+    const { newCompany, newUser, coverage } = await sequelize.transaction(async (transaction) => {
+        const coverage = await resolveRegistrationCoverage(payload, user, transaction);
+        const { tenantId } = coverage;
+        const inheritedOwner = coverage.subscriptionId !== null
+            ? await UserCompanyRepository.findOwnerByTenantId(tenantId, transaction) : null;
+        if (coverage.subscriptionId !== null && !inheritedOwner?.user) throw new ConflictError('El grupo no tiene un dueño asignado.');
+        const newUser = owner ? await UserRepository.create({
             first_name: owner.first_name,
             last_name: owner.last_name,
-            email: ownerEmail,
+            email: ownerEmail!,
             password: hashedPassword,
             social_id: null,
             social_provider: null,
-            role_id: superAdminRole.role_id,
+            role_id: superAdminRole!.role_id,
             public_id: ownerPublicId,
             is_enabled: true,
             user_create: user.user_id,
-        }, transaction);
+        }, transaction) : inheritedOwner!.user!;
 
-        await UserRepository.createPerson({
-            user_id: newUser.user_id,
-            country_id: owner.country_id,
-            date_birth: owner.date_birth || null,
-            gender: null,
-            document_type: owner.document_type,
-            document_number: owner.document_number,
-            phone: owner.phone,
-            ubigeo_id: null,
-            occupation: null,
-            civil_state: null,
-            sports_preferences: null,
-            accept_marketing: false,
-            preferences: null,
-            default_payment_type_id: null,
-        }, transaction);
+        if (owner) {
+            await UserRepository.createPerson({
+                user_id: newUser.user_id,
+                country_id: owner.country_id,
+                date_birth: owner.date_birth || null,
+                gender: null,
+                document_type: owner.document_type,
+                document_number: owner.document_number,
+                phone: owner.phone,
+                ubigeo_id: null,
+                occupation: null,
+                civil_state: null,
+                sports_preferences: null,
+                accept_marketing: false,
+                preferences: null,
+                default_payment_type_id: null,
+            }, transaction);
 
-        // Set inicial del dueño = plantilla del rol super_admin (después se edita por usuario).
-        await UserPermissionRepository.grantRoleDefaults(
-            Number(newUser.user_id),
-            Number(superAdminRole.role_id),
-            user.user_id,
-            transaction
-        );
+            // Set inicial del dueño = plantilla del rol super_admin (después se edita por usuario).
+            await UserPermissionRepository.grantRoleDefaults(
+                Number(newUser.user_id),
+                Number(superAdminRole!.role_id),
+                user.user_id,
+                transaction
+            );
+        }
 
         const newCompany = await CompanyRepository.create({
             name: company.name,
@@ -199,20 +207,20 @@ export const register = async (payload: RegisterCompanyInput, user: Authenticate
             user_update: null,
         }, transaction);
 
-        await UserCompanyRepository.create({
+        if (coverage.subscriptionId === null) await UserCompanyRepository.create({
             user_id: newUser.user_id,
             company_id: newCompany.company_id,
-            role: 'super_admin',
+            is_owner: true,
             tenant_id: tenantId,
             is_active: true,
             created_by: user.user_id,
         }, transaction);
 
-        const subscription = await SaaSSubscriptionRepository.create({
-            plan_id: plan.plan_id,
-            public_id: subscriptionPublicId,
+        const subscriptionId = coverage.subscriptionId ?? (await SaaSSubscriptionRepository.create({
+            plan_id: coverage.planId,
+            public_id: idPublicId(),
             status: 'ACTIVE',
-            billing_period: planInput.billing_period,
+            billing_period: planInput!.billing_period,
             gateway: 'MANUAL',
             stripe_customer_id: null,
             stripe_subscription_id: null,
@@ -222,11 +230,11 @@ export const register = async (payload: RegisterCompanyInput, user: Authenticate
             current_period_end: null,
             cancel_at_period_end: false,
             lead_uuid: null,
-        }, transaction);
+        }, transaction)).subscription_id;
 
-        await SaaSSubscriptionRepository.linkToCompany(subscription.subscription_id, newCompany.company_id, transaction);
+        await SaaSSubscriptionRepository.linkToCompany(subscriptionId, newCompany.company_id, coverage.subscriptionId === null, transaction);
 
-        return { newCompany, newUser, subscription };
+        return { newCompany, newUser, coverage };
     });
 
     // Recarga con el include de dueño (findByIdWithOwner) para poder armar el mismo DTO que
@@ -238,12 +246,12 @@ export const register = async (payload: RegisterCompanyInput, user: Authenticate
     try {
         await notify(NotificationEvents.COMPANY_REGISTERED, '[Company]', {
             ownerId: newUser.user_id,
-            ownerEmail,
-            ownerName: `${owner.first_name} ${owner.last_name}`,
+            ownerEmail: newUser.email ?? '',
+            ownerName: `${newUser.first_name} ${newUser.last_name}`,
             companyId: newCompany.company_id,
             companyName: company.name,
-            planName: plan.name,
-            tenantId,
+            planName: coverage.planName,
+            tenantId: coverage.tenantId,
             createdBy: user.user_id,
         });
     } catch (err) {

@@ -1,3 +1,4 @@
+
 # Pendiente: reactivar el cobro con MercadoPago en el registro de empresa
 
 ## Estado actual (temporal)
@@ -16,13 +17,13 @@ mayormente deshacer los cambios de este hilo, no reconstruir nada.
 
 ## Qué ya existe y funciona (no hay que reescribirlo)
 
-| Pieza | Archivo |
-|---|---|
-| Genera el Preapproval en MercadoPago (link de pago, 7 días de trial) | `saas/service/saasCheckout.service.ts` |
-| Webhook que activa la empresa cuando MercadoPago confirma la autorización | `saas/service/saasWebhook.service.ts`, `saas/controllers/webhook.controller.ts`, `saas/routes/webhook.route.ts` |
-| Validación de firma del webhook (`WebhookSignatureValidator` del SDK) | dentro de `saasWebhook.service.ts` |
-| Email "activa tu empresa" con el link de pago | `notificacions/service/notification.service.ts` + `notificacions/service/emailEvents.config.ts` + `notificacions/templates/email/companyPendingPayment.ts` |
-| Columna `mp_preapproval_id` en la suscripción, para que el webhook la encuentre | modelo `SaaSSubscription` + baseline `028_baseline_saas_subscriptions.ts` |
+| Pieza                                                                              | Archivo                                                                                                                                                          |
+| ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Genera el Preapproval en MercadoPago (link de pago, 7 días de trial)              | `saas/service/saasCheckout.service.ts`                                                                                                                         |
+| Webhook que activa la empresa cuando MercadoPago confirma la autorización         | `saas/service/saasWebhook.service.ts`, `saas/controllers/webhook.controller.ts`, `saas/routes/webhook.route.ts`                                            |
+| Validación de firma del webhook (`WebhookSignatureValidator` del SDK)           | dentro de `saasWebhook.service.ts`                                                                                                                             |
+| Email "activa tu empresa" con el link de pago                                      | `notificacions/service/notification.service.ts` + `notificacions/service/emailEvents.config.ts` + `notificacions/templates/email/companyPendingPayment.ts` |
+| Columna `mp_preapproval_id` en la suscripción, para que el webhook la encuentre | modelo `SaaSSubscription` + baseline `028_baseline_saas_subscriptions.ts`                                                                                    |
 
 Probado en sandbox de punta a punta: se generó el Preapproval real vía curl (`collector_id`
 resuelto correctamente al vendedor de prueba de la app), y por API real desde el backend

@@ -10,6 +10,7 @@ import sequelize from '../../../../config/db';
 import { idPublicId } from '../../../../shared/utils/ids';
 import type { SaaSPlan } from './SaaSPlan';
 import type { SaaSSubscriptionCompany } from './SaaSSubscriptionCompany';
+import { isSubscriptionValid } from '../../utils/subscriptionValidity';
 
 export class SaaSSubscription extends Model<InferAttributes<SaaSSubscription>, InferCreationAttributes<SaaSSubscription>> {
     declare subscription_id: CreationOptional<number>;
@@ -42,14 +43,7 @@ export class SaaSSubscription extends Model<InferAttributes<SaaSSubscription>, I
      * Verifica si la suscripción está activa y no ha vencido.
      */
     isValid(): boolean {
-        if (this.status === 'CANCELED') return false;
-
-        // Si tiene fecha de fin y ya pasó, ya no es válida (incluso si el estatus dice ACTIVE por un delay del webhook)
-        if (this.current_period_end && new Date() > new Date(this.current_period_end)) {
-            return false;
-        }
-
-        return ['TRIAL', 'ACTIVE'].includes(this.status);
+        return isSubscriptionValid(this);
     }
 }
 

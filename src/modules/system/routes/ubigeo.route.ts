@@ -1,6 +1,5 @@
 import { createRouter } from '../../../shared/utils/createRouter';
 import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
-import { verificarPermiso } from '../../../shared/middlewares/verificarPermiso';
 import { validateQuery, validateDTO } from '../../../shared/middlewares/validateDTO';
 import { createUbigeoSchema, updateUbigeoSchema, ubigeoChildrenQuerySchema } from '../dto/ubigeo.dto';
 import { listChildren, create, update, remove } from '../controllers/ubigeo.controller';
@@ -19,20 +18,20 @@ router.get('/ubigeo', validateQuery(ubigeoChildrenQuerySchema), listChildren);
  * @desc  Crea un nodo nuevo — nivel 1 de un país o hijo directo de otro nodo
  * @access system
  */
-router.post('/ubigeo', resolveAuthorization, verificarPermiso('ubigeo.manage'), validateDTO(createUbigeoSchema), create);
+router.post('/ubigeo', resolveAuthorization('ubigeo.manage'), validateDTO(createUbigeoSchema), create);
 
 /**
  * @route PUT /api/system/ubigeo/:id
  * @desc  Actualiza el nombre/código de un nodo existente
  * @access system
  */
-router.put('/ubigeo/:id', resolveAuthorization, verificarPermiso('ubigeo.manage'), validateDTO(updateUbigeoSchema), update);
+router.put('/ubigeo/:id', resolveAuthorization('ubigeo.manage'), validateDTO(updateUbigeoSchema), update);
 
 /**
  * @route DELETE /api/system/ubigeo/:id
  * @desc  Elimina un nodo — bloqueado si tiene hijos
  * @access system
  */
-router.delete('/ubigeo/:id', resolveAuthorization, verificarPermiso('ubigeo.manage'), remove);
+router.delete('/ubigeo/:id', resolveAuthorization('ubigeo.manage'), remove);
 
 export default router;

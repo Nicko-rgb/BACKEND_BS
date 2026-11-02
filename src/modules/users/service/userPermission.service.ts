@@ -4,7 +4,7 @@ import * as UserCompanyRepository from '../repository/userCompany.repository';
 import * as CompanyRepository from '../../companys/repository/company.repository';
 import * as PermissionRepository from '../../system/repository/permission.repository';
 import { invalidateUserAuthCache } from '../../../shared/utils/authorizationCache';
-import { hasCompanyScope } from '../../../shared/utils/accessScope';
+import { hasCompanyScope, hasFullCompanyAccess } from '../../../shared/utils/accessScope';
 import { SYSTEM_FULL_ACCESS, isAssignablePermission } from '../../system/constants/assignablePermissions';
 import { ForbiddenError, NotFoundError, ValidationError } from '../../../shared/errors/CustomErrors';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
@@ -20,7 +20,7 @@ import type { User } from '../database/models';
  *     asignaciones se ubica por las empresas de quien lo registró).
  */
 const assertCanManageUserPermissions = async (granter: AuthenticatedUser, target: User): Promise<void> => {
-    const isSystem = granter.permissions.includes(SYSTEM_FULL_ACCESS);
+    const isSystem = hasFullCompanyAccess(granter);
     if (isSystem) return;
 
     const targetRole = target.roleRef?.key;
@@ -29,6 +29,9 @@ const assertCanManageUserPermissions = async (granter: AuthenticatedUser, target
     }
 
     const targetId = Number(target.user_id);
+    if ((await UserCompanyRepository.findActiveByUserId(targetId)).some((row) => row.is_owner) && granter.user_id !== targetId) {
+        throw new ForbiddenError('Solo el dueño o system puede gestionar los permisos del dueño.');
+    }
     let targetCompanyIds = await UserCompanyRepository.findActiveCompanyIdsByUserId(targetId);
     if (targetCompanyIds.length === 0 && target.user_create) {
         const creatorIds = await UserCompanyRepository.findActiveCompanyIdsByUserId(Number(target.user_create));

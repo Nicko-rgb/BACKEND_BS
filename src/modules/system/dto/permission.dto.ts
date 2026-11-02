@@ -9,7 +9,7 @@ const APP_ACCESS_VALUES = ['admin', 'booking', 'both'];
 const MODULE_VALUES = ['bookings', 'companys', 'notificacions', 'saas', 'system', 'users'];
 
 // Forma de un permiso del catálogo para el frontend. `routesCount` es el resultado del análisis
-// estático de `verificarPermiso('key')` en las rutas del backend (countPermissionUsageInRoutes).
+// estático de `resolveAuthorization('key')` en las rutas del backend (countPermissionUsageInRoutes).
 // `referencesCount` es la cantidad de usuarios a los que el permiso les llega efectivamente —
 // vía el permiso base de su rol, o vía una excepción directa (ver
 // permission.repository.ts::countEffectiveUsersByKeys). Ninguno de los dos es una columna de la tabla.

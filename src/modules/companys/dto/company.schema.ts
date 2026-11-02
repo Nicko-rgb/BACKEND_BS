@@ -75,8 +75,9 @@ const COMPANY_FIELDS = {
 };
 
 // Alta de empresa (wizard de 3 pasos) — payload anidado, un objeto por paso del frontend.
-// `system` es el único rol que llega a este endpoint — ver company.service.ts → register.
+// El service decide: system contrata un plan; usuarios acotados heredan el de su árbol.
 export const registerCompanySchema = Joi.object({
+    source_company_public_id: publicIdSchema,
     company: Joi.object({
         name: COMPANY_FIELDS.name.required(),
         document: COMPANY_FIELDS.document.required(),
@@ -145,7 +146,7 @@ export const registerCompanySchema = Joi.object({
         // un día que introduce la conversión de zona horaria al guardar un DATEONLY.
         date_birth: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).allow('', null)
             .messages({ 'string.pattern.base': 'Formato de fecha inválido, usar YYYY-MM-DD' }),
-    }).required().messages({ 'any.required': 'Los datos del dueño son requeridos' }),
+    }),
 
     plan: Joi.object({
         plan_public_id: publicIdSchema.required()
@@ -158,7 +159,7 @@ export const registerCompanySchema = Joi.object({
                 'any.only': 'El período de facturación debe ser monthly o yearly',
                 'any.required': 'El período de facturación es requerido',
             }),
-    }).required().messages({ 'any.required': 'Los datos del plan son requeridos' }),
+    }),
 });
 
 // Autoedición de la propia empresa — todo opcional (PUT parcial). `document` (RUC) incluido

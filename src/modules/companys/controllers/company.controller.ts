@@ -32,8 +32,7 @@ export const updateByPublicId = async (req: Request, res: Response) => {
     return ApiResponse.ok(res, toCompanyDetailDto(company, assignments), 'Empresa actualizada exitosamente');
 };
 
-// Alta de empresa (wizard de 3 pasos) — crea Company+User+Person+UserCompany+SaaSSubscription
-// ya activa, sin comunicarse con MercadoPago (ver company.service.ts → register).
+// Alta de primaria (system, suscripción nueva) o hermana (suscripción heredada del árbol).
 export const registerCompany = async (req: Request, res: Response) => {
     const data = req.validatedData;
     const user = req.user;

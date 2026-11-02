@@ -1,6 +1,5 @@
 import { createRouter } from '../../../shared/utils/createRouter';
 import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
-import { verificarPermiso } from '../../../shared/middlewares/verificarPermiso';
 import { validateDTO, validatePublicId } from '../../../shared/middlewares/validateDTO';
 import { saveScheduleSchema } from '../dto/hour.schema';
 import { listHours, saveSchedule, toggleHourClosed, toggleHourDay } from '../controllers/hour.controller';
@@ -14,8 +13,7 @@ const router = createRouter();
  * @access usuarios con permiso space.business_hour_manage (sobre espacios de su alcance)
  */
 router.get('/space/:spacePublicId/list',
-    resolveAuthorization,
-    verificarPermiso('space.business_hour_manage'),
+    resolveAuthorization('space.business_hour_manage'),
     validatePublicId('spacePublicId'),
     listHours
 );
@@ -32,8 +30,7 @@ router.get('/space/:spacePublicId/list',
  * @access usuarios con permiso space.business_hour_manage
  */
 router.put('/space/:spacePublicId',
-    resolveAuthorization,
-    verificarPermiso('space.business_hour_manage'),
+    resolveAuthorization('space.business_hour_manage'),
     validatePublicId('spacePublicId'),
     validateDTO(saveScheduleSchema),
     saveSchedule
@@ -46,8 +43,7 @@ router.put('/space/:spacePublicId',
  * @access usuarios con permiso space.business_hour_manage
  */
 router.patch('/space/:spacePublicId/:hourId/close',
-    resolveAuthorization,
-    verificarPermiso('space.business_hour_manage'),
+    resolveAuthorization('space.business_hour_manage'),
     validatePublicId('spacePublicId'),
     toggleHourClosed
 );
@@ -61,8 +57,7 @@ router.patch('/space/:spacePublicId/:hourId/close',
  * @access usuarios con permiso space.business_hour_manage
  */
 router.patch('/space/:spacePublicId/:day',
-    resolveAuthorization,
-    verificarPermiso('space.business_hour_manage'),
+    resolveAuthorization('space.business_hour_manage'),
     validatePublicId('spacePublicId'),
     toggleHourDay
 );

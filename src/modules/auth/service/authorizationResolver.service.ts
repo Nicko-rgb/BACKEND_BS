@@ -1,8 +1,8 @@
 /**
  * authorizationResolver.service.ts
  *
- * Resuelve rol/permisos/company_ids/scope_level EN CALIENTE, contra BD (con
- * cache Redis invalidable), en vez de leerlos de un JWT armado una sola vez
+ * Resuelve rol/permisos/scope_level contra BD (con
+ * cache Redis invalidable) y company_ids sin cache, en vez de leerlos de un JWT
  * en el login. Por qué: con permisos editables por usuario, si viajaran en el
  * JWT, cambiar un permiso no aplicaría hasta que cada usuario ya logueado
  * renueve su token — inaceptable para "modifico el permiso y quiero que aplique ya".
@@ -11,12 +11,13 @@
  *   - permisos efectivos = filas de dsg_bss_user_permissions del usuario (set
  *     completo, sin excepciones). dsg_bss_role_permission es solo la PLANTILLA
  *     que se copia al crear un usuario nuevo — editarla no toca existentes.
- *   - el rol aporta key (etiqueta) + scope_level (alcance de datos) + menú.
+ *   - el rol aporta etiqueta, menú y el alcance global de system.
+ *   - las membresías y la propiedad determinan el árbol de los demás usuarios.
  *
  * Se llama desde dos lugares:
  *   - `resolveAuthorization` (modules/auth/middlewares) — en cada request autenticado.
- *   - `auth.service.ts::loginAdmin` — para devolver permissions/companyIds en el
- *     body de la respuesta de login (uso informativo del front, no de seguridad).
+ *   - `auth.service.ts::loginAdmin` — para obtener los permisos y construir el contexto
+ *     del frontend. companyIds permanece interno y no se devuelve en el login.
  *
  * La invalidación de este cache (invalidateRoleAuthCache/invalidateUserAuthCache) vive en
  * shared/utils/authorizationCache.ts, no acá — role.service.ts (system, al editar
@@ -32,7 +33,6 @@ import * as RoleRepository from '../../system/repository/role.repository';
 import * as UserRepository from '../../users/repository/user.repository';
 import * as UserPermissionRepository from '../../users/repository/userPermission.repository';
 import * as UserCompanyRepository from '../../users/repository/userCompany.repository';
-import * as CompanyRepository from '../../companys/repository/company.repository';
 import { NotFoundError, UnauthorizedError } from '../../../shared/errors/CustomErrors';
 
 const CACHE_TTL_SECONDS = 300;
@@ -63,7 +63,6 @@ interface UserAuthData {
     roleId: number;
     isEnabled: boolean;
     permissionKeys: string[];
-    companyIds: number[];
 }
 
 const loadUserData = async (userId: number): Promise<UserAuthData> => {
@@ -71,18 +70,9 @@ const loadUserData = async (userId: number): Promise<UserAuthData> => {
         const user = await UserRepository.findAuthStateById(userId);
         if (!user) throw new UnauthorizedError('Usuario no encontrado');
 
-        const [permissionKeys, empresaIds] = await Promise.all([
-            UserPermissionRepository.findKeysByUserId(userId),
-            UserCompanyRepository.findActiveCompanyIdsByUserId(userId),
-        ]);
+        const permissionKeys = await UserPermissionRepository.findKeysByUserId(userId);
+        return { roleId: Number(user.role_id), isEnabled: user.is_enabled, permissionKeys };
 
-        // Misma expansión que hacía antes auth.service.ts en el login: para super_admin,
-        // sus empresas asignadas más todas las sucursales hijas; para administrador/empleado
-        // (asignados directo a sucursales, sin hijas) es un no-op.
-        const sucursalIds = await CompanyRepository.findSucursalIdsByParentIds(empresaIds);
-        const companyIds = [...new Set([...empresaIds, ...sucursalIds])];
-
-        return { roleId: Number(user.role_id), isEnabled: user.is_enabled, permissionKeys, companyIds };
     }, CACHE_TTL_SECONDS);
 };
 
@@ -97,12 +87,13 @@ export const resolveAuthorization = async (userId: number): Promise<ResolvedAuth
     if (!userData.isEnabled) throw new UnauthorizedError('Usuario deshabilitado');
 
     const roleData = await loadRoleData(userData.roleId);
+    const companyIds = roleData.scopeLevel === 1 ? [] : await UserCompanyRepository.findEffectiveCompanyIdsByUserId(userId);
 
     return {
         roleId: userData.roleId,
         roleKey: roleData.key,
         scopeLevel: roleData.scopeLevel,
         permissions: userData.permissionKeys,
-        companyIds: userData.companyIds,
+        companyIds,
     };
 };

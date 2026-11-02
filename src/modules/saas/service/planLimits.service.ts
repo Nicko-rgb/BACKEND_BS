@@ -3,6 +3,7 @@ import * as CompanyRepository from '../../companys/repository/company.repository
 import * as UserCompanyRepository from '../../users/repository/userCompany.repository';
 import * as SpaceRepository from '../../companys/repository/space.repository';
 import { isUnlimitedLimit } from '../utils/planLimits';
+import { isSubscriptionValid } from '../utils/subscriptionValidity';
 import { assertCompanyScope } from '../../../shared/utils/accessScope';
 import { ConflictError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { CompanyPlanSummary } from '../repository/saasSubscription.repository';
@@ -30,7 +31,26 @@ const LIMIT_LABELS: Record<PlanLimitField, string> = {
 // Plan/suscripción activa de una empresa raíz — reusa el mismo join que ya arma el listado de
 // companys (saasSubscription.repository.ts::findPlanByCompanyId), no se resuelve de nuevo acá.
 export const getActivePlanForCompany = async (companyId: number, transaction?: Transaction): Promise<CompanyPlanSummary | null> => {
-    return SaaSSubscriptionRepository.findPlanByCompanyId(companyId, transaction);
+    const plan = await SaaSSubscriptionRepository.findPlanByCompanyId(companyId, transaction);
+    if (plan && !isSubscriptionValid({
+        status: plan.status,
+        current_period_start: plan.currentPeriodStart,
+        current_period_end: plan.currentPeriodEnd,
+    })) {
+        throw new ConflictError('La suscripción de esta empresa no está vigente.');
+    }
+    return plan;
+};
+
+export type PlanFeature = 'allowsMultiCompany' | 'hasAdvancedReports' | 'hasStripeConnect';
+
+export const assertPlanFeature = async (companyId: number, feature: PlanFeature, transaction?: Transaction): Promise<CompanyPlanSummary> => {
+    const plan = await getActivePlanForCompany(companyId, transaction);
+    if (!plan) throw new NotFoundError('La empresa no tiene un plan asociado.');
+    if (!plan[feature]) throw new ConflictError(feature === 'allowsMultiCompany'
+        ? 'El plan de esta empresa no permite crear empresas hermanas.'
+        : 'El plan de esta empresa no incluye esta característica.');
+    return plan;
 };
 
 /**

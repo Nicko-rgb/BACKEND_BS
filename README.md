@@ -52,7 +52,7 @@ npm start
 
 ## Estructura de Carpetas y Arquitectura
 
-El servidor sigue una **arquitectura de capas estricta** para separar responsabilidades y facilitar el mantenimiento. 
+El servidor sigue una **arquitectura de capas estricta** para separar responsabilidades y facilitar el mantenimiento.
 
 ```text
 src/
@@ -147,15 +147,15 @@ npm run db:help              # Muestra esta referencia en consola
 
 ### Reglas de producción
 
-| Comando | Producción |
-|---------|-----------|
-| `migrate` | ✅ Seguro — solo aplica pendientes |
-| `migrate:status` | ✅ Solo lectura |
-| `migrate:create` | ✅ Solo crea archivo local |
-| `seed` / `seed:status` | ✅ Seguros — idempotentes |
-| `db:create` / `db:setup` | ✅ Seguros — idempotentes |
-| `migrate:rollback` | ❌ Bloqueado |
-| `db:reset` | ❌ Bloqueado |
+| Comando                      | Producción                         |
+| ---------------------------- | ----------------------------------- |
+| `migrate`                  | ✅ Seguro — solo aplica pendientes |
+| `migrate:status`           | ✅ Solo lectura                     |
+| `migrate:create`           | ✅ Solo crea archivo local          |
+| `seed` / `seed:status`   | ✅ Seguros — idempotentes          |
+| `db:create` / `db:setup` | ✅ Seguros — idempotentes          |
+| `migrate:rollback`         | ❌ Bloqueado                        |
+| `db:reset`                 | ❌ Bloqueado                        |
 
 > En producción nunca revertir migraciones. Para deshacer un cambio, crear una nueva migración forward.
 

@@ -1,8 +1,8 @@
 /**
  * Baseline: crear tabla dsg_bss_user_company
- * Relación usuario-empresa con rol y tenant. Vive en `users/` porque el
+ * Relación usuario-empresa con propiedad y tenant. Vive en `users/` porque el
  * modelo UserCompany pertenece a este módulo, aunque su FK depende de
- * dsg_bss_company (creada por `companys`, migración 017 — order: 17, mayor
+ * dsg_bss_company (creada por `companys`, migración 017 — order: 17, menor
  * al de esta migración, order: 25, así que ya existe cuando corre). La FK
  * apunta por nombre de tabla, no requiere que el modelo Company exista en TS.
  */
@@ -19,7 +19,7 @@ const migration: MigrationFile = {
     async up(queryInterface, sequelize, transaction) {
         // Seguro en producción: no crea si ya existe ──────────────────────────
         const [rows]: any = await sequelize.query(
-            `SELECT to_regclass('public.dsg_bss_user_company') IS NOT NULL AS exists`, { transaction }
+            `SELECT to_regclass('dsg_bss_user_company') IS NOT NULL AS exists`, { transaction }
         );
         if (rows[0].exists) {
             console.log('    ⏭️  dsg_bss_user_company ya existe — baseline registrado');
@@ -42,7 +42,7 @@ const migration: MigrationFile = {
                 onUpdate: 'CASCADE',
                 onDelete: 'CASCADE'
             },
-            role: { type: DataTypes.STRING(50), allowNull: false },
+            is_owner: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
             tenant_id: { type: DataTypes.UUID, allowNull: false },
             is_active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
             created_by: {
@@ -60,6 +60,10 @@ const migration: MigrationFile = {
         await queryInterface.addIndex('dsg_bss_user_company', ['user_id'], { transaction, name: 'idx_user_company_user' });
         await queryInterface.addIndex('dsg_bss_user_company', ['company_id'], { transaction, name: 'idx_user_company_company' });
         await queryInterface.addIndex('dsg_bss_user_company', ['tenant_id'], { transaction, name: 'idx_user_company_tenant' });
+        await queryInterface.addIndex('dsg_bss_user_company', ['tenant_id'], {
+            transaction, unique: true, where: { is_owner: true }, name: 'unique_user_company_tenant_owner'
+        });
+        await sequelize.query('ALTER TABLE dsg_bss_user_company ADD CONSTRAINT owner_membership_active CHECK (NOT is_owner OR is_active)', { transaction });
     },
 
     async down(queryInterface, _sequelize, transaction) {

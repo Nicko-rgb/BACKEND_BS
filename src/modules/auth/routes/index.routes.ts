@@ -3,8 +3,9 @@ import { validateDTO } from '../../../shared/middlewares/validateDTO';
 import { loginAdminSchema } from '../dto/loginAdmin.schema';
 import { passwordRequestSchema } from '../dto/passwordRequest.schema';
 import { passwordResetSchema, passwordResetValidateSchema } from '../dto/passwordReset.schema';
-import { loginAdmin, logout, passwordRequest, passwordReset, passwordResetValidateToken } from '../controllers/auth.controller';
+import { context, loginAdmin, logout, passwordRequest, passwordReset, passwordResetValidateToken } from '../controllers/auth.controller';
 import { verificarTokenAuth } from '../../../shared/middlewares/verificarTokenAuth';
+import { resolveAuthorization } from '../middlewares/resolveAuthorization';
 
 const router = createRouter();
 
@@ -16,6 +17,7 @@ const router = createRouter();
  */
 router.post('/auth/login', validateDTO(loginAdminSchema), loginAdmin);
 router.post('/auth/logout', verificarTokenAuth, logout);
+router.get('/auth/context', resolveAuthorization(), context);
 
 /**
  * @route POST /api/auth/password-request

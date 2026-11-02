@@ -1,6 +1,5 @@
 import { createRouter } from '../../../shared/utils/createRouter';
 import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
-import { verificarPermiso } from '../../../shared/middlewares/verificarPermiso';
 import { validateDTO, validatePublicId } from '../../../shared/middlewares/validateDTO';
 import { updatePlanSchema } from '../dto/plan.schema';
 import { list, listActive, update, remove } from '../controllers/plan.controller';
@@ -12,7 +11,7 @@ const router = createRouter();
  * @desc  Lista todos los planes (activos e inactivos), sin paginar (catálogo chico)
  * @access system
  */
-router.get('/plans', resolveAuthorization, verificarPermiso('plan.manage'), list);
+router.get('/plans', resolveAuthorization('plan.manage'), list);
 
 /**
  * @route GET /api/saas/plans/active
@@ -26,13 +25,13 @@ router.get('/plans/active', listActive);
  * @desc  Actualiza un plan existente
  * @access system
  */
-router.put('/plans/:publicId', resolveAuthorization, verificarPermiso('plan.manage'), validatePublicId('publicId'), validateDTO(updatePlanSchema), update);
+router.put('/plans/:publicId', resolveAuthorization('plan.manage'), validatePublicId('publicId'), validateDTO(updatePlanSchema), update);
 
 /**
  * @route DELETE /api/saas/plans/:publicId
  * @desc  Elimina un plan — bloqueado si tiene suscripciones asociadas
  * @access system
  */
-router.delete('/plans/:publicId', resolveAuthorization, verificarPermiso('plan.manage'), validatePublicId('publicId'), remove);
+router.delete('/plans/:publicId', resolveAuthorization('plan.manage'), validatePublicId('publicId'), remove);
 
 export default router;

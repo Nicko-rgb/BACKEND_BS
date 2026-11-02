@@ -1,10 +1,10 @@
 import fs from 'fs';
 import path from 'path';
 
-// verificarPermiso es variádico (exige al menos uno de los permisos indicados) — matchea la llamada completa
-// y después cada literal entre comillas dentro de ella, así cuenta multi-arg (`verificarPermiso('a', 'b')`)
+// resolveAuthorization es variádico (exige al menos uno de los permisos indicados) — matchea la llamada completa
+// y después cada literal entre comillas dentro de ella, así cuenta multi-arg (`resolveAuthorization('a', 'b')`)
 // igual que single-arg. Análisis estático de texto, no ejecuta nada.
-const PERMISSION_CALL_PATTERN = /verificarPermiso\(([^)]*)\)/g;
+const PERMISSION_CALL_PATTERN = /resolveAuthorization\(([^)]*)\)/g;
 const PERMISSION_KEY_PATTERN = /['"]([a-zA-Z0-9_.]+)['"]/g;
 
 // Recorre recursivamente un directorio buscando archivos *.route.ts.
@@ -24,7 +24,7 @@ let cachedUsage: Record<string, number> | null = null;
 
 /**
  * Cuenta, para cada permission key, en cuántas rutas reales del backend aparece un
- * `verificarPermiso('key')` — análisis estático del código fuente de `src/modules`, no de la
+ * `resolveAuthorization('key')` — análisis estático del código fuente de `src/modules`, no de la
  * base de datos. Sirve para ver qué permisos del catálogo están efectivamente conectados a un
  * endpoint y cuáles solo existen en la tabla sin uso real.
  */

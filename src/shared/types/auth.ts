@@ -10,8 +10,9 @@
  *   2. Con el token ya validado, resuelve en caliente contra dsg_bss_role
  *      (key + scope_level) / user_permissions (set efectivo) / user_company (cacheado,
  *      invalidable) y completa acá role/scope_level/permissions/company_ids.
- * Una ruta protegida solo necesita encadenar `resolveAuthorization` — no
- * hace falta (ni corresponde) usar `verificarTokenAuth` aparte.
+ * Después comprueba los permisos indicados en `resolveAuthorization(...permisos)`.
+ * Sin argumentos resuelve la autorización sin exigir un permiso de acción.
+ * El acceso a la entidad concreta se comprueba en el service.
  */
 export interface AuthenticatedUser {
     jti?: string;

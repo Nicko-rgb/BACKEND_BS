@@ -29,6 +29,8 @@ export interface UpdateCompanyInput {
 
 // Payload del wizard de alta — un objeto por paso del frontend (empresa, dueño, plan).
 export interface RegisterCompanyInput {
+    // Empresa de origen dentro del árbol del usuario; requerida si hay varios grupos.
+    source_company_public_id?: string;
     company: {
         name: string;
         document: string;
@@ -38,7 +40,7 @@ export interface RegisterCompanyInput {
         phone_cell: string;
         phone?: string | null;
     };
-    owner: {
+    owner?: {
         first_name: string;
         last_name: string;
         email: string;
@@ -49,7 +51,7 @@ export interface RegisterCompanyInput {
         document_number: string;
         date_birth?: string | null;
     };
-    plan: {
+    plan?: {
         plan_public_id: string;
         billing_period: 'monthly' | 'yearly';
     };

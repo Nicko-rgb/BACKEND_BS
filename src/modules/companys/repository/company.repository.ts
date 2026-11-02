@@ -6,7 +6,7 @@ import type { PaginationQuery } from '../../../shared/types/pagination';
 
 /**
  * Empresas principales (parent_company_id IS NULL — las sucursales no aparecen acá),
- * paginado, con su dueño (`userAssignments`: primer super_admin activo asignado, vía
+ * paginado, con su dueño (`ownerAssignments`: dueño único del grupo, vía
  * `Company.hasMany(UserCompany)` — asociación ya wireada en companys/database/models,
  * no hace falta importar `users` acá). Con `search`, filtra por nombre o documento; con
  * `countryId`/`isEnabled`, filtra exacto por país y estado. Con `companyIds`, acota el
@@ -31,8 +31,8 @@ export const findAllPrincipal = async (pagination: PaginationQuery, search?: str
         include: [
             { association: 'country' },
             {
-                association: 'userAssignments',
-                where: { role: 'super_admin', is_active: true },
+                association: 'ownerAssignments',
+                where: { is_active: true },
                 required: false,
                 include: [{ association: 'user', include: [{ association: 'person', include: [{ association: 'country' }] }] }],
             },
@@ -75,6 +75,19 @@ export const lockById = async (companyId: number, transaction: Transaction) => {
     return Company.findByPk(companyId, { transaction, lock: transaction.LOCK.UPDATE });
 };
 
+// Solo entidades autorizadas. El padre de una sucursal permite identificar la
+// suscripción de origen, sin ampliar el acceso del usuario a esa empresa.
+export const findRegistrationSources = async (companyIds: number[], transaction: Transaction) => {
+    if (companyIds.length === 0) return [];
+    const attributes = ['company_id', 'public_id', 'tenant_id', 'parent_company_id', 'is_enabled'];
+    return Company.findAll({
+        where: { company_id: { [Op.in]: companyIds } },
+        attributes,
+        include: [{ association: 'parentCompany', attributes }],
+        transaction,
+    });
+};
+
 // Empresa principal por id — solo su id, para quien no necesita el detalle completo.
 export const findRootById = async (companyId: number) => {
     return Company.findOne({ where: { company_id: companyId, parent_company_id: null }, attributes: ['company_id'] });
@@ -99,8 +112,8 @@ export const findByIdWithOwner = async (companyId: number) => {
         include: [
             { association: 'country' },
             {
-                association: 'userAssignments',
-                where: { role: 'super_admin', is_active: true },
+                association: 'ownerAssignments',
+                where: { is_active: true },
                 required: false,
                 include: [{ association: 'user', include: [{ association: 'person', include: [{ association: 'country' }] }] }],
             },
@@ -124,8 +137,8 @@ export const findByPublicId = async (publicId: string) => {
                 include: [{ association: 'parent', include: [{ association: 'parent' }] }],
             },
             {
-                association: 'userAssignments',
-                where: { role: 'super_admin', is_active: true },
+                association: 'ownerAssignments',
+                where: { is_active: true },
                 required: false,
                 include: [{ association: 'user', include: [{ association: 'person', include: [{ association: 'country' }] }] }],
             },

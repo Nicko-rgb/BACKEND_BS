@@ -130,7 +130,7 @@ const seedFn = async (systemUserId?: number): Promise<void> => {
         await UserCompanyRepository.create({
             user_id: owner.user_id,
             company_id: company.company_id,
-            role: 'super_admin',
+            is_owner: true,
             tenant_id: tenantId,
             is_active: true,
             created_by: systemUserId,
@@ -165,7 +165,7 @@ const seedFn = async (systemUserId?: number): Promise<void> => {
             lead_uuid: null,
         }, transaction);
 
-        await SaaSSubscriptionRepository.linkToCompany(subscription.subscription_id, company.company_id, transaction);
+        await SaaSSubscriptionRepository.linkToCompany(subscription.subscription_id, company.company_id, true, transaction);
 
         // Sucursal (hereda RUC y tenant del padre) ────────────────────────────
         const sucursal = await CompanyRepository.create({
@@ -223,7 +223,7 @@ const seedFn = async (systemUserId?: number): Promise<void> => {
         await UserCompanyRepository.create({
             user_id: admin.user_id,
             company_id: sucursal.company_id,
-            role: 'administrador',
+            is_owner: false,
             tenant_id: tenantId,
             is_active: true,
             created_by: systemUserId,
