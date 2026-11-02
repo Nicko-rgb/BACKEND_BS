@@ -1,6 +1,5 @@
 import { createRouter } from '../../../shared/utils/createRouter';
 import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
-import { verificarPermiso } from '../../../shared/middlewares/verificarPermiso';
 import { validateDTO, validatePublicId } from '../../../shared/middlewares/validateDTO';
 import upload from '../../../shared/middlewares/uploadMiddleware';
 import { registerSpaceSchema, updateSpaceSchema, spaceStatusSchema } from '../dto/space.schema';
@@ -16,8 +15,7 @@ const router = createRouter();
  * @access usuarios con permiso space.create
  */
 router.post('/:sucursalPublicId',
-    resolveAuthorization,
-    verificarPermiso('space.create'),
+    resolveAuthorization('space.create'),
     validatePublicId('sucursalPublicId'),
     validateDTO(registerSpaceSchema),
     registerSpace
@@ -29,8 +27,7 @@ router.post('/:sucursalPublicId',
  * @access usuarios con permiso space.view (sobre sucursales de su alcance)
  */
 router.get('/sucursals/:sucursalPublicId/list-spaces',
-    resolveAuthorization,
-    verificarPermiso('space.view'),
+    resolveAuthorization('space.view'),
     validatePublicId('sucursalPublicId'),
     listBySucursal
 );
@@ -41,8 +38,7 @@ router.get('/sucursals/:sucursalPublicId/list-spaces',
  * @access usuarios con permiso space.view (sobre espacios que estan dentro de sus sucursales)
  */
 router.get('/space/:spacePublicId/data-space',
-    resolveAuthorization,
-    verificarPermiso('space.view'),
+    resolveAuthorization('space.view'),
     validatePublicId('spacePublicId'),
     spaceById
 );
@@ -55,8 +51,7 @@ router.get('/space/:spacePublicId/data-space',
  * @access usuarios con permiso space.edit
  */
 router.put('/space/:spacePublicId',
-    resolveAuthorization,
-    verificarPermiso('space.edit'),
+    resolveAuthorization('space.edit'),
     validatePublicId('spacePublicId'),
     validateDTO(updateSpaceSchema),
     updateSpace
@@ -70,8 +65,7 @@ router.put('/space/:spacePublicId',
  * @access usuarios con permiso space.edit
  */
 router.patch('/space/:spacePublicId/status',
-    resolveAuthorization,
-    verificarPermiso('space.edit'),
+    resolveAuthorization('space.edit'),
     validatePublicId('spacePublicId'),
     validateDTO(spaceStatusSchema),
     toggleSpaceStatus
@@ -85,8 +79,7 @@ router.patch('/space/:spacePublicId/status',
  * @access usuarios con permiso space.view (sobre espacios dentro de su alcance)
  */
 router.get('/space/:spacePublicId/gallerys-space',
-    resolveAuthorization,
-    verificarPermiso('space.view'),
+    resolveAuthorization('space.view'),
     validatePublicId('spacePublicId'),
     getGallery
 );
@@ -97,8 +90,7 @@ router.get('/space/:spacePublicId/gallerys-space',
  * @access usuarios con permiso space.media_manage
  */
 router.post('/space/:spacePublicId/gallery',
-    resolveAuthorization,
-    verificarPermiso('space.media_manage'),
+    resolveAuthorization('space.media_manage'),
     validatePublicId('spacePublicId'),
     upload.single('media'),
     uploadGalleryFile
@@ -110,8 +102,7 @@ router.post('/space/:spacePublicId/gallery',
  * @access usuarios con permiso space.media_manage
  */
 router.delete('/space/:spacePublicId/gallery/:mediaPublicId',
-    resolveAuthorization,
-    verificarPermiso('space.media_manage'),
+    resolveAuthorization('space.media_manage'),
     validatePublicId('spacePublicId', 'mediaPublicId'),
     removeGalleryFile
 );

@@ -40,8 +40,7 @@ Las capas transversales (interfaces, utils, constants) cuelgan de los costados s
 ```ts
 // companys/routes/space.route.ts
 router.put('/space/:spacePublicId',
-    resolveAuthorization,                 // auth + resuelve rol/permisos/company_ids en caliente
-    verificarPermiso('space.edit'),       // el usuario tiene el permiso
+    resolveAuthorization('space.edit'),   // autentica, resuelve alcance y exige el permiso
     validateDTO(updateSpaceSchema),       // el body cumple el contrato
     updateSpace                           // → controllers/space.controller.ts
 );
@@ -52,7 +51,7 @@ router.put('/space/:spacePublicId',
 
 **Reglas:**
 - Se usa `createRouter()` (no `Router()`): envuelve cada handler en `asyncHandler` y evita que una promesa rechazada cuelgue el request.
-- Los middlewares van **en este orden**: `resolveAuthorization` → `verificarPermiso` → `validateDTO` → handler.
+- Los middlewares van **en este orden**: `resolveAuthorization(...permisos)` → `validateDTO` → handler.
 - El path expone **solo `public_id` (UUID)**, nunca `company_id`/`space_id` internos.
 
 ---
@@ -224,7 +223,7 @@ Son de **todos** los módulos, no de uno.
 
 | Carpeta | Contenido | Regla |
 |---------|-----------|-------|
-| `shared/middlewares/` | `verificarTokenAuth`, `verificarPermiso`, `validateDTO`, `uploadMiddleware` | Middlewares reutilizables entre módulos |
+| `shared/middlewares/` | `verificarTokenAuth`, `validateDTO`, `uploadMiddleware` | Middlewares reutilizables entre módulos |
 | `shared/errors/` | `CustomErrors.ts` — `ValidationError`, `NotFoundError`, `ConflictError`, `UnauthorizedError`, `ForbiddenError`, `BadRequestError` | Los errores del dominio son clases, no strings |
 | `shared/utils/` | `ApiResponse`, `accessScope`, `cacheUtility`, `createRouter`, `paginate`, `ids`, `roleHierarchy`… | Utilidades sin estado, reutilizables |
 | `shared/types/` | `auth.ts`, `pagination.ts`, `express.d.ts` | Tipos compartidos (incluye la ampliación de `Express.Request`) |
@@ -241,9 +240,9 @@ POST /api/spaces/:sucursalPublicId
    ├─ app.ts ──── helmet, cors, compression, rate limit, express.json
    │
    ├─ routes/space.route.ts
-   │    ├─ resolveAuthorization      → verifica el token y resuelve EN CALIENTE
-   │    │                             role / permissions / company_ids / scope_level
-   │    ├─ verificarPermiso(...)     → ¿tiene el permiso? (system.full_access bypasea)
+   │    ├─ resolveAuthorization(...) → verifica token, resuelve autorización vigente
+   │    │                             y exige al menos uno de los permisos indicados
+   │    │                             (system.full_access omite el chequeo de acción)
    │    └─ validateDTO(schema)       → valida el body → req.validatedData
    │
    ├─ controllers/space.controller.ts
@@ -281,7 +280,7 @@ GlobalErrorHandler.handleError
 4. **El service no toca Sequelize.** El repository no tiene reglas de negocio.
 5. **El front nunca ve ids internos de entidades del tenant.** Solo `public_id` (UUID). Excepción: los catálogos de sistema (país, ubigeo, deporte, superficie, pago, rol, permiso) exponen su `id` porque el front los usa como valor de select.
 6. **Los errores son clases semánticas**, no strings.
-7. **El scope lo decide el ROL, el permiso habilita la ACCIÓN.** `scope_level` (en `dsg_bss_role`) define hasta dónde se ve; `verificarPermiso` define qué se puede hacer. Un permiso nunca amplía el alcance de datos.
+7. **El scope lo decide el ROL, el permiso habilita la ACCIÓN.** `scope_level` (en `dsg_bss_role`) define hasta dónde se ve; `resolveAuthorization(...permisos)` valida qué se puede hacer. Un permiso nunca amplía el alcance de datos.
 8. **Una query por función de repository.**
 9. **Los mensajes de Joi son explícitos.** Ningún usuario ve el texto genérico de Joi.
 10. **Si un módulo necesita una capa que no existe, se crea la carpeta** — no se saltea la capa ni se mete lógica en otra.
@@ -332,8 +331,8 @@ grep -rnE "\b(Model|sequelize)\.(findAll|findOne|findByPk|create|update|destroy|
 
 ### Verificación manual
 
-- [ ] ¿El orden de middlewares es `resolveAuthorization` → `verificarPermiso` → `validateDTO` → handler?
-- [ ] ¿Toda ruta sensible tiene `verificarPermiso(...)`? (las públicas — webhook de MercadoPago, login — son la excepción)
+- [ ] ¿El orden de middlewares es `resolveAuthorization(...permisos)` → `validateDTO` → handler?
+- [ ] ¿Toda ruta con permiso de acción usa `resolveAuthorization(...permisos)`? Las rutas que solo requieren sesión usan `resolveAuthorization()`; las públicas no lo usan.
 - [ ] ¿El schema Joi tiene mensajes explícitos por campo (nunca el texto genérico de Joi)?
 - [ ] ¿El DTO de salida expone solo `publicId` y campos de negocio?
 - [ ] ¿El service lanza errores semánticos (`NotFoundError`, `ForbiddenError`…) y nunca devuelve HTTP?

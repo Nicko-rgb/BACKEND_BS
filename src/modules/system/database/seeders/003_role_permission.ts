@@ -145,7 +145,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
         'user.profile_edit',
     ],
     system: [
-        // El middleware ya bypasea con este solo permiso — ver verificarPermiso.ts.
+        // El middleware ya bypasea con este solo permiso — ver resolveAuthorization.ts.
         'system.full_access',
     ],
 };

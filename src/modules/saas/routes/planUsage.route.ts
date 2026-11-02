@@ -10,6 +10,6 @@ const router = createRouter();
  * @desc  Plan de la empresa, su empresa primaria y cuánto usa de cada límite (sucursales, usuarios, espacios, facturas)
  * @access usuarios con acceso a esa empresa (el alcance lo valida el service)
  */
-router.get('/:companyPublicId', resolveAuthorization, validatePublicId('companyPublicId'), getPlanUsage);
+router.get('/:companyPublicId', resolveAuthorization(), validatePublicId('companyPublicId'), getPlanUsage);
 
 export default router;

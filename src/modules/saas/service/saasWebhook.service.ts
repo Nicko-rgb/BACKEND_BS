@@ -48,7 +48,7 @@ const activateTrialFromPreapproval = async (preapprovalId: string): Promise<void
         return;
     }
 
-    const companyId = subscription.subscriptionCompanies?.[0]?.company_id;
+    const companyId = subscription.subscriptionCompanies?.find((link) => link.is_primary)?.company_id;
     if (!companyId) {
         logger.error(`[MP Webhook] Suscripción ${subscription.subscription_id} sin empresa vinculada`);
         return;
@@ -60,7 +60,7 @@ const activateTrialFromPreapproval = async (preapprovalId: string): Promise<void
         return;
     }
 
-    const owner = company.userAssignments?.[0]?.user;
+    const owner = company.ownerAssignments?.[0]?.user;
 
     await sequelize.transaction(async (transaction) => {
         const now = new Date();

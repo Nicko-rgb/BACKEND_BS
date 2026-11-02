@@ -15,7 +15,7 @@
  *
  * Uso: igual que un Router normal.
  *   const router = createRouter();
- *   router.post('/ruta', resolveAuthorization, verificarPermiso('booking.confirm'), validateDTO(dto), miController);
+ *   router.post('/ruta', resolveAuthorization('booking.confirm'), validateDTO(dto), miController);
  */
 import { Router } from 'express';
 import type { RequestHandler } from 'express';

@@ -57,8 +57,8 @@ const resolveSucursalAssignments = async (user: AuthenticatedUser, publicIds: st
     }));
 };
 
-// Empresa principal a la que se asigna un super_admin (dueño) — por public_id.
-const resolveOwnerAssignment = async (user: AuthenticatedUser, publicId: string): Promise<CompanyAssignment[]> => {
+// Empresa a la que se asigna un usuario (sin otorgarle propiedad) — por public_id.
+const resolveCompanyAssignment = async (user: AuthenticatedUser, publicId: string): Promise<CompanyAssignment[]> => {
     const company = await CompanyRepository.findByPublicId(publicId);
     if (!company) throw new NotFoundError('Empresa no encontrada');
     if (!hasCompanyScope(user, Number(company.company_id))) throw new ForbiddenError('No tenés acceso a esta empresa');
@@ -111,6 +111,10 @@ const loadTarget = async (user: AuthenticatedUser, role: ManagedRole, publicId: 
     if (!target || target.roleRef?.key !== role) throw new NotFoundError('Usuario no encontrado');
     if (!canAssignRole(user, role)) throw new ForbiddenError('No tenés permisos para gestionar este usuario');
 
+    const memberships = await UserCompanyRepository.findActiveByUserId(Number(target.user_id));
+    if (memberships.some((row) => row.is_owner) && !hasFullCompanyAccess(user) && user.user_id !== Number(target.user_id)) {
+        throw new ForbiddenError('Solo el dueño o system puede gestionar la cuenta del dueño.');
+    }
     await assertTargetInScope(user, role, target);
     return target;
 };
@@ -125,7 +129,7 @@ const loadAssignments = async (user: AuthenticatedUser, userId: number): Promise
 
     return rows.flatMap((row) => {
         const company = companyById.get(Number(row.company_id));
-        return company ? [{ publicId: company.public_id, name: company.name, role: row.role }] : [];
+        return company ? [{ publicId: company.public_id, name: company.name, isOwner: row.is_owner }] : [];
     });
 };
 
@@ -168,7 +172,7 @@ export const create = async (roleParam: string, data: CreateManagedUserInput, us
 
     let assignments: CompanyAssignment[] = [];
     if (SUCURSAL_ROLES.includes(role)) assignments = await resolveSucursalAssignments(user, data.sucursales ?? []);
-    if (role === 'super_admin') assignments = await resolveOwnerAssignment(user, data.company_public_id!);
+    if (role === 'super_admin') assignments = await resolveCompanyAssignment(user, data.company_public_id!);
 
     const hashedPassword = data.password ? await bcrypt.hash(data.password, 10) : null;
 
@@ -208,7 +212,7 @@ export const create = async (roleParam: string, data: CreateManagedUserInput, us
             await UserCompanyRepository.bulkCreate(assignments.map((assignment) => ({
                 user_id: newUser.user_id,
                 company_id: assignment.company_id,
-                role,
+                is_owner: false,
                 tenant_id: assignment.tenant_id,
                 is_active: true,
                 created_by: user.user_id,
@@ -259,6 +263,9 @@ export const update = async (roleParam: string, publicId: string, data: UpdateMa
     await sequelize.transaction(async (transaction) => {
         const lockedTarget = await UserRepository.lockById(targetId, transaction);
         if (!lockedTarget) throw new NotFoundError('Usuario no encontrado');
+        if (assignments && (await UserCompanyRepository.findActiveByUserId(targetId, transaction)).some((row) => row.is_owner)) {
+            throw new ConflictError('La asignación del dueño no se modifica desde la gestión de usuarios.');
+        }
         if (assignments) await assertUserLimit(assignments, transaction, targetId);
         await applyProfileChanges(lockedTarget, nextRoleId !== undefined ? { ...profile, role_id: nextRoleId } : profile, transaction);
 
@@ -268,13 +275,11 @@ export const update = async (roleParam: string, publicId: string, data: UpdateMa
             await UserCompanyRepository.bulkCreate(assignments.map((assignment) => ({
                 user_id: targetId,
                 company_id: assignment.company_id,
-                role: assignedRole,
+                is_owner: false,
                 tenant_id: assignment.tenant_id,
                 is_active: true,
                 created_by: user.user_id,
             })), transaction);
-        } else if (nextRoleId !== undefined) {
-            await UserCompanyRepository.updateRoleByUserId(targetId, assignedRole, transaction);
         }
     });
 

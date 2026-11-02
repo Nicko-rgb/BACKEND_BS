@@ -1,6 +1,5 @@
 import { createRouter } from '../../../shared/utils/createRouter';
 import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
-import { verificarPermiso } from '../../../shared/middlewares/verificarPermiso';
 import { validateQuery, validateDTO } from '../../../shared/middlewares/validateDTO';
 import { listPermissionsQuerySchema, createPermissionSchema, updatePermissionSchema } from '../dto/permission.dto';
 import { listAdmin, listModules, listAssignable, create, update, remove } from '../controllers/permission.controller';
@@ -13,7 +12,7 @@ const router = createRouter();
  *        Con `search`, busca por key o label; con `module`/`group`, filtra por módulo/grupo (combinables)
  * @access system
  */
-router.get('/permissions', resolveAuthorization, verificarPermiso('system.full_access'), validateQuery(listPermissionsQuerySchema), listAdmin);
+router.get('/permissions', resolveAuthorization('system.full_access'), validateQuery(listPermissionsQuerySchema), listAdmin);
 
 /**
  * @route GET /api/system/permissions/modules
@@ -21,7 +20,7 @@ router.get('/permissions', resolveAuthorization, verificarPermiso('system.full_a
  *        poblar los dos filtros del frontend
  * @access system
  */
-router.get('/permissions/modules', resolveAuthorization, verificarPermiso('system.full_access'), listModules);
+router.get('/permissions/modules', resolveAuthorization('system.full_access'), listModules);
 
 /**
  * @route GET /api/system/permissions/assignable
@@ -29,27 +28,27 @@ router.get('/permissions/modules', resolveAuthorization, verificarPermiso('syste
  *        (ASSIGNABLE_PERMISSION_KEYS). Sin paginar.
  * @access system o gestión de usuarios (mismo set que el picker de users)
  */
-router.get('/permissions/assignable', resolveAuthorization, verificarPermiso('system.full_access', 'user.administrator_manage', 'user.employee_manage'), listAssignable);
+router.get('/permissions/assignable', resolveAuthorization('system.full_access', 'user.administrator_manage', 'user.employee_manage'), listAssignable);
 
 /**
  * @route POST /api/system/permissions
  * @desc  Crea un permiso nuevo
  * @access system
  */
-router.post('/permissions', resolveAuthorization, verificarPermiso('system.full_access'), validateDTO(createPermissionSchema), create);
+router.post('/permissions', resolveAuthorization('system.full_access'), validateDTO(createPermissionSchema), create);
 
 /**
  * @route PUT /api/system/permissions/:id
  * @desc  Actualiza un permiso existente
  * @access system
  */
-router.put('/permissions/:id', resolveAuthorization, verificarPermiso('system.full_access'), validateDTO(updatePermissionSchema), update);
+router.put('/permissions/:id', resolveAuthorization('system.full_access'), validateDTO(updatePermissionSchema), update);
 
 /**
  * @route DELETE /api/system/permissions/:id
  * @desc  Elimina un permiso — bloqueado si todavía está en uso
  * @access system
  */
-router.delete('/permissions/:id', resolveAuthorization, verificarPermiso('system.full_access'), remove);
+router.delete('/permissions/:id', resolveAuthorization('system.full_access'), remove);
 
 export default router;

@@ -1,6 +1,5 @@
 import { createRouter } from '../../../shared/utils/createRouter';
 import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
-import { verificarPermiso } from '../../../shared/middlewares/verificarPermiso';
 import { validateDTO, validatePublicId, validateQuery } from '../../../shared/middlewares/validateDTO';
 import { listCompaniesQuerySchema, registerCompanySchema, updateCompanySchema } from '../dto/company.schema';
 import { list, registerCompany, getByPublicId, updateByPublicId } from '../controllers/company.controller';
@@ -15,8 +14,7 @@ const router = createRouter();
  * @access system, super_admin
  */
 router.get('/',
-    resolveAuthorization,
-    verificarPermiso('company.view'),
+    resolveAuthorization('company.view'),
     validateQuery(listCompaniesQuerySchema),
     list
 );
@@ -24,11 +22,10 @@ router.get('/',
 /**
  * @route POST /api/companys/register
  * @desc  Alta de empresa (wizard de 3 pasos: empresa, dueño, plan) — queda activa de una.
- * @access system
+ * @access system crea primaria; company.create dentro del propio árbol crea hermana.
  */
 router.post('/register',
-    resolveAuthorization,
-    verificarPermiso('company.create'),
+    resolveAuthorization('company.create'),
     validateDTO(registerCompanySchema),
     registerCompany
 );
@@ -39,8 +36,7 @@ router.post('/register',
  * @access system, super_admin
  */
 router.get('/:publicId',
-    resolveAuthorization,
-    verificarPermiso('company.view'),
+    resolveAuthorization('company.view'),
     validatePublicId('publicId'),
     getByPublicId
 );
@@ -52,8 +48,7 @@ router.get('/:publicId',
  * @access system, super_admin (solo su propia empresa — chequeo manual en el service)
  */
 router.put('/:publicId',
-    resolveAuthorization,
-    verificarPermiso('company.edit'),
+    resolveAuthorization('company.edit'),
     validatePublicId('publicId'),
     validateDTO(updateCompanySchema),
     updateByPublicId

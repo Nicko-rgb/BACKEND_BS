@@ -1,4 +1,4 @@
-import type { InferAttributes } from 'sequelize';
+import type { InferAttributes, Transaction } from 'sequelize';
 import { SaaSPlan } from '../database/models';
 import { countReferences } from '../../../shared/utils/checkReferences';
 
@@ -21,8 +21,8 @@ export const findAllActive = async () => {
 };
 
 // Busca por public_id — lo único expuesto en URLs. Uso interno sigue por plan_id numérico.
-export const findByPublicId = async (publicId: string) => {
-    return SaaSPlan.findOne({ where: { public_id: publicId } });
+export const findByPublicId = async (publicId: string, transaction?: Transaction) => {
+    return SaaSPlan.findOne({ where: { public_id: publicId }, transaction });
 };
 
 // Busca por PK — SOLO uso interno (nunca exponer).

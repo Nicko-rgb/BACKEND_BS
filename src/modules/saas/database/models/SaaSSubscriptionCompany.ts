@@ -1,7 +1,7 @@
 /**
  * SaaSSubscriptionCompany - Empresas raíz cubiertas por una suscripción SaaS
  *
- * Tabla puente muchos-a-muchos entre SaaSSubscription y Company — sostiene "Multi Empresa"
+ * Tabla puente de empresas cubiertas entre SaaSSubscription y Company — sostiene "Multi Empresa"
  * (plan Business): una sola suscripción puede cubrir más de una empresa raíz
  * (parent_company_id IS NULL). `is_primary` marca cuál de ellas es la titular — a esa
  * apunta SaaSInvoice.company_id al facturar (snapshot, mismo criterio que
@@ -61,5 +61,9 @@ SaaSSubscriptionCompany.init({
     tableName: 'dsg_bss_saas_subscription_company',
     timestamps: true,
     createdAt: 'created_at',
-    updatedAt: 'updated_at'
+    updatedAt: 'updated_at',
+    indexes: [
+        { unique: true, fields: ['company_id'], name: 'unique_subscription_company_membership' },
+        { unique: true, fields: ['subscription_id'], where: { is_primary: true }, name: 'unique_saas_subscription_company_primary' }
+    ]
 });

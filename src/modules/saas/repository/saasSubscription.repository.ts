@@ -2,6 +2,14 @@ import { Op } from 'sequelize';
 import type { CreationAttributes, InferAttributes, Transaction } from 'sequelize';
 import { SaaSSubscription, SaaSSubscriptionCompany } from '../database/models';
 
+export const findCompanyMemberships = async (companyIds: number[]) => {
+    if (companyIds.length === 0) return [];
+    return SaaSSubscriptionCompany.findAll({
+        where: { company_id: { [Op.in]: companyIds } },
+        attributes: ['company_id', 'is_primary'],
+    });
+};
+
 // Forma resumida del plan/suscripción de una empresa — usada en el listado de companys y en la
 // validación de límites de plan (planLimits.service.ts). Los `max*` van en su unidad cruda
 // (número), no formateados — quien los use decide cómo mostrarlos ("∞" a partir de 999, ver
@@ -9,6 +17,11 @@ import { SaaSSubscription, SaaSSubscriptionCompany } from '../database/models';
 export interface CompanyPlanSummary {
     subscriptionId: number;
     status: string;
+    currentPeriodStart: Date | null;
+    currentPeriodEnd: Date | null;
+    allowsMultiCompany: boolean;
+    hasAdvancedReports: boolean;
+    hasStripeConnect: boolean;
     planId: number;
     planPublicId: string;
     planName: string;
@@ -30,8 +43,7 @@ export interface CompanyPlanSummary {
  * cuál de las empresas cubiertas es la titular de facturación (a la que apunta
  * SaaSInvoice.company_id) — no identifica "el plan" de una empresa puntual. Filtrar por
  * is_primary=true dejaría sin plan a toda empresa secundaria de un plan Business.
- * Ordenado por created_at DESC: si una empresa llegara a tener más de una fila (ej. una
- * suscripción vieja cancelada y una nueva), se queda con la más reciente.
+ * Cada empresa tiene un único vínculo, protegido por índice único.
  */
 export const findPlansByCompanyIds = async (companyIds: number[], transaction?: Transaction): Promise<Record<number, CompanyPlanSummary>> => {
     const result: Record<number, CompanyPlanSummary> = {};
@@ -40,13 +52,10 @@ export const findPlansByCompanyIds = async (companyIds: number[], transaction?: 
     const rows = await SaaSSubscriptionCompany.findAll({
         where: { company_id: { [Op.in]: companyIds } },
         include: [{ association: 'subscription', include: [{ association: 'plan' }] }],
-        order: [['created_at', 'DESC']],
         transaction,
     });
 
     rows.forEach((row) => {
-        if (result[row.company_id]) return; // ya se quedó con la fila más reciente
-
         const subscription = row.subscription;
         const plan = subscription?.plan;
         if (!subscription || !plan) return;
@@ -54,6 +63,11 @@ export const findPlansByCompanyIds = async (companyIds: number[], transaction?: 
         result[row.company_id] = {
             subscriptionId: subscription.subscription_id,
             status: subscription.status,
+            currentPeriodStart: subscription.current_period_start,
+            currentPeriodEnd: subscription.current_period_end,
+            allowsMultiCompany: plan.allows_multi_company,
+            hasAdvancedReports: plan.has_advanced_reports,
+            hasStripeConnect: plan.has_stripe_connect,
             planId: plan.plan_id,
             planPublicId: plan.public_id,
             planName: plan.name,
@@ -69,19 +83,19 @@ export const findPlansByCompanyIds = async (companyIds: number[], transaction?: 
     return result;
 };
 
-// Plan/suscripción de una sola empresa — mismo criterio que findPlansByCompanyIds (queda la
-// más reciente si hubiera más de una fila), para no repetir el join en cada lugar que solo
+// Plan/suscripción de una sola empresa, para no repetir el join en cada lugar que solo
 // necesita una empresa puntual (ej. planLimits.service.ts).
 export const findPlanByCompanyId = async (companyId: number, transaction?: Transaction): Promise<CompanyPlanSummary | null> => {
     const result = await findPlansByCompanyIds([companyId], transaction);
     return result[companyId] ?? null;
 };
 
-// Empresa titular (is_primary) de una suscripción — solo su public_id y nombre (nunca ids internos).
-export const findPrimaryCompany = async (subscriptionId: number) => {
+// Empresa titular de una suscripción. Los identificadores internos se filtran en el DTO.
+export const findPrimaryCompany = async (subscriptionId: number, transaction?: Transaction) => {
     const row = await SaaSSubscriptionCompany.findOne({
         where: { subscription_id: subscriptionId, is_primary: true },
-        include: [{ association: 'company', attributes: ['company_id', 'public_id', 'name'] }],
+        include: [{ association: 'company', attributes: ['company_id', 'public_id', 'name', 'tenant_id', 'parent_company_id'] }],
+        transaction,
     });
 
     return row?.company ?? null;
@@ -92,10 +106,13 @@ export const create = async (data: CreationAttributes<SaaSSubscription>, transac
     return SaaSSubscription.create(data, { transaction });
 };
 
-// Vincula la suscripción a la empresa que cubre (tabla puente) — la empresa recién creada
-// siempre es la titular (`is_primary: true`) de su propia suscripción.
-export const linkToCompany = async (subscriptionId: number, companyId: number, transaction: Transaction) => {
-    return SaaSSubscriptionCompany.create({ subscription_id: subscriptionId, company_id: companyId, is_primary: true }, { transaction });
+// El caller debe indicar si es titular o hermana; nunca promover una hermana por defecto.
+export const linkToCompany = async (subscriptionId: number, companyId: number, isPrimary: boolean, transaction: Transaction) => {
+    return SaaSSubscriptionCompany.create({ subscription_id: subscriptionId, company_id: companyId, is_primary: isPrimary }, { transaction });
+};
+
+export const lockById = async (subscriptionId: number, transaction: Transaction) => {
+    return SaaSSubscription.findByPk(subscriptionId, { transaction, lock: transaction.LOCK.UPDATE });
 };
 
 // Actualiza parcialmente la instancia ya cargada — usado por el webhook de MercadoPago para

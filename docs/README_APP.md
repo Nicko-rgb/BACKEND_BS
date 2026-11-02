@@ -64,7 +64,7 @@ Request → routes/ → dto/ → controllers/ → service/ → repository/ → d
 
 | Carpeta | Contenido |
 |---------|-----------|
-| `shared/middlewares/` | `verificarTokenAuth`, `verificarPermiso`, `validateDTO`, `uploadMiddleware` |
+| `shared/middlewares/` | `verificarTokenAuth`, `validateDTO`, `uploadMiddleware` |
 | `shared/errors/` | `CustomErrors.ts` — `ValidationError`, `NotFoundError`, `ConflictError`, `UnauthorizedError`, `ForbiddenError`, `BadRequestError` |
 | `shared/utils/` | `ApiResponse`, `accessScope`, `cacheUtility`, `createRouter`, `paginate`, `ids`, `roleHierarchy` |
 | `shared/types/` | `auth.ts`, `pagination.ts`, ampliación de `Express.Request` |
@@ -191,7 +191,7 @@ Los tokens de color viven **solo** en `shared/styles/colors.css` y traen su valo
 3. Se emite el JWT con identidad básica.
    El JWT incluye `jti` y una sesión persistida en PostgreSQL; logout y recuperación de contraseña permiten revocarla.
 4. En cada request, `resolveAuthorization` resuelve **en caliente** (con caché Redis invalidable, TTL 5 min) `role`, `permissions`, `company_ids` y `scope_level` desde la BD.
-5. `verificarPermiso` valida el permiso de la acción.
+5. El mismo `resolveAuthorization(...permisos)` exige al menos uno de los permisos indicados. Sin argumentos solo autentica y resuelve el alcance.
 6. El service valida el alcance (`assertCompanyScope`) contra `company_ids`.
 
 > Los permisos **no** viajan en el JWT justamente para que un cambio de permiso aplique sin esperar a que el usuario renueve sesión.

@@ -4,7 +4,7 @@ import { ForbiddenError } from '../errors/CustomErrors';
 /**
  * Acceso total a datos de cualquier empresa — regla general del sistema: el ALCANCE de
  * datos lo decide el rol (vía su scope_level en dsg_bss_role), nunca un permiso (los
- * permisos solo habilitan la acción, ver verificarPermiso). scope_level=1 es el único
+ * permisos solo habilitan la acción, ver resolveAuthorization). scope_level=1 es el único
  * nivel sin restricción (hoy, `system`); el resto siempre queda acotado a `company_ids`.
  */
 export const hasFullCompanyAccess = (user: Pick<AuthenticatedUser, 'scope_level'>): boolean => {

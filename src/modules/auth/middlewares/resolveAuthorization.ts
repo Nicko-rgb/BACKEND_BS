@@ -1,51 +1,62 @@
 /**
  * Middleware: resolveAuthorization
  *
- * Deja la ruta completamente protegida con un solo middleware: primero
- * valida el token (delega en verificarTokenAuth, shared) y, si es válido,
- * completa req.user con permissions/company_ids/scope_level/role resueltos
- * en caliente — ver authorizationResolver.service.ts.
+ * Autentica, resuelve la autorización vigente y exige al menos uno de los
+ * permisos indicados. Sin argumentos solo exige una sesión válida y resuelve
+ * el alcance. El acceso a la entidad concreta se valida en el service.
  *
  * verificarTokenAuth sigue viviendo en shared/middlewares, no acá: ahí no
  * puede importar modelos de otros módulos sin crear una dependencia
  * circular, y la resolución de permisos/scope sí necesita leer Role/
- * RolePermission/UserPermission/UserCompany — por eso vive en `auth`, que sí
+ * UserPermission/UserCompany — por eso vive en `auth`, que sí
  * puede importar esos módulos (igual que ya hace auth.service.ts para el
- * login). Este middleware compone ambos pasos; verificarTokenAuth sigue
+ * login). Este middleware compone los tres pasos; verificarTokenAuth sigue
  * siendo una pieza aparte, usable sola si algún día hiciera falta solo
  * autenticación sin resolver todo el árbol de permisos.
  *
- * Uso: reemplaza al par verificarTokenAuth + resolveAuthorization — ya no
- * hace falta encadenar los dos.
- *   router.get('/x', resolveAuthorization, verificarPermiso('x'), handler);
+ * Uso:
+ *   router.put('/company/:publicId', resolveAuthorization('company.edit'), handler);
+ *   router.get('/my-menu', resolveAuthorization(), handler);
+ *   router.get('/users', resolveAuthorization('user.manage_all', 'user.employee_manage'), handler);
  */
 import type { Request, Response, NextFunction } from 'express';
 import { verificarTokenAuth } from '../../../shared/middlewares/verificarTokenAuth';
 import { resolveAuthorization as resolve } from '../service/authorizationResolver.service';
-import { UnauthorizedError } from '../../../shared/errors/CustomErrors';
+import { ForbiddenError, UnauthorizedError } from '../../../shared/errors/CustomErrors';
 
-export const resolveAuthorization = (req: Request, res: Response, next: NextFunction): void => {
-    verificarTokenAuth(req, res, async (err?: unknown) => {
-        if (err) {
-            next(err);
-            return;
-        }
+export const resolveAuthorization = (...requiredPerms: string[]) => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        // Adaptar el middleware de token a la secuencia async, sin ejecutar next antes de tiempo.
+        await new Promise<void>((resolveToken, rejectToken) => {
+            verificarTokenAuth(req, res, (error?: unknown) => {
+                if (error) rejectToken(error);
+                else resolveToken();
+            }).catch(rejectToken);
+        });
 
         if (!req.user) {
-            next(new UnauthorizedError('Autenticación requerida'));
-            return;
+            throw new UnauthorizedError('Autenticación requerida');
         }
 
-        try {
-            const resolved = await resolve(req.user.user_id);
-            req.user.role_id = resolved.roleId;
-            req.user.role = resolved.roleKey;
-            req.user.scope_level = resolved.scopeLevel;
-            req.user.permissions = resolved.permissions;
-            req.user.company_ids = resolved.companyIds;
-            next();
-        } catch (error) {
-            next(error);
+        const resolved = await resolve(req.user.user_id);
+        req.user.role_id = resolved.roleId;
+        req.user.role = resolved.roleKey;
+        req.user.scope_level = resolved.scopeLevel;
+        req.user.permissions = resolved.permissions;
+        req.user.company_ids = resolved.companyIds;
+
+        // system.full_access omite el chequeo de acción, nunca amplía el alcance de datos.
+        if (
+            requiredPerms.length > 0
+            && !resolved.permissions.includes('system.full_access')
+            && !requiredPerms.some((permission) => resolved.permissions.includes(permission))
+        ) {
+            throw new ForbiddenError('No tienes los permisos necesarios para esta acción', { required: requiredPerms });
         }
-    });
+    } catch (error) {
+        next(error);
+        return;
+    }
+
+    next();
 };
