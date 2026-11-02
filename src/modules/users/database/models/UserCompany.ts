@@ -1,7 +1,8 @@
 /**
  * Membresía de usuario en una empresa o sucursal.
  * is_owner identifica al único dueño del tenant, asignado a su empresa primaria.
- * El resto obtiene alcance de la entidad asignada; el rol vive solo en User.
+ * El dueño cubre el tenant y el resto cubre la empresa padre de su asignación;
+ * el rol y los permisos efectivos viven en User/UserPermission.
  */
 import { DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional, NonAttribute } from 'sequelize';
 import sequelize from '../../../../config/db';

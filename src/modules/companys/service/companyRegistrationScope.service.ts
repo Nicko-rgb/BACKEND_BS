@@ -23,7 +23,7 @@ export const resolveRegistrationCoverage = async (
     transaction: Transaction,
 ): Promise<RegistrationCoverage> => {
     if (!user.permissions.includes('company.create') && !user.permissions.includes('system.full_access')) {
-        throw new ForbiddenError('No tenés permisos para crear empresas.');
+        throw new ForbiddenError('No tienes permisos para crear empresas.');
     }
 
     if (hasFullCompanyAccess(user)) {
@@ -35,7 +35,7 @@ export const resolveRegistrationCoverage = async (
         return { tenantId: idPublicId(), planId: plan.plan_id, planName: plan.name, subscriptionId: null };
     }
 
-    // Un permiso de acción nunca convierte a un usuario acotado en system.
+    // El permiso habilita el alta; solo scope_level 1 crea un tenant nuevo.
     if (payload.plan) throw new BadRequestError('Una empresa hermana hereda el plan de su grupo; no debe seleccionar otro plan.');
     const entities = await CompanyRepository.findRegistrationSources(user.company_ids ?? [], transaction);
     const roots = new Map(entities.flatMap((entity) => {

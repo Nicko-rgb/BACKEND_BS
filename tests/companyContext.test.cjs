@@ -54,13 +54,10 @@ const getContext = async (scope_level, company_ids) => toCompanyContextDto(await
 
 beforeEach(() => { queries = []; });
 
-test('system sin asignaciones obtiene todas las empresas, incluso las que no tienen sucursales', async () => {
+test('system no recibe árbol de membresías', async () => {
     const { companies: tree } = await getContext(1, []);
-    assert.deepEqual(tree.map((node) => node.name), ['Alpha', 'Empty', 'Zeta']);
-    assert.ok(tree.every((node) => node.access));
-    assert.deepEqual(tree[1].sucursales, []);
-    assert.equal(tree.flatMap((node) => node.sucursales).length, 3);
-    assert.equal(queries.length, 2);
+    assert.deepEqual(tree, []);
+    assert.equal(queries.length, 0);
 });
 
 test('super admin recibe su alcance expandido y la moneda del país de cada sucursal', async () => {
@@ -78,21 +75,21 @@ test('super admin recibe su alcance expandido y la moneda del país de cada sucu
 });
 
 for (const level of [3, 4]) {
-    test(`nivel ${level}: padre sin acceso, solo sucursales asignadas y espacios propios`, async () => {
-        const { companies: tree } = await getContext(level, [11, 21]);
+    test(`nivel ${level}: contexto informativo de todas las entidades del tenant resuelto`, async () => {
+        const { companies: tree } = await getContext(level, [10, 11, 12, 20, 21]);
         assert.deepEqual(tree.map((node) => node.publicId), ['company-10', 'company-20']);
-        assert.ok(tree.every((node) => node.access === false));
-        assert.deepEqual(tree.flatMap((node) => node.sucursales.map((s) => s.publicId)), ['company-11', 'company-21']);
+        assert.ok(tree.every((node) => node.access));
+        assert.deepEqual(tree.flatMap((node) => node.sucursales.map((s) => s.publicId)), ['company-12', 'company-11', 'company-21']);
         assert.ok(tree.flatMap((node) => node.sucursales).every((node) => node.access));
-        assert.ok(!JSON.stringify(tree).includes('space-3'));
-        assert.deepEqual(queries[1].query.where.sucursal_id[Op.in], [11, 21]);
+        assert.ok(JSON.stringify(tree).includes('space-3'));
+        assert.deepEqual(queries[1].query.where.sucursal_id[Op.in], [12, 11, 21]);
     });
 }
 
-test('múltiples asignaciones de la misma empresa no duplican el padre ni dan acceso a él', async () => {
-    const { companies: tree } = await getContext(3, [11, 12]);
+test('múltiples asignaciones del mismo tenant no duplican el padre', async () => {
+    const { companies: tree } = await getContext(3, [10, 11, 12]);
     assert.equal(tree.length, 1);
-    assert.equal(tree[0].access, false);
+    assert.equal(tree[0].access, true);
     assert.equal(tree[0].sucursales.length, 2);
 });
 
@@ -111,10 +108,10 @@ test('el alcance de empresa no se expande otra vez al armar el contexto', async 
     assert.equal(queries.length, 1);
 });
 
-test('el permiso system.full_access no amplía el alcance del rol', async () => {
-    const tree = await getCompanyContext({ scope_level: 3, company_ids: [11], permissions: ['system.full_access'] });
+test('un permiso no amplía el contexto fuera de los IDs resueltos', async () => {
+    const tree = await getCompanyContext({ scope_level: 3, company_ids: [10, 11], permissions: ['system.full_access'] });
     assert.equal(tree.length, 1);
-    assert.equal(tree[0].access, false);
+    assert.equal(tree[0].access, true);
     assert.equal(tree[0].sucursales.length, 1);
 });
 

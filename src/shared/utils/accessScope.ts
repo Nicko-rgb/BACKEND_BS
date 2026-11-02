@@ -2,10 +2,9 @@ import type { AuthenticatedUser } from '../types/auth';
 import { ForbiddenError } from '../errors/CustomErrors';
 
 /**
- * Acceso total a datos de cualquier empresa — regla general del sistema: el ALCANCE de
- * datos lo decide el rol (vía su scope_level en dsg_bss_role), nunca un permiso (los
- * permisos solo habilitan la acción, ver resolveAuthorization). scope_level=1 es el único
- * nivel sin restricción (hoy, `system`); el resto siempre queda acotado a `company_ids`.
+ * scope_level=1 tiene alcance global. El dueño super_admin cubre su tenant;
+ * los demás quedan en la empresa padre de sus asignaciones y sus sucursales.
+ * Los permisos efectivos habilitan cada acción.
  */
 export const hasFullCompanyAccess = (user: Pick<AuthenticatedUser, 'scope_level'>): boolean => {
     return user.scope_level === 1;
@@ -14,10 +13,9 @@ export const hasFullCompanyAccess = (user: Pick<AuthenticatedUser, 'scope_level'
 type ScopeUser = Pick<AuthenticatedUser, 'scope_level' | 'company_ids'>;
 
 /**
- * ¿Está esta empresa/sucursal dentro del alcance del usuario? `company_ids` ya viene
- * expandido por resolveAuthorization (para super_admin incluye sus empresas raíz MÁS sus
- * sucursales; para administrador/empleado, sus sucursales) — acá solo se verifica
- * membresía plana contra ese array ya resuelto.
+ * ¿Está esta empresa/sucursal en el alcance efectivo del usuario? `company_ids`
+ * ya contiene los IDs resueltos según propiedad o empresa padre. La ruta
+ * valida por separado el permiso de acción.
  */
 export const hasCompanyScope = (user: ScopeUser, companyId: number): boolean => {
     return hasFullCompanyAccess(user) || (user.company_ids ?? []).includes(Number(companyId));

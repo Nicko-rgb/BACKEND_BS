@@ -36,6 +36,7 @@ export interface UserFilters {
     search?: string;
     role?: string;
     countryId?: number;
+    companyIds?: number[];
 }
 
 /**
@@ -48,7 +49,7 @@ export interface UserFilters {
  * `required: true` en esos casos (si no, con `left join` dejaría pasar todos los usuarios igual).
  */
 export const findAll = async (pagination: PaginationQuery, filters: UserFilters = {}) => {
-    const { search, role, countryId } = filters;
+    const { search, role, countryId, companyIds } = filters;
 
     return User.findAndCountAll({
         where: {
@@ -61,6 +62,12 @@ export const findAll = async (pagination: PaginationQuery, filters: UserFilters 
             } : {}),
         },
         include: [
+            ...(companyIds ? [{
+                association: 'companyAssignments',
+                attributes: [],
+                required: true,
+                where: { company_id: { [Op.in]: companyIds }, is_active: true },
+            }] : []),
             {
                 association: 'person',
                 required: Boolean(countryId),

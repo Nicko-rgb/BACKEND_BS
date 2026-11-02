@@ -14,7 +14,7 @@ const parsePublicId = (value: string): string => {
 
 // Catálogo global de usuarios, paginado, con búsqueda y filtros por rol y país.
 export const list = async (req: Request, res: Response) => {
-    const { rows, count } = await UserManageService.list(req.validatedQuery);
+    const { rows, count } = await UserManageService.list(req.validatedQuery, req.user!);
     const pagination = toPaginationMeta(count, req.validatedQuery);
     return ApiResponse.ok(res, rows.map(toUserDto), 'Usuarios obtenidos exitosamente', 200, { pagination });
 };

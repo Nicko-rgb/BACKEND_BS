@@ -12,7 +12,8 @@
  *     completo, sin excepciones). dsg_bss_role_permission es solo la PLANTILLA
  *     que se copia al crear un usuario nuevo — editarla no toca existentes.
  *   - el rol aporta etiqueta, menú y el alcance global de system.
- *   - las membresías y la propiedad determinan el árbol de los demás usuarios.
+ *   - el dueño super_admin cubre su tenant; administrador y empleado cubren
+ *     la empresa padre de sus asignaciones, mientras cada acción exige permiso.
  *
  * Se llama desde dos lugares:
  *   - `resolveAuthorization` (modules/auth/middlewares) — en cada request autenticado.
@@ -87,7 +88,7 @@ export const resolveAuthorization = async (userId: number): Promise<ResolvedAuth
     if (!userData.isEnabled) throw new UnauthorizedError('Usuario deshabilitado');
 
     const roleData = await loadRoleData(userData.roleId);
-    const companyIds = roleData.scopeLevel === 1 ? [] : await UserCompanyRepository.findEffectiveCompanyIdsByUserId(userId);
+    const companyIds = roleData.scopeLevel === 1 ? [] : await UserCompanyRepository.findEffectiveCompanyIdsByUserId(userId, roleData.scopeLevel);
 
     return {
         roleId: userData.roleId,

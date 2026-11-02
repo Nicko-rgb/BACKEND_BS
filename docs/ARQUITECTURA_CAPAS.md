@@ -280,7 +280,7 @@ GlobalErrorHandler.handleError
 4. **El service no toca Sequelize.** El repository no tiene reglas de negocio.
 5. **El front nunca ve ids internos de entidades del tenant.** Solo `public_id` (UUID). Excepción: los catálogos de sistema (país, ubigeo, deporte, superficie, pago, rol, permiso) exponen su `id` porque el front los usa como valor de select.
 6. **Los errores son clases semánticas**, no strings.
-7. **El scope lo decide el ROL, el permiso habilita la ACCIÓN.** `scope_level` (en `dsg_bss_role`) define hasta dónde se ve; `resolveAuthorization(...permisos)` valida qué se puede hacer. Un permiso nunca amplía el alcance de datos.
+7. **El permiso habilita la acción y el alcance limita los datos.** `system` (`scope_level = 1`) es global; el dueño `super_admin` cubre su tenant y los demás cubren la empresa padre de sus asignaciones y sus sucursales. `resolveAuthorization(...permisos)` valida la acción y el service valida la entidad.
 8. **Una query por función de repository.**
 9. **Los mensajes de Joi son explícitos.** Ningún usuario ve el texto genérico de Joi.
 10. **Si un módulo necesita una capa que no existe, se crea la carpeta** — no se saltea la capa ni se mete lógica en otra.

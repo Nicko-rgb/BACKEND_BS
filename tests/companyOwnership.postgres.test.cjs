@@ -37,13 +37,14 @@ test('baselines de propiedad y alcance contra PostgreSQL', { skip: process.env.O
             SET CONSTRAINTS ALL DEFERRED;
         `, { a, b });
 
-        const ids = async (userId) => (await repository.findEffectiveCompanyIdsByUserId(userId, tx)).sort((x, y) => x - y);
-        await t.test('dueño obtiene primaria, hermanas y sucursales; otros no heredan grupo por tenant', async () => {
-            assert.deepEqual(await ids(1), [10, 11, 12, 20, 21]);
-            assert.deepEqual(await ids(2), [11]);
-            assert.deepEqual(await ids(3), [20, 21]);
-            assert.deepEqual(await ids(5), [10, 11, 12]);
-            assert.deepEqual(await ids(4), [30, 31]);
+        const ids = async (userId, scopeLevel = 3) => (await repository.findEffectiveCompanyIdsByUserId(userId, scopeLevel, tx)).sort((x, y) => x - y);
+        await t.test('dueño cubre el tenant; otros quedan en su empresa padre y sucursales', async () => {
+            assert.deepEqual(await ids(1, 2), [10, 11, 12, 20, 21]);
+            assert.deepEqual(await ids(2), [10, 11, 12]);
+            assert.deepEqual(await ids(3, 2), [20, 21]);
+            assert.deepEqual(await ids(5, 2), [10, 11, 12]);
+            assert.deepEqual(await ids(4, 2), [30, 31]);
+            assert.deepEqual(await ids(1), [10, 11, 12]);
         });
         await t.test('el dueño se cuenta en cada empresa sin duplicarlo por sucursal', async () => {
             assert.equal(await repository.countActiveUsersByCompanyIds([10, 11, 12], tx), 3);
@@ -75,12 +76,13 @@ test('baselines de propiedad y alcance contra PostgreSQL', { skip: process.env.O
             await rejectsChange('UPDATE dsg_bss_company SET parent_company_id = 30 WHERE company_id = 11', /mismo tenant/);
             await rejectsChange('INSERT INTO dsg_bss_saas_subscriptions VALUES (400)', /empresa primaria/);
         });
-        await t.test('una hermana nueva entra al alcance del dueño sin crear otro usuario o membresía', async () => {
+        await t.test('una hermana nueva entra al alcance del dueño, no del administrador de A', async () => {
             await query(`INSERT INTO dsg_bss_company VALUES (40, :a, NULL), (41, :a, 40);
                 INSERT INTO dsg_bss_saas_subscription_company (subscription_id, company_id, created_at, updated_at) VALUES (100, 40, now(), now());
                 SET CONSTRAINTS ALL IMMEDIATE; SET CONSTRAINTS ALL DEFERRED`, { a });
-            assert.deepEqual(await ids(1), [10, 11, 12, 20, 21, 40, 41]);
-            assert.deepEqual(await ids(3), [20, 21]);
+            assert.deepEqual(await ids(1, 2), [10, 11, 12, 20, 21, 40, 41]);
+            assert.deepEqual(await ids(2), [10, 11, 12]);
+            assert.deepEqual(await ids(3, 2), [20, 21]);
             assert.equal(await repository.countActiveUsersByCompanyIds([40, 41], tx), 1);
         });
         await t.test('desactivar membresía revoca alcance; el baseline no tiene columna role', async () => {

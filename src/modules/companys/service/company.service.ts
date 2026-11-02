@@ -35,12 +35,9 @@ const withAssignments = async (company: Company) => {
  * plan (resuelto acá aparte, vía saasSubscription.repository — `companys` no puede importar
  * modelos de `saas` sin crear una dependencia circular, ver nota en Company.ts).
  *
- * Alcance de datos por ROL, no por permiso (regla general del sistema, ver
- * shared/utils/accessScope.ts) — `company.view` (resolveAuthorization, en la ruta) solo
- * habilita la acción de listar; hasta dónde ve cada uno lo decide acá el rol: `system`
- * ve el catálogo completo, cualquier otro rol (hoy solo `super_admin` tiene `company.view`)
- * queda acotado a `user.company_ids`, resuelto desde sus membresías y propiedad
- * en cada request. El JWT no contiene el árbol.
+ * `company.view` habilita la acción de listar. `system` ve el catálogo global;
+ * los demás ven las empresas en `user.company_ids`, resueltas según propiedad
+ * o empresa padre de sus asignaciones en cada request. El JWT no contiene el árbol.
  */
 export const list = async (query: ListCompaniesQuery, user: AuthenticatedUser) => {
     const search = query.search?.trim() || undefined;

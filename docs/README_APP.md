@@ -140,19 +140,19 @@ Los permisos efectivos salen de `dsg_bss_user_permissions` (set propio del usuar
 
 `dsg_bss_role_permission` es **solo la plantilla** que se copia al crear un usuario. Editarla no toca usuarios existentes.
 
-### 4.2. El rol define el alcance
+### 4.2. Permisos efectivos dentro del tenant
 
-El `scope_level` del rol (`dsg_bss_role`) define hasta dónde ve el usuario. **Un permiso nunca amplía el alcance de datos.**
+El `scope_level` 1 conserva el alcance global de `system`. El dueño `super_admin` (`is_owner`) cubre todas las empresas del tenant. Administradores y empleados cubren la empresa padre de sus asignaciones activas y sus sucursales; no heredan empresas hermanas. Los permisos efectivos habilitan cada acción. `admin-context` es informativo y no autoriza requests.
 
 | Rol | `scope_level` | Alcance |
 |-----|---------------|---------|
 | `system` | 1 | Toda la plataforma |
-| `super_admin` | 2 | Sus empresas raíz **+ todas sus sucursales** |
-| `administrador` | 3 | Sus sucursales asignadas |
-| `empleado` | 4 | Sus sucursales asignadas |
+| `super_admin` | 2 | Dueño: todo su tenant; otros: empresa asignada y sucursales |
+| `administrador` | 3 | Empresa padre de sus asignaciones y sus sucursales |
+| `empleado` | 4 | Empresa padre de sus asignaciones y sus sucursales |
 | `cliente` | `NULL` | Portal de reservas, sin scope admin |
 
-Un `administrador` puede **escalar en acciones** (su `super_admin` le puede dar `company.edit`, `user.administrator_manage`…) pero sigue viendo **solo sus sucursales** en los listados.
+Un `administrador` con `company.view` puede leer su empresa padre, pero no una hermana del mismo tenant. Sin ese permiso, el alcance no le habilita la acción.
 
 ---
 

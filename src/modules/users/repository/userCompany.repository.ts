@@ -89,34 +89,24 @@ export const findOwnerByTenantId = async (tenantId: string, transaction?: Transa
     });
 };
 
-// Única expansión de alcance. Se consulta en cada request: nuevas hermanas y
-// cambios de propiedad aplican sin depender de un árbol guardado en el JWT/cache.
-export const findEffectiveCompanyIdsByUserId = async (userId: number, transaction?: Transaction): Promise<number[]> => {
+// El dueño super_admin cubre todo su tenant. Los demás cubren la empresa padre
+// de cada asignación activa y todas sus sucursales, nunca una empresa hermana.
+// Los permisos se comprueban por separado en la ruta.
+export const findEffectiveCompanyIdsByUserId = async (userId: number, scopeLevel: number | null, transaction?: Transaction): Promise<number[]> => {
     const rows = await sequelize.query<{ company_id: number }>(`
         WITH assignments AS (
-            SELECT uc.company_id, uc.tenant_id, uc.is_owner
+            SELECT uc.tenant_id, uc.is_owner,
+                   COALESCE(c.parent_company_id, c.company_id) AS root_company_id
             FROM dsg_bss_user_company uc
             JOIN dsg_bss_company c ON c.company_id = uc.company_id AND c.tenant_id = uc.tenant_id
             WHERE uc.user_id = :userId AND uc.is_active
-        ), authorized AS (
-            SELECT company_id FROM assignments
-            UNION
-            SELECT covered.company_id
-            FROM assignments a
-            JOIN dsg_bss_saas_subscription_company primary_link
-              ON primary_link.company_id = a.company_id AND primary_link.is_primary
-            JOIN dsg_bss_saas_subscription_company member
-              ON member.subscription_id = primary_link.subscription_id
-            JOIN dsg_bss_company covered ON covered.company_id = member.company_id
-              AND covered.tenant_id = a.tenant_id AND covered.parent_company_id IS NULL
-            WHERE a.is_owner
         )
-        SELECT company_id FROM authorized
-        UNION
-        SELECT child.company_id FROM dsg_bss_company child
-        JOIN dsg_bss_company parent ON parent.company_id = child.parent_company_id
-          AND parent.tenant_id = child.tenant_id AND parent.parent_company_id IS NULL
-        JOIN authorized a ON a.company_id = parent.company_id
-    `, { replacements: { userId }, type: QueryTypes.SELECT, transaction });
+        SELECT DISTINCT c.company_id FROM dsg_bss_company c
+        JOIN assignments a ON a.tenant_id = c.tenant_id AND (
+            (:ownerScope = true AND a.is_owner)
+            OR c.company_id = a.root_company_id
+            OR c.parent_company_id = a.root_company_id
+        )
+    `, { replacements: { userId, ownerScope: scopeLevel === 2 }, type: QueryTypes.SELECT, transaction });
     return rows.map((row) => Number(row.company_id));
 };

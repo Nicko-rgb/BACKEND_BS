@@ -135,12 +135,15 @@ const loadAssignments = async (user: AuthenticatedUser, userId: number): Promise
 
 // ── Operaciones ─────────────────────────────────────────────────────────────────────────────
 
-// Catálogo global de usuarios, paginado, con búsqueda por nombre o correo y filtros por rol y país.
-export const list = async (query: ListUsersQuery) => {
+// System ve el catálogo global; los demás solo usuarios asignados a entidades de su alcance.
+export const list = async (query: ListUsersQuery, user: AuthenticatedUser) => {
     const search = query.search?.trim() || undefined;
     const role = query.role?.trim() || undefined;
 
-    return UserRepository.findAll(query, { search, role, countryId: query.countryId });
+    return UserRepository.findAll(query, {
+        search, role, countryId: query.countryId,
+        companyIds: hasFullCompanyAccess(user) ? undefined : (user.company_ids ?? []),
+    });
 };
 
 export const getById = async (roleParam: string, publicId: string, user: AuthenticatedUser) => {

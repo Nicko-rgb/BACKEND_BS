@@ -5,17 +5,18 @@ import type { AuthenticatedUser } from '../../../shared/types/auth';
 import type { CompanyContextNode, ContextCompanyRecord, ContextSpaceRecord } from '../interfaces/companyContext.interface';
 
 /**
- * Contexto informativo del login. `access` indica alcance sobre la entidad;
+ * Contexto informativo del login. `access` indica alcance resuelto;
  * los permisos para cada acción siguen siendo responsabilidad del backend.
- * Nunca se incluyen sucursales hermanas fuera del alcance del usuario.
+ * Solo se incluyen entidades de las empresas permitidas y sus sucursales.
  */
 export const getCompanyContext = async (
     user: Pick<AuthenticatedUser, 'scope_level' | 'company_ids'>,
 ): Promise<CompanyContextNode[]> => {
-    const globalAccess = hasFullCompanyAccess(user);
-    if (!globalAccess && !user.company_ids?.length) return [];
+    // `system` autoriza globalmente, pero no pertenece a ninguna empresa:
+    // admin-context representa membresí­as, no el alcance global de permisos.
+    if (hasFullCompanyAccess(user) || !user.company_ids?.length) return [];
 
-    const entities = await CompanyContextRepository.findCompanies(globalAccess ? undefined : user.company_ids);
+    const entities = await CompanyContextRepository.findCompanies(user.company_ids);
     const sucursales = entities.filter((entity) =>
         entity.parent_company_id !== null && hasCompanyScope(user, entity.company_id));
     const spaces = sucursales.length
@@ -44,7 +45,7 @@ export const getCompanyContext = async (
     }
 
     for (const sucursal of sucursales) {
-        // Incluir la empresa como agrupador no amplía el alcance sobre ella.
+        // El padre agrupa las sucursales del mismo tenant.
         const parent = companies.get(Number(sucursal.parent_company_id))
             ?? (sucursal.parentCompany ? addCompany(sucursal.parentCompany) : undefined);
         if (!parent) continue;
