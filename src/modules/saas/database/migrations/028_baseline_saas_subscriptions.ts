@@ -43,15 +43,11 @@ const migration: MigrationFile = {
                 defaultValue: 'TRIAL',
                 comment: 'TRIAL, ACTIVE, PAST_DUE, CANCELED, INCOMPLETE'
             },
-            stripe_customer_id: {
-                type: DataTypes.STRING(100),
-                allowNull: true,
-                comment: 'ID del cliente en Stripe'
-            },
-            stripe_subscription_id: {
-                type: DataTypes.STRING(100),
-                allowNull: true,
-                comment: 'ID de la suscripción en Stripe Billing'
+            is_effective: {
+                type: DataTypes.BOOLEAN,
+                allowNull: false,
+                defaultValue: false,
+                comment: 'Si la suscripción aún está vigente'
             },
             current_period_start: {
                 type: DataTypes.DATE,
@@ -104,7 +100,6 @@ const migration: MigrationFile = {
             }
         }, { transaction });
 
-        await queryInterface.addIndex('dsg_bss_saas_subscriptions', ['stripe_subscription_id'], { transaction });
         await queryInterface.addIndex('dsg_bss_saas_subscriptions', ['public_id'], { transaction, unique: true, name: 'unique_saas_subscription_public_id' });
         // Índice para buscar suscripciones MP por preapproval_id (webhook) ───────────
         await queryInterface.addIndex('dsg_bss_saas_subscriptions', ['mp_preapproval_id'], { transaction,

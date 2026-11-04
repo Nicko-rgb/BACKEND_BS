@@ -38,10 +38,10 @@ const MENU_ITEMS: MenuItemSeed[] = [
     { key: 'bookings', label: 'Reservas', icon: 'TbCalendarCheck', path: '/bookings', parent_key: null, app_access: 'admin', group_title: 'GENERAL', sort_order: 3, is_active: true },
     { key: 'users', label: 'Usuarios', icon: 'Users2', path: '/users', parent_key: null, app_access: 'admin', group_title: 'GENERAL', sort_order: 4, is_active: true },
 
-    { key: 'permissions', label: 'Roles y Permisos', icon: 'ShieldCheck', path: '/system/permissions', parent_key: null, app_access: 'admin', group_title: 'SISTEMA', sort_order: 1, is_active: true },
-    { key: 'menu_config', label: 'Configurar Menú', icon: 'Menu', path: '/system/menu', parent_key: null, app_access: 'admin', group_title: 'SISTEMA', sort_order: 2, is_active: true },
+    { key: 'permissions', label: 'Roles y Permisos', icon: 'ShieldCheck', path: '/permissions', parent_key: null, app_access: 'admin', group_title: 'SISTEMA', sort_order: 1, is_active: true },
+    { key: 'menu_config', label: 'Configurar Menú', icon: 'Menu', path: '/menu', parent_key: null, app_access: 'admin', group_title: 'SISTEMA', sort_order: 2, is_active: true },
     { key: 'catalogs', label: 'Catálogos', icon: 'Layers', path: null, parent_key: null, app_access: 'admin', group_title: 'SISTEMA', sort_order: 3, is_active: true },
-    { key: 'suscripciones', label: 'Suscripciones', icon: 'CreditCard', path: '/system/suscripciones', parent_key: null, app_access: 'admin', group_title: 'SISTEMA', sort_order: 4, is_active: true },
+    { key: 'suscripciones', label: 'Suscripción', icon: 'Crown', path: '/suscriptions', parent_key: null, app_access: 'admin', group_title: 'SISTEMA', sort_order: 4, is_active: true },
 
     { key: 'cat_countries', label: 'Países', icon: 'Globe', path: '/system/catalogs/countries', parent_key: 'catalogs', app_access: 'admin', group_title: 'SISTEMA', sort_order: 1, is_active: true },
     { key: 'cat_sport_types', label: 'Deportes', icon: 'Trophy', path: '/system/catalogs/sport-types', parent_key: 'catalogs', app_access: 'admin', group_title: 'SISTEMA', sort_order: 2, is_active: true },

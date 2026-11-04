@@ -1,13 +1,7 @@
 import { isUnlimitedLimit } from '../utils/planLimits';
-import type { CompanyPlanSummary } from '../repository/saasSubscription.repository';
+import type { CompanyPlanSummary } from '../interfaces/plan.interface';
+import type { PlanUsageCounts } from '../interfaces/planUsage.interface';
 import type { Company } from '../../companys/database/models';
-
-interface PlanUsageCounts {
-    subsidiaries: number;
-    users: number;
-    spaces: number;
-    invoicesMonthly: number;
-}
 
 // Uso de un límite — `max` en null cuando el plan lo tiene ilimitado.
 const toLimitUsage = (used: number, max: number) => ({ used, max: isUnlimitedLimit(max) ? null : max });

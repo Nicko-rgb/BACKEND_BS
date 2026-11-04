@@ -26,12 +26,26 @@ otra fila en la tabla puente. Primaria, hermanas y sucursales comparten `tenant_
 
 ## Vigencia y consumo
 
-`planLimits.service.ts` consulta puente → suscripción → plan. Solo `ACTIVE` y
-`TRIAL` permiten consumir recursos, dentro de sus fechas de vigencia. El final
-del período es exclusivo. Las suscripciones manuales existentes sin fechas
-siguen siendo válidas mientras estén activas; este cambio no introduce cobro.
-Una cancelación programada conserva acceso hasta el fin del período mientras
-el estado permanezca activo. `CANCELED` no concede acceso.
+`planLimits.service.ts` consulta puente → suscripción → plan y concede acceso
+únicamente cuando `is_effective = true`. `status` expresa el estado comercial:
+una suscripción `CANCELED` puede conservar acceso hasta finalizar su período.
+El endpoint `GET /api/saas/subscription/:companyPublicId/current-plan` devuelve
+la suscripción compartida en cualquier estado, con `status` e `isEffective`
+separados; el perfil muestra ambos sin recalcular la vigencia.
+
+Las altas manuales y la activación del trial establecen `is_effective = true`.
+El job de vencimiento corre al arrancar y cada medianoche según la zona horaria
+local del servidor. En una sola actualización cambia las
+suscripciones vigentes con `current_period_end <= now` a `is_effective = false`
+y `status = PAST_DUE`, incluidas las canceladas. Las suscripciones sin fecha final
+no vencen automáticamente. El acceso puede continuar hasta la siguiente ejecución
+del job; sus fallos se registran en el logger.
+
+Una renovación debe actualizar el período, el estado y `is_effective = true`
+juntos. El webhook actual solo activa el trial; el procesamiento de cobros y
+renovaciones sigue pendiente. Al incorporar el campo a una base existente,
+hay que inicializar la vigencia de sus suscripciones: su valor por defecto es
+`false`, y el job de vencimiento no concede acceso ni reactiva suscripciones.
 
 Los cupos se cuentan por empresa y sus sucursales, nunca por tenant o por
 suscripción. Un usuario en varias sucursales de la misma empresa cuenta una

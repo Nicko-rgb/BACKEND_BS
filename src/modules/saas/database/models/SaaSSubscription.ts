@@ -10,15 +10,14 @@ import sequelize from '../../../../config/db';
 import { idPublicId } from '../../../../shared/utils/ids';
 import type { SaaSPlan } from './SaaSPlan';
 import type { SaaSSubscriptionCompany } from './SaaSSubscriptionCompany';
-import { isSubscriptionValid } from '../../utils/subscriptionValidity';
+import { SUBSCRIPTION_STATUSES, type SubscriptionStatus } from '../../interfaces/subscription.interface';
 
 export class SaaSSubscription extends Model<InferAttributes<SaaSSubscription>, InferCreationAttributes<SaaSSubscription>> {
     declare subscription_id: CreationOptional<number>;
     declare public_id: CreationOptional<string>;
     declare plan_id: number;
-    declare status: CreationOptional<string>;
-    declare stripe_customer_id: string | null;
-    declare stripe_subscription_id: string | null;
+    declare status: CreationOptional<SubscriptionStatus>;
+    declare is_effective: CreationOptional<boolean>;
     declare billing_period: string | null;
     declare gateway: CreationOptional<string>;
     declare mp_payment_id: string | null;
@@ -38,13 +37,6 @@ export class SaaSSubscription extends Model<InferAttributes<SaaSSubscription>, I
     static associate(models: { SaaSPlan: typeof SaaSPlan }): void {
         SaaSSubscription.belongsTo(models.SaaSPlan, { foreignKey: 'plan_id', as: 'plan' });
     }
-
-    /**
-     * Verifica si la suscripción está activa y no ha vencido.
-     */
-    isValid(): boolean {
-        return isSubscriptionValid(this);
-    }
 }
 
 SaaSSubscription.init({
@@ -63,7 +55,7 @@ SaaSSubscription.init({
     plan_id: {
         type: DataTypes.BIGINT,
         allowNull: false,
-        comment: 'ID del Plan de SaaS',
+        comment: 'ID del Plan de SaaS, catalogo de planes',
         references: { model: 'dsg_bss_saas_plans', key: 'plan_id' },
         onUpdate: 'CASCADE'
     },
@@ -71,29 +63,25 @@ SaaSSubscription.init({
         type: DataTypes.STRING(30),
         allowNull: false,
         defaultValue: 'TRIAL',
-        comment: 'TRIAL, ACTIVE, PAST_DUE, CANCELED, INCOMPLETE'
+        validate: { isIn: [SUBSCRIPTION_STATUSES] },
+        comment: 'PENDING, TRIAL, ACTIVE, PAST_DUE, CANCELED, INCOMPLETE'
     },
-    stripe_customer_id: {
-        type: DataTypes.STRING(100),
-        allowNull: true,
-        comment: 'ID del Cliente de Stripe'
-    },
-    stripe_subscription_id: {
-        type: DataTypes.STRING(100),
-        allowNull: true,
-        comment: 'ID de la Suscripción de Stripe'
+    is_effective: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+        comment: 'Si la suscripción aún está vigente'
     },
     billing_period: {
         type: DataTypes.STRING(10),
         allowNull: true,
         comment: "'monthly' | 'yearly'"
     },
-    // ── MercadoPago ─────────────────────────────────────────────────────────
     gateway: {
         type: DataTypes.STRING(30),
         allowNull: false,
-        defaultValue: 'STRIPE',
-        comment: "Pasarela activa: 'STRIPE' | 'MERCADOPAGO'"
+        defaultValue: 'MERCADOPAGO',
+        comment: "Pasarela activa: 'MERCADOPAGO' | 'STRIPE'"
     },
     mp_payment_id: {
         type: DataTypes.STRING(100),

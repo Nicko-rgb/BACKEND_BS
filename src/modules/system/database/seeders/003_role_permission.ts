@@ -20,6 +20,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
 
         // Perfil propio — todo usuario autenticado puede ver/editar sus datos.
         'user.profile_edit',
+        'user.profile_view',
     ],
     empleado: [
         // Empresa (solo lectura de las propias, el scope filtra por company_ids)
@@ -53,6 +54,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
 
         // Perfil propio — todo usuario autenticado puede ver/editar sus datos.
         'user.profile_edit',
+        'user.profile_view',
     ],
     administrador: [
         // Empresa
@@ -97,6 +99,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
 
         // Perfil propio — todo usuario autenticado puede ver/editar sus datos.
         'user.profile_edit',
+        'user.profile_view',
     ],
     super_admin: [
         // Empresa
@@ -143,6 +146,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
 
         // Perfil propio — todo usuario autenticado puede ver/editar sus datos.
         'user.profile_edit',
+        'user.profile_view',
     ],
     system: [
         // El middleware ya bypasea con este solo permiso — ver resolveAuthorization.ts.

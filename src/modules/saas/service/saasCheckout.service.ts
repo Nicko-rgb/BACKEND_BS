@@ -6,6 +6,7 @@ import { readErrorProp, toErrorMessage } from '../../../shared/utils/errorUtils'
 import type { SaaSSubscription } from '../database/models';
 import type { SaaSPlan } from '../database/models';
 import type { Country } from '../../system/database/models';
+import type { AutoRecurringWithFreeTrial } from '../interfaces/subscription.interface';
 
 /**
  * Frecuencia de cobro para MercadoPago según el período elegido — MercadoPago no tiene
@@ -47,16 +48,6 @@ export const createPaymentLink = async (
     country: Country
 ): Promise<string> => {
     const transactionAmount = Number(billingPeriod === 'yearly' ? plan.price_yearly : plan.price_monthly);
-
-    // El tipo público `auto_recurring` del SDK no incluye `free_trial` aunque la API
-    // real sí lo acepta — se declara el shape completo acá para no usar `as any`.
-    interface AutoRecurringWithFreeTrial {
-        frequency: number;
-        frequency_type: string;
-        transaction_amount?: number;
-        currency_id: string;
-        free_trial?: { frequency: number; frequency_type: string };
-    }
 
     const autoRecurring: AutoRecurringWithFreeTrial = {
         ...billingPeriodToRecurring(billingPeriod),
