@@ -93,6 +93,24 @@ export const findRootById = async (companyId: number) => {
     return Company.findOne({ where: { company_id: companyId, parent_company_id: null }, attributes: ['company_id'] });
 };
 
+// Consultas livianas para recursos independientes del detalle de empresa.
+export const findRootIdentityByPublicId = async (publicId: string) => Company.findOne({
+    where: { public_id: publicId, parent_company_id: null },
+    attributes: ['company_id', 'public_id', 'name', 'tenant_id'],
+});
+
+export const findBranchesByParentId = async (companyId: number, allowedIds?: number[]) => Company.findAll({
+    where: { parent_company_id: companyId, ...(allowedIds ? { company_id: { [Op.in]: allowedIds } } : {}) },
+    attributes: ['company_id', 'public_id', 'name', 'address', 'status'],
+    include: [{ association: 'ubigeo', include: [{ association: 'parent', include: [{ association: 'parent' }] }] }],
+    order: [['name', 'ASC'], ['public_id', 'ASC']],
+});
+
+export const findBranchIdentitiesByParentId = async (companyId: number, allowedIds?: number[]) => Company.findAll({
+    where: { parent_company_id: companyId, ...(allowedIds ? { company_id: { [Op.in]: allowedIds } } : {}) },
+    attributes: ['company_id', 'public_id', 'name'],
+});
+
 // Crea la empresa (o sucursal) — usado por el alta de empresa (dentro de una transacción, ver
 // company.service.ts::register) y por el alta de sucursal (sin transacción, un solo insert).
 export const create = async (data: CreationAttributes<Company>, transaction?: Transaction) => {
@@ -123,9 +141,7 @@ export const findByIdWithOwner = async (companyId: number) => {
 
 /**
  * Empresa principal por `public_id` (UUID único por fila, lo único expuesto en URLs —
- * nunca `company_id` ni `tenant_id`). Trae país, dueño, el ubigeo con su cadena de padres
- * completa (distrito → provincia → departamento) y sus sucursales (`subsidiaries`, con su
- * propio `public_id` también — lo que hace falta para la card de la grilla de sucursales).
+ * nunca `company_id` ni `tenant_id`). Trae país y ubigeo, sin usuarios ni sucursales.
  */
 export const findByPublicId = async (publicId: string) => {
     return Company.findOne({
@@ -135,22 +151,6 @@ export const findByPublicId = async (publicId: string) => {
             {
                 association: 'ubigeo',
                 include: [{ association: 'parent', include: [{ association: 'parent' }] }],
-            },
-            {
-                association: 'ownerAssignments',
-                where: { is_active: true },
-                required: false,
-                include: [{ association: 'user', include: [{ association: 'person', include: [{ association: 'country' }] }] }],
-            },
-            {
-                association: 'subsidiaries',
-                attributes: ['company_id', 'public_id', 'name', 'address', 'status'],
-                include: [
-                    {
-                        association: 'ubigeo',
-                        include: [{ association: 'parent', include: [{ association: 'parent' }] }],
-                    },
-                ],
             },
         ],
     });

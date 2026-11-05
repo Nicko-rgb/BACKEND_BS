@@ -2,6 +2,12 @@ import type { Request, Response } from 'express';
 import * as UserService from '../service/user.service';
 import { toUserDetailDto } from '../dto/user.dto';
 import ApiResponse from '../../../shared/utils/ApiResponse';
+import { toCompanyAssignmentsDto } from '../dto/companyUsers.dto';
+
+export const listByCompany = async (req: Request, res: Response) => {
+    const { company, assignments } = await UserService.listByCompany(String(req.params.companyPublicId), req.user!);
+    return ApiResponse.ok(res, toCompanyAssignmentsDto(company, assignments), 'Usuarios obtenidos');
+};
 
 // Detalle del propio perfil — el id siempre es el del usuario autenticado, nunca uno de req.params
 export const getOwnProfile = async (req: Request, res: Response) => {

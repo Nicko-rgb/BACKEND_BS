@@ -7,7 +7,7 @@ import type { CompanyContextNode, ContextCompanyRecord, ContextSpaceRecord } fro
 /**
  * Contexto informativo del login. `access` indica alcance resuelto;
  * los permisos para cada acción siguen siendo responsabilidad del backend.
- * Solo se incluyen entidades de las empresas permitidas y sus sucursales.
+ * Incluye la estructura de las empresas relacionadas; cada nodo indica su alcance.
  */
 export const getCompanyContext = async (
     user: Pick<AuthenticatedUser, 'scope_level' | 'company_ids'>,
@@ -17,8 +17,7 @@ export const getCompanyContext = async (
     if (hasFullCompanyAccess(user) || !user.company_ids?.length) return [];
 
     const entities = await CompanyContextRepository.findCompanies(user.company_ids);
-    const sucursales = entities.filter((entity) =>
-        entity.parent_company_id !== null && hasCompanyScope(user, entity.company_id));
+    const sucursales = entities.filter((entity) => entity.parent_company_id !== null);
     const spaces = sucursales.length
         ? await CompanyContextRepository.findSpaces(sucursales.map((entity) => Number(entity.company_id)))
         : [];

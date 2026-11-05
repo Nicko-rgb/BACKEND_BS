@@ -38,5 +38,4 @@ export type PlanLimitField = 'maxSubsidiaries' | 'maxSpaces' | 'maxUsers' | 'max
 
 // Características booleanas que un plan puede incluir o no.
 export type PlanFeature = 'allowsMultiCompany' | 'hasAdvancedReports' | 'hasStripeConnect';
-import type { SubscriptionStatus } from './subscription.interface';
 

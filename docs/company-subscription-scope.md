@@ -60,8 +60,9 @@ catálogo impide nuevas contrataciones, pero no cancela contratos existentes.
 `UserCompany` no tiene `role`, `scope_type` ni `scope_level`. El rol sigue en `User`.
 Una membresía `is_owner = true` apunta exclusivamente a la primaria. El dueño
 obtiene las empresas de la suscripción y sus sucursales. Para no dueños, asignarse
-a una empresa incluye sus sucursales; asignarse a una sucursal incluye solo esa
-sucursal. Tener el mismo tenant no amplía automáticamente el alcance.
+a una empresa incluye sus sucursales; asignarse a una sucursal incluye esa
+sucursal y su empresa padre, pero no sus sucursales hermanas. Tener el mismo tenant
+no amplía automáticamente el alcance. Cada acción exige además su permiso.
 
 Los baselines 025 y 043 garantizan un dueño por tenant y una primaria por grupo,
 con validación diferida al final de la transacción. Una suscripción no puede
@@ -70,8 +71,9 @@ puede reemplazar la membresía del dueño. No se incluye un flujo de transferenc
 de propiedad en esta entrega.
 
 El login y `GET /api/auth/context` sirven `companies[] → sucursales[] → spaces[]`.
-Cada empresa incluye `isPrimary`; un padre agregado únicamente para contextualizar
-una sucursal tiene `access: false`. El DTO no expone tenant ni PKs internos.
+Cada empresa incluye `isPrimary`. El árbol puede incluir sucursales hermanas y sus
+espacios como contexto con `access: false`; solo las entidades del alcance efectivo
+tienen `access: true`. El DTO no expone tenant ni PKs internos.
 La autorización resuelve el alcance en cada request. El frontend refresca el árbol
 al cargar el panel, recuperar foco y tras cambios de estructura/asignaciones.
 El contexto persistido anterior se invalida mediante una nueva versión del store.

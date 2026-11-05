@@ -4,11 +4,18 @@ import type { InferAttributes } from 'sequelize';
 import * as CompanyRepository from '../repository/company.repository';
 import * as CountryRepository from '../../system/repository/country.repository';
 import * as PlanLimitsService from '../../saas/service/planLimits.service';
-import { assertCompanyScope } from '../../../shared/utils/accessScope';
+import { assertCompanyScope, hasFullCompanyAccess } from '../../../shared/utils/accessScope';
 import { BadRequestError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
 import type { Company } from '../database/models';
 import type { RegisterSucursalInput, UpdateSucursalInput, SucursalStatusInput } from '../interfaces/sucursal.interface';
+
+export const listByCompany = async (companyPublicId: string, user: AuthenticatedUser) => {
+    const company = await CompanyRepository.findRootIdentityByPublicId(companyPublicId);
+    if (!company) throw new NotFoundError('Empresa no encontrada');
+    assertCompanyScope(user, Number(company.company_id), 'No tenés acceso a esta empresa');
+    return CompanyRepository.findBranchesByParentId(Number(company.company_id), hasFullCompanyAccess(user) ? undefined : (user.company_ids ?? []));
+};
 
 /**
  * Alta de una sucursal bajo una empresa existente — hereda `document` (mismo RUC) y

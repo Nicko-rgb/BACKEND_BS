@@ -19,8 +19,8 @@ export const list = async (req: Request, res: Response) => {
 export const getByPublicId = async (req: Request, res: Response) => {
     const publicId = String(req.params.publicId)
     const user = req.user;
-    const { company, assignments } = await CompanyService.getByPublicId(publicId, user!);
-    return ApiResponse.ok(res, toCompanyDetailDto(company, assignments), 'Empresa obtenida');
+    const company = await CompanyService.getByPublicId(publicId, user!);
+    return ApiResponse.ok(res, toCompanyDetailDto(company), 'Empresa obtenida');
 };
 
 // Autoedición de la propia empresa — sin `document` (RUC), ver company.service.ts → updateByPublicId.
@@ -28,8 +28,8 @@ export const updateByPublicId = async (req: Request, res: Response) => {
     const publicId = String(req.params.publicId)
     const data = req.validatedData;
     const user = req.user;
-    const { company, assignments } = await CompanyService.updateByPublicId(publicId, data, user!);
-    return ApiResponse.ok(res, toCompanyDetailDto(company, assignments), 'Empresa actualizada exitosamente');
+    const company = await CompanyService.updateByPublicId(publicId, data, user!);
+    return ApiResponse.ok(res, toCompanyDetailDto(company), 'Empresa actualizada exitosamente');
 };
 
 // Alta de primaria (system, suscripción nueva) o hermana (suscripción heredada del árbol).

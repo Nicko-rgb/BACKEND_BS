@@ -1,10 +1,13 @@
 import { createRouter } from '../../../shared/utils/createRouter';
 import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
-import { validateDTO } from '../../../shared/middlewares/validateDTO';
+import { validateDTO, validatePublicId } from '../../../shared/middlewares/validateDTO';
 import { updateOwnProfileSchema } from '../dto/user.schema';
-import { getOwnProfile, updateOwnProfile } from '../controllers/user.controller';
+import { getOwnProfile, updateOwnProfile, listByCompany } from '../controllers/user.controller';
 
 const router = createRouter();
+
+// Usuarios de la empresa autorizada y sus sucursales, incluido el dueño heredado.
+router.get('/company/:companyPublicId/users-for-company', resolveAuthorization('company.view'), validatePublicId('companyPublicId'), listByCompany);
 
 /**
  * @route GET /api/users/me
