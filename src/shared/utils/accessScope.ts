@@ -3,7 +3,8 @@ import { ForbiddenError } from '../errors/CustomErrors';
 
 /**
  * scope_level=1 tiene alcance global. El dueño super_admin cubre su tenant;
- * los demás quedan en la empresa padre de sus asignaciones y sus sucursales.
+ * Una asignación a empresa incluye sus sucursales; una asignación a sucursal
+ * incluye su padre, sin incluir otras sucursales.
  * Los permisos efectivos habilitan cada acción.
  */
 export const hasFullCompanyAccess = (user: Pick<AuthenticatedUser, 'scope_level'>): boolean => {

@@ -1,9 +1,25 @@
 import type { InferAttributes, Transaction } from 'sequelize';
 import * as UserRepository from '../repository/user.repository';
+import * as UserCompanyRepository from '../repository/userCompany.repository';
+import * as CompanyRepository from '../../companys/repository/company.repository';
 import * as CountryRepository from '../../system/repository/country.repository';
+import { assertCompanyScope, hasFullCompanyAccess } from '../../../shared/utils/accessScope';
+import type { AuthenticatedUser } from '../../../shared/types/auth';
 import { BadRequestError, ConflictError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { User, Person } from '../database/models';
 import type { ProfileFields } from '../interfaces/user.interface';
+
+export const listByCompany = async (companyPublicId: string, actor: AuthenticatedUser) => {
+    const company = await CompanyRepository.findRootIdentityByPublicId(companyPublicId);
+    if (!company) throw new NotFoundError('Empresa no encontrada');
+    assertCompanyScope(actor, Number(company.company_id), 'No tenés acceso a esta empresa');
+    company.subsidiaries = await CompanyRepository.findBranchIdentitiesByParentId(Number(company.company_id), hasFullCompanyAccess(actor) ? undefined : (actor.company_ids ?? []));
+    const ids = [Number(company.company_id), ...company.subsidiaries.map((branch) => Number(branch.company_id))];
+    const assignments = await UserCompanyRepository.findActiveByCompanyIds(ids);
+    const owner = await UserCompanyRepository.findOwnerByTenantId(company.tenant_id);
+    if (owner && !assignments.some((row) => Number(row.user_id) === Number(owner.user_id))) assignments.push(owner);
+    return { company, assignments };
+};
 
 // Usuario con su persona y su rol.
 export const getById = async (id: number) => {

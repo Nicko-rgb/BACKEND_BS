@@ -13,7 +13,7 @@
  *     que se copia al crear un usuario nuevo — editarla no toca existentes.
  *   - el rol aporta etiqueta, menú y el alcance global de system.
  *   - el dueño super_admin cubre su tenant; administrador y empleado cubren
- *     la empresa padre de sus asignaciones, mientras cada acción exige permiso.
+ *     sus sucursales asignadas y la empresa padre; cada acción exige permiso.
  *
  * Se llama desde dos lugares:
  *   - `resolveAuthorization` (modules/auth/middlewares) — en cada request autenticado.

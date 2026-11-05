@@ -5,10 +5,13 @@ import type { ContextCompanyRecord, ContextSpaceRecord } from '../interfaces/com
 const COMPANY_ATTRIBUTES = ['company_id', 'parent_company_id', 'public_id', 'name'];
 const COUNTRY_ATTRIBUTES = ['country_id', 'country', 'iso_country', 'iso_currency', 'currency', 'currency_simbol'];
 
-/** undefined = alcance global; [] = ningún acceso. El padre solo aporta contexto. */
+/** Incluye las sucursales hermanas como contexto; su acceso se calcula por separado. */
 export const findCompanies = async (companyIds: number[] | undefined): Promise<ContextCompanyRecord[]> => {
     return Company.findAll({
-        where: companyIds === undefined ? {} : { company_id: { [Op.in]: companyIds } },
+        where: companyIds === undefined ? {} : { [Op.or]: [
+            { company_id: { [Op.in]: companyIds } },
+            { parent_company_id: { [Op.in]: companyIds } },
+        ] },
         attributes: COMPANY_ATTRIBUTES,
         include: [
             { association: 'country', attributes: COUNTRY_ATTRIBUTES },
@@ -22,7 +25,7 @@ export const findCompanies = async (companyIds: number[] | undefined): Promise<C
     });
 };
 
-/** Una sola consulta para los espacios de todas las sucursales permitidas. */
+/** Una sola consulta para los espacios de las sucursales mostradas como contexto. */
 export const findSpaces = async (sucursalIds: number[]): Promise<ContextSpaceRecord[]> => {
     return Space.findAll({
         where: { sucursal_id: { [Op.in]: sucursalIds } },

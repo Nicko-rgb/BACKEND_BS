@@ -89,13 +89,13 @@ export const findOwnerByTenantId = async (tenantId: string, transaction?: Transa
     });
 };
 
-// El dueño super_admin cubre todo su tenant. Los demás cubren la empresa padre
-// de cada asignación activa y todas sus sucursales, nunca una empresa hermana.
-// Los permisos se comprueban por separado en la ruta.
+// El dueño cubre su tenant. Una asignación a empresa cubre sus sucursales;
+// una asignación a sucursal cubre esa sucursal y su empresa padre, no sus hermanas.
 export const findEffectiveCompanyIdsByUserId = async (userId: number, scopeLevel: number | null, transaction?: Transaction): Promise<number[]> => {
     const rows = await sequelize.query<{ company_id: number }>(`
         WITH assignments AS (
-            SELECT uc.tenant_id, uc.is_owner,
+            SELECT uc.tenant_id, uc.is_owner, c.company_id AS assigned_company_id,
+                   c.parent_company_id AS assigned_parent_id,
                    COALESCE(c.parent_company_id, c.company_id) AS root_company_id
             FROM dsg_bss_user_company uc
             JOIN dsg_bss_company c ON c.company_id = uc.company_id AND c.tenant_id = uc.tenant_id
@@ -105,7 +105,8 @@ export const findEffectiveCompanyIdsByUserId = async (userId: number, scopeLevel
         JOIN assignments a ON a.tenant_id = c.tenant_id AND (
             (:ownerScope = true AND a.is_owner)
             OR c.company_id = a.root_company_id
-            OR c.parent_company_id = a.root_company_id
+            OR (a.assigned_parent_id IS NULL AND c.parent_company_id = a.assigned_company_id)
+            OR c.company_id = a.assigned_company_id
         )
     `, { replacements: { userId, ownerScope: scopeLevel === 2 }, type: QueryTypes.SELECT, transaction });
     return rows.map((row) => Number(row.company_id));

@@ -4,6 +4,12 @@ import { toSucursalDto } from '../dto/sucursal.dto';
 import * as SucursalBannerService from '../service/sucursalBanner.service';
 import { toMediaDto } from '../../system/dto/media.dto';
 import ApiResponse from '../../../shared/utils/ApiResponse';
+import { toCompanyBranchesDto } from '../dto/sucursal.dto';
+
+export const listByCompany = async (req: Request, res: Response) => {
+    const branches = await SucursalService.listByCompany(String(req.params.companyPublicId), req.user!);
+    return ApiResponse.ok(res, toCompanyBranchesDto(branches), 'Sucursales obtenidas');
+};
 
 // Alta de sucursal — companyPublicId es el public_id de la empresa padre (ver sucursal.service.ts → register).
 export const registerSucursal = async (req: Request, res: Response) => {

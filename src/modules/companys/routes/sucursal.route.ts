@@ -3,9 +3,12 @@ import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorizatio
 import { validateDTO, validatePublicId } from '../../../shared/middlewares/validateDTO';
 import upload from '../../../shared/middlewares/uploadMiddleware';
 import { registerSucursalSchema, updateSucursalSchema, sucursalStatusSchema } from '../dto/sucursal.schema';
-import { registerSucursal, getByPublicId, updateByPublicId, toggleStatus, getBanner, uploadBanner, removeBanner } from '../controllers/sucursal.controller';
+import { registerSucursal, getByPublicId, updateByPublicId, toggleStatus, getBanner, uploadBanner, removeBanner, listByCompany } from '../controllers/sucursal.controller';
 
 const router = createRouter();
+
+// Sucursales de la empresa autorizada, sin cargar usuarios.
+router.get('/company/:companyPublicId/branches', resolveAuthorization('sucursal.view'), validatePublicId('companyPublicId'), listByCompany);
 
 /**
  * @route POST /api/sucursals/:companyPublicId

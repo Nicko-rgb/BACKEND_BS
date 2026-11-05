@@ -15,20 +15,7 @@ import * as RoleRepository from '../../system/repository/role.repository';
 import { hasFullCompanyAccess, assertCompanyScope } from '../../../shared/utils/accessScope';
 import { BadRequestError, ConflictError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
-import type { Company } from '../database/models';
 import type { RegisterCompanyInput, UpdateCompanyInput, ListCompaniesQuery } from '../interfaces/company.interface';
-
-/**
- * Detalle completo de una empresa — le suma los usuarios asignados a ella y a sus sucursales
- * (el repository vive en el módulo de usuarios, dueño de `user_companies`).
- */
-const withAssignments = async (company: Company) => {
-    const companyIds = [Number(company.company_id), ...(company.subsidiaries ?? []).map((s) => Number(s.company_id))];
-    const assignments = await UserCompanyRepository.findActiveByCompanyIds(companyIds);
-    const owner = await UserCompanyRepository.findOwnerByTenantId(company.tenant_id);
-    if (owner && !assignments.some((row) => Number(row.user_id) === Number(owner.user_id))) assignments.push(owner);
-    return { company, assignments };
-};
 
 /**
  * Empresas principales, paginado, con su dueño (resuelto por include en el repository) y su
@@ -61,7 +48,7 @@ export const getByPublicId = async (publicId: string, user: AuthenticatedUser) =
 
     assertCompanyScope(user, Number(company.company_id), 'No tenés acceso a esta empresa');
 
-    return withAssignments(company);
+    return company;
 };
 
 /**
@@ -93,7 +80,7 @@ export const updateByPublicId = async (publicId: string, data: UpdateCompanyInpu
     await CompanyRepository.update(company, { ...data, user_update: user.user_id });
 
     const updated = await CompanyRepository.findByPublicId(publicId);
-    return withAssignments(updated!);
+    return updated!;
 };
 
 /**

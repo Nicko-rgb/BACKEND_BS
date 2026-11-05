@@ -42,3 +42,12 @@ export const toSucursalDto = (sucursal: Company) => {
         createdAt: sucursal.created_at,
     };
 };
+
+export const toCompanyBranchesDto = (branches: Company[]) => branches.map((s) => ({
+    publicId: s.public_id,
+    name: s.name,
+    address: s.address,
+    ubigeo: s.ubigeo ? [s.ubigeo.name, s.ubigeo.parent?.name, s.ubigeo.parent?.parent?.name].filter(Boolean).join(', ') : null,
+    status: s.status,
+}));
+
