@@ -8,13 +8,7 @@ import { invalidateUserAuthCache } from '../../../shared/utils/authorizationCach
 import { UnauthorizedError } from '../../../shared/errors/CustomErrors';
 import logger from '../../../config/logger';
 import { readErrorProp } from '../../../shared/utils/errorUtils';
-
-export interface WebhookNotification {
-    dataId?: string;
-    type?: string;
-    xSignature?: string;
-    xRequestId?: string;
-}
+import type { WebhookNotification } from '../interfaces/webhook.interface';
 
 // Cuántos días dura el trial antes del primer cobro automático — mismo valor que se manda
 // en `auto_recurring.free_trial` al crear el Preapproval (ver saasCheckout.service.ts).
@@ -69,6 +63,7 @@ const activateTrialFromPreapproval = async (preapprovalId: string): Promise<void
 
         await SaaSSubscriptionRepository.update(subscription, {
             status: 'TRIAL',
+            is_effective: true,
             current_period_start: now,
             current_period_end: trialEnd,
         }, transaction);

@@ -1,7 +1,7 @@
 import type { Company } from '../database/models';
 import type { UserCompany } from '../../users/database/models';
 import type { Ubigeo } from '../../system/database/models';
-import type { CompanyPlanSummary } from '../../saas/repository/saasSubscription.repository';
+import type { CompanyPlanSummary } from '../../saas/interfaces/plan.interface';
 
 // Arma "Distrito, Provincia, Departamento" a partir de un ubigeo con su cadena de padres ya
 // incluida (parent → parent) — reusado para el de la empresa y el de cada sucursal en la grilla.

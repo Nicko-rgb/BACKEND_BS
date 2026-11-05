@@ -3,10 +3,9 @@ import * as CompanyRepository from '../../companys/repository/company.repository
 import * as UserCompanyRepository from '../../users/repository/userCompany.repository';
 import * as SpaceRepository from '../../companys/repository/space.repository';
 import { isUnlimitedLimit } from '../utils/planLimits';
-import { isSubscriptionValid } from '../utils/subscriptionValidity';
 import { assertCompanyScope } from '../../../shared/utils/accessScope';
 import { ConflictError, NotFoundError } from '../../../shared/errors/CustomErrors';
-import type { CompanyPlanSummary } from '../repository/saasSubscription.repository';
+import type { CompanyPlanSummary, PlanLimitField, PlanFeature } from '../interfaces/plan.interface';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
 import type { Transaction } from 'sequelize';
 
@@ -16,10 +15,6 @@ export const lockCompanies = async (companyIds: number[], transaction: Transacti
         if (!company) throw new NotFoundError('Empresa no encontrada');
     }
 };
-
-// Los 4 límites numéricos que trae un plan — quien registra un recurso limitado (sucursal,
-// espacio, usuario, factura) pasa cuál le corresponde a assertPlanLimit.
-export type PlanLimitField = 'maxSubsidiaries' | 'maxSpaces' | 'maxUsers' | 'maxInvoicesMonthly';
 
 const LIMIT_LABELS: Record<PlanLimitField, string> = {
     maxSubsidiaries: 'sucursales',
@@ -32,17 +27,11 @@ const LIMIT_LABELS: Record<PlanLimitField, string> = {
 // companys (saasSubscription.repository.ts::findPlanByCompanyId), no se resuelve de nuevo acá.
 export const getActivePlanForCompany = async (companyId: number, transaction?: Transaction): Promise<CompanyPlanSummary | null> => {
     const plan = await SaaSSubscriptionRepository.findPlanByCompanyId(companyId, transaction);
-    if (plan && !isSubscriptionValid({
-        status: plan.status,
-        current_period_start: plan.currentPeriodStart,
-        current_period_end: plan.currentPeriodEnd,
-    })) {
+    if (plan && !plan.isEffective) {
         throw new ConflictError('La suscripción de esta empresa no está vigente.');
     }
     return plan;
 };
-
-export type PlanFeature = 'allowsMultiCompany' | 'hasAdvancedReports' | 'hasStripeConnect';
 
 export const assertPlanFeature = async (companyId: number, feature: PlanFeature, transaction?: Transaction): Promise<CompanyPlanSummary> => {
     const plan = await getActivePlanForCompany(companyId, transaction);

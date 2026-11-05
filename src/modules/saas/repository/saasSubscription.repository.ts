@@ -1,6 +1,7 @@
 import { Op } from 'sequelize';
 import type { CreationAttributes, InferAttributes, Transaction } from 'sequelize';
 import { SaaSSubscription, SaaSSubscriptionCompany } from '../database/models';
+import type { CompanyPlanSummary } from '../interfaces/plan.interface';
 
 export const findCompanyMemberships = async (companyIds: number[]) => {
     if (companyIds.length === 0) return [];
@@ -9,29 +10,6 @@ export const findCompanyMemberships = async (companyIds: number[]) => {
         attributes: ['company_id', 'is_primary'],
     });
 };
-
-// Forma resumida del plan/suscripción de una empresa — usada en el listado de companys y en la
-// validación de límites de plan (planLimits.service.ts). Los `max*` van en su unidad cruda
-// (número), no formateados — quien los use decide cómo mostrarlos ("∞" a partir de 999, ver
-// convención del frontend en RegisterCompany.tsx).
-export interface CompanyPlanSummary {
-    subscriptionId: number;
-    status: string;
-    currentPeriodStart: Date | null;
-    currentPeriodEnd: Date | null;
-    allowsMultiCompany: boolean;
-    hasAdvancedReports: boolean;
-    hasStripeConnect: boolean;
-    planId: number;
-    planPublicId: string;
-    planName: string;
-    planCode: string;
-    maxSubsidiaries: number;
-    maxSpaces: number;
-    maxUsers: number;
-    maxInvoicesMonthly: number;
-    notificationsTier: string;
-}
 
 /**
  * Plan/suscripción que cubre a cada empresa dada — una sola query con JOIN para toda la
@@ -63,6 +41,7 @@ export const findPlansByCompanyIds = async (companyIds: number[], transaction?: 
         result[row.company_id] = {
             subscriptionId: subscription.subscription_id,
             status: subscription.status,
+            isEffective: subscription.is_effective === true,
             currentPeriodStart: subscription.current_period_start,
             currentPeriodEnd: subscription.current_period_end,
             allowsMultiCompany: plan.allows_multi_company,
@@ -90,6 +69,23 @@ export const findPlanByCompanyId = async (companyId: number, transaction?: Trans
     return result[companyId] ?? null;
 };
 
+/**
+ * Suscripción completa (con su plan) que cubre a una empresa, en CUALQUIER estado —
+ * a diferencia de `findPlanByCompanyId`, devuelve el modelo con todos sus campos
+ * (estado, período, gateway, cancelación programada) y no solo el resumen del plan.
+ * La usa la gestión de suscripciones: la vista tiene que poder mostrar una suscripción
+ * vencida, así que no pasa por `getActivePlanForCompany` (que corta con 409).
+ */
+export const findByCompanyId = async (companyId: number, transaction?: Transaction): Promise<SaaSSubscription | null> => {
+    const membership = await SaaSSubscriptionCompany.findOne({
+        where: { company_id: companyId },
+        include: [{ association: 'subscription', include: [{ association: 'plan' }] }],
+        transaction,
+    });
+
+    return membership?.subscription ?? null;
+};
+
 // Empresa titular de una suscripción. Los identificadores internos se filtran en el DTO.
 export const findPrimaryCompany = async (subscriptionId: number, transaction?: Transaction) => {
     const row = await SaaSSubscriptionCompany.findOne({
@@ -103,7 +99,11 @@ export const findPrimaryCompany = async (subscriptionId: number, transaction?: T
 
 // Crea la suscripción dentro de una transacción — usado por el alta de empresa.
 export const create = async (data: CreationAttributes<SaaSSubscription>, transaction: Transaction) => {
-    return SaaSSubscription.create(data, { transaction });
+    // Al crear una suscripción ACTIVE/TRIAL sin vigencia explícita, el valor por
+    // defecto del modelo (false) la bloquearía inmediatamente. Los callers pueden
+    // forzar false para PENDING, CANCELED u otros estados no vigentes.
+    const isEffective = data.is_effective ?? ['ACTIVE', 'TRIAL'].includes(data.status ?? 'TRIAL');
+    return SaaSSubscription.create({ ...data, is_effective: isEffective }, { transaction });
 };
 
 // El caller debe indicar si es titular o hermana; nunca promover una hermana por defecto.
@@ -119,6 +119,18 @@ export const lockById = async (subscriptionId: number, transaction: Transaction)
 // activar la suscripción (o por cualquier otro flujo que ya tenga la fila en mano).
 export const update = async (subscription: SaaSSubscription, data: Partial<InferAttributes<SaaSSubscription>>, transaction?: Transaction) => {
     return subscription.update(data, { transaction });
+};
+
+// Una sola sentencia cambia vigencia y estado, también para canceladas con acceso.
+// Sin fecha final no hay vencimiento automático (altas manuales).
+export const expireEffectiveSubscriptions = async (now = new Date()): Promise<number> => {
+    const [count] = await SaaSSubscription.update({ is_effective: false, status: 'PAST_DUE' }, {
+        where: {
+            is_effective: true,
+            current_period_end: { [Op.lte]: now },
+        },
+    });
+    return count;
 };
 
 /**

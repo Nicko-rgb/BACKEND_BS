@@ -11,7 +11,7 @@ const router = createRouter();
  * @desc  Detalle del propio perfil, para precargar la página de autoedición
  * @access cualquier usuario autenticado con `user.profile_edit`
  */
-router.get('/me', resolveAuthorization('user.profile_edit'), getOwnProfile);
+router.get('/me', resolveAuthorization('user.profile_view'), getOwnProfile);
 
 /**
  * @route PUT /api/users/me

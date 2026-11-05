@@ -14,7 +14,7 @@
  *   tsx scripts/db.ts seed:create          — Genera archivo de seeder
  *   tsx scripts/db.ts db:setup             — migrate + seed en secuencia
  *   tsx scripts/db.ts db:create            — Crea la BD si no existe, luego migrate + seed
- *   tsx scripts/db.ts db:reset             — Elimina TODO, re-migra y re-siembra (solo desarrollo)
+ *   tsx scripts/db.ts db:reset             — Elimina la BD, la recrea, migra y siembra (solo desarrollo)
  *
  * Opciones:
  *   --module=<nombre>    Módulo destino (para migrate:create / seed:create)
@@ -275,6 +275,43 @@ async function ensureDatabaseExists(): Promise<boolean> {
     }
 }
 
+/**
+ * Elimina la base de datos objetivo por completo. Se conecta a `postgres`
+ * (nunca a la BD objetivo, que no se puede dropear estando en uso), termina
+ * las conexiones activas y la elimina. `db:create` se encarga de recrearla
+ * y de ejecutar migraciones + seeders.
+ */
+async function dropDatabase(): Promise<void> {
+    const { Client } = require('pg');
+    const dbName = process.env.DB_NAME || 'db_sport';
+
+    const client = new Client({
+        host: process.env.DB_HOST || 'localhost',
+        port: parseInt(process.env.DB_PORT || '5432'),
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: 'postgres',
+    });
+
+    await client.connect();
+
+    try {
+        // DROP DATABASE no puede ejecutarse si hay conexiones abiertas a esa BD.
+        await client.query(
+            `SELECT pg_terminate_backend(pid)
+             FROM pg_stat_activity
+             WHERE datname = $1 AND pid <> pg_backend_pid()`,
+            [dbName]
+        );
+
+        // DROP DATABASE no admite parámetros — escapar el identificador.
+        await client.query(`DROP DATABASE IF EXISTS ${client.escapeIdentifier(dbName)}`);
+        console.log(`🗑️  Base de datos '${dbName}' eliminada.`);
+    } finally {
+        await client.end();
+    }
+}
+
 // ─── Comando: db:create ─────────────────────────────────────────────────────
 
 /**
@@ -320,24 +357,25 @@ async function flushCache(): Promise<void> {
 // ─── Comando: db:reset ─────────────────────────────────────────────────────
 
 /**
- * Elimina todas las tablas de la base de datos, re-ejecuta migraciones
- * y re-siembra los datos. SOLO para desarrollo — bloqueado en producción.
+ * Elimina la base de datos por completo y la recrea desde cero reutilizando
+ * el flujo de `db:create`: crea la BD si no existe, ejecuta todas las
+ * migraciones y corre los seeders. SOLO para desarrollo — bloqueado en producción.
  */
 async function dbReset(): Promise<void> {
     // Bloquear en producción ──────────────────────────────────────────────────
     if (process.env.NODE_ENV === 'production') {
         console.error('❌ db:reset está BLOQUEADO en producción.');
-        console.error('   Este comando elimina TODOS los datos de la base de datos.');
+        console.error('   Este comando elimina TODA la base de datos.');
         process.exit(1);
     }
 
     // Confirmación interactiva (saltable con --force) ─────────────────────────
     if (!hasFlag('force')) {
         console.log('\n⚠️  ADVERTENCIA: Este comando va a:');
-        console.log('   1. Crear la base de datos si no existe');
-        console.log('   2. Eliminar TODAS las tablas existentes');
-        console.log('   3. Re-ejecutar TODAS las migraciones');
-        console.log('   4. Re-ejecutar TODOS los seeders\n');
+        console.log('   1. Eliminar la base de datos completa si existe');
+        console.log('   2. Volver a crearla desde cero');
+        console.log('   3. Ejecutar TODAS las migraciones');
+        console.log('   4. Ejecutar TODOS los seeders\n');
         console.log(`   Base de datos: ${process.env.DB_NAME || 'desconocida'}`);
         console.log(`   Entorno: ${process.env.NODE_ENV || 'development'}\n`);
 
@@ -348,56 +386,12 @@ async function dbReset(): Promise<void> {
         }
     }
 
-    // Garantizar que la BD existe antes de intentar limpiarla ─────────────────
     try {
-        console.log('\n🗄️  Verificando base de datos...\n');
-        await ensureDatabaseExists();
-    } catch (error: any) {
-        console.error('❌ No se pudo crear la base de datos:', error.message);
-        process.exit(1);
-    }
+        console.log('\n🗑️  Eliminando la base de datos...\n');
+        await dropDatabase();
 
-    const sequelize = require('../src/config/db').default;
-
-    try {
-        console.log('\n🗑️  Eliminando todas las tablas...\n');
-
-        // Desactivar restricciones FK para poder eliminar en cualquier orden ──
-        await sequelize.query('SET session_replication_role = replica;');
-
-        // Obtener todas las tablas del schema public ─────────────────────────
-        const [tables] = await sequelize.query(
-            `SELECT tablename FROM pg_tables WHERE schemaname = 'public'`
-        );
-
-        if (tables.length === 0) {
-            console.log('   No hay tablas para eliminar.');
-        } else {
-            // Eliminar cada tabla ─────────────────────────────────────────────
-            for (const { tablename } of tables) {
-                await sequelize.query(`DROP TABLE IF EXISTS "public"."${tablename}" CASCADE`);
-                console.log(`   🗑️  Eliminada: ${tablename}`);
-            }
-            console.log(`\n   ✅ ${tables.length} tabla(s) eliminada(s)`);
-        }
-
-        // Restaurar restricciones FK ─────────────────────────────────────────
-        await sequelize.query('SET session_replication_role = DEFAULT;');
-
-        // Re-ejecutar migraciones ─────────────────────────────────────────────
-        console.log('\n📦 Re-ejecutando migraciones...\n');
-        const { runPendingMigrations } = await import('./migrationRunner');
-        const migrateResult = await runPendingMigrations();
-
-        if (migrateResult.failed) {
-            console.error(`\n❌ Migración falló: ${migrateResult.failed}`);
-            process.exit(1);
-        }
-
-        // Re-ejecutar seeders ─────────────────────────────────────────────────
-        console.log('\n🌱 Re-ejecutando seeders...\n');
-        const { runAllSeeds } = await import('./seederRunner');
-        await runAllSeeds();
+        // Mismo flujo que db:create: crea la BD, migra y siembra.
+        await dbCreate();
 
         // Limpiar caché Redis — los seeders dejan data nueva y el caché viejo
         // (ej. catálogo de permisos) mentiría hasta que expire el TTL ────────
@@ -405,12 +399,9 @@ async function dbReset(): Promise<void> {
         await flushCache();
 
         console.log('\n🎉 Base de datos reseteada exitosamente.\n');
-
     } catch (error: any) {
         console.error('\n❌ Error durante db:reset:', error.message);
         process.exit(1);
-    } finally {
-        await sequelize.close();
     }
 }
 
@@ -475,7 +466,7 @@ function showHelp(): void {
   Utilidades:
     db:create            Crea la BD si no existe, luego migrate + seed (entorno nuevo)
     db:setup             Ejecuta migrate + seed en secuencia (BD ya existente)
-    db:reset             Elimina TODO, re-migra y re-siembra (solo desarrollo)
+    db:reset             Elimina la BD, la recrea, migra y siembra (solo desarrollo)
                          Usa --force para saltar confirmación
     cache:flush          Limpia todo el caché Redis
 

@@ -1,5 +1,6 @@
 import logger from '../config/logger';
 import { startPasswordResetCleanup } from '../modules/auth/jobs/passwordResetCleanup.job';
+import { startSubscriptionExpiration } from '../modules/saas/jobs/subscriptionExpiration.job';
 import chalk from 'chalk';
 import { toErrorMessage } from '../shared/utils/errorUtils';
 
@@ -9,6 +10,7 @@ import { toErrorMessage } from '../shared/utils/errorUtils';
 // el graceful shutdown, sin importar cuántos haya.
 const jobStarters: Array<() => { stop: () => void }> = [
     startPasswordResetCleanup,
+    startSubscriptionExpiration,
 ];
 
 /** Arranca todos los jobs registrados. Llamar una vez, después de conectar la DB. */
