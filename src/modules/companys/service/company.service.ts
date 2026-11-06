@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import sequelize from '../../../config/db';
 import logger from '../../../config/logger';
 import * as CompanyRepository from '../repository/company.repository';
+import * as SpaceRepository from '../repository/space.repository';
 import * as SaaSSubscriptionRepository from '../../saas/repository/saasSubscription.repository';
 import { resolveRegistrationCoverage } from './companyRegistrationScope.service';
 import { notify } from '../../notificacions/service/notification.service';
@@ -15,7 +16,8 @@ import * as RoleRepository from '../../system/repository/role.repository';
 import { hasFullCompanyAccess, assertCompanyScope } from '../../../shared/utils/accessScope';
 import { BadRequestError, ConflictError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
-import type { RegisterCompanyInput, UpdateCompanyInput, ListCompaniesQuery } from '../interfaces/company.interface';
+import type { RegisterCompanyInput, UpdateCompanyInput, ListCompaniesQuery, CompanyTree } from '../interfaces/company.interface';
+import type { Space } from '../database/models';
 
 /**
  * Empresas principales, paginado, con su dueño (resuelto por include en el repository) y su
@@ -242,4 +244,40 @@ export const register = async (payload: RegisterCompanyInput, user: Authenticate
     }
 
     return { company: companyWithOwner!, plan: plans[newCompany.company_id] ?? null };
+};
+
+/**
+ * Árbol liviano empresa → sucursales → espacios para los selectores del
+ * calendario de reservas, resuelto a partir del `public_id` de la sucursal
+ * seleccionada en el front.
+ */
+export const getBranchTree = async (sucursalPublicId: string, user: AuthenticatedUser): Promise<CompanyTree> => {
+    const branch = await CompanyRepository.findBranchTreeNodeByPublicId(sucursalPublicId);
+    if (!branch || !branch.parentCompany) throw new NotFoundError('Sucursal no encontrada');
+
+    assertCompanyScope(user, Number(branch.company_id), 'No tenés acceso a esta sucursal');
+
+    const company = branch.parentCompany;
+    const branches = await CompanyRepository.findBranchIdentitiesByParentId(
+        Number(company.company_id),
+        hasFullCompanyAccess(user) ? undefined : (user.company_ids ?? []),
+    );
+
+    const spaces = await SpaceRepository.findSpacesBySucursalIds(branches.map((item) => Number(item.company_id)));
+
+    const spacesByBranch = new Map<number, Space[]>();
+    for (const space of spaces) {
+        const sucursalId = Number(space.sucursal_id);
+        const list = spacesByBranch.get(sucursalId) ?? [];
+        list.push(space);
+        spacesByBranch.set(sucursalId, list);
+    }
+
+    return {
+        company,
+        branches: branches.map((item) => ({
+            branch: item,
+            spaces: spacesByBranch.get(Number(item.company_id)) ?? [],
+        })),
+    };
 };

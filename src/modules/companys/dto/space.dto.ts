@@ -17,6 +17,12 @@ interface SpacePublic {
     maximumBookingMinutes: number;
     status: string;
     createdAt: Date;
+    parent: {
+        sucursalName: string;
+        sucursalPublicId: string;
+        companyName: string | null;
+        companyPublicId: string | null;
+    } | null;
 }
 
 /**
@@ -39,5 +45,11 @@ export const toSpaceDto = (space: Space): SpacePublic => ({
     maximumBookingMinutes: space.maximum_booking_minutes,
     status: space.status_space,
     createdAt: space.created_at,
+    parent: space.sucursal ? {
+        sucursalName: space.sucursal.name,
+        sucursalPublicId: space.sucursal.public_id,
+        companyName: space.sucursal.parentCompany?.name ?? null,
+        companyPublicId: space.sucursal.parentCompany?.public_id ?? null,
+    } : null,
 });
 

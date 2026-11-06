@@ -1,4 +1,5 @@
 import type { Company } from '../database/models';
+import type { CompanyTree } from '../interfaces/company.interface';
 import type { Ubigeo } from '../../system/database/models';
 import type { CompanyPlanSummary } from '../../saas/interfaces/plan.interface';
 
@@ -71,3 +72,23 @@ export const toCompanyDetailDto = (company: Company) => {
         createdAt: company.created_at,
     };
 };
+
+/**
+ * Árbol para los selectores del calendario de reservas — solo `publicId` y
+ * `name` en los tres niveles (empresa, sucursal y espacio); nunca ids internos
+ * ni tenant.
+ */
+export const toCompanyTreeDto = (tree: CompanyTree) => ({
+    company: {
+        publicId: tree.company.public_id,
+        name: tree.company.name,
+    },
+    branches: tree.branches.map(({ branch, spaces }) => ({
+        publicId: branch.public_id,
+        name: branch.name,
+        spaces: spaces.map((space) => ({
+            publicId: space.public_id,
+            name: space.name,
+        })),
+    })),
+});

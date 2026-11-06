@@ -39,6 +39,7 @@ export class Space extends Model<InferAttributes<Space>, InferCreationAttributes
     declare sportType?: NonAttribute<SportType>;
     declare surfaceType?: NonAttribute<SurfaceType>;
     declare sportCategory?: NonAttribute<SportCategory>;
+    declare sucursal?: NonAttribute<Company>;
 }
 
 Space.init({

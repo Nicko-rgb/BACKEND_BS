@@ -1,3 +1,4 @@
+import { Op } from 'sequelize';
 import type { CreationAttributes, InferAttributes, Transaction } from 'sequelize';
 import { Space } from '../database/models';
 
@@ -39,6 +40,11 @@ export const findById = async (spaceId: number) => {
             { association: 'sportType', attributes: ['name'] },
             { association: 'sportCategory', attributes: ['name'] },
             { association: 'surfaceType', attributes: ['name'] },
+            {
+                association: 'sucursal',
+                attributes: ['public_id', 'name'],
+                include: [{ association: 'parentCompany', attributes: ['public_id', 'name'] }],
+            },
         ],
     });
 };
@@ -46,6 +52,17 @@ export const findById = async (spaceId: number) => {
 // Actualiza parcialmente un espacio por PK — usado por updateSpace.
 export const update = async (space: Space, data: Partial<InferAttributes<Space>>) => {
     return space.update(data);
+};
+
+/** Espacios de un conjunto de sucursales — una sola consulta para armar el árbol liviano de reservas. */
+export const findSpacesBySucursalIds = async (sucursalIds: number[]) => {
+    if (sucursalIds.length === 0) return [];
+
+    return Space.findAll({
+        where: { sucursal_id: { [Op.in]: sucursalIds } },
+        attributes: ['sucursal_id', 'public_id', 'name', 'status_space'],
+        order: [['name', 'ASC'], ['public_id', 'ASC']],
+    });
 };
 
 // Cuántos espacios tiene una sucursal — usado por planLimits para validar

@@ -1,5 +1,6 @@
 import type { DocumentType } from '../../users/interfaces/user.interface';
 import type { PaginationQuery } from '../../../shared/types/pagination';
+import type { Company, Space } from '../database/models';
 
 /**
  * Contratos de payload de la empresa — capa de entrada del service.
@@ -55,4 +56,18 @@ export interface RegisterCompanyInput {
         plan_public_id: string;
         billing_period: 'monthly' | 'yearly';
     };
+}
+
+/**
+ * Árbol liviano empresa → sucursales → espacios para los selectores del
+ * calendario de reservas. Solo se expone nombre + public_id de cada nodo.
+ */
+export interface CompanyTreeBranchNode {
+    branch: Company;
+    spaces: Space[];
+}
+
+export interface CompanyTree {
+    company: Company;
+    branches: CompanyTreeBranchNode[];
 }

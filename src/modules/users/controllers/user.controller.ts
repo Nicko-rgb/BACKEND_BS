@@ -5,7 +5,9 @@ import ApiResponse from '../../../shared/utils/ApiResponse';
 import { toCompanyAssignmentsDto } from '../dto/companyUsers.dto';
 
 export const listByCompany = async (req: Request, res: Response) => {
-    const { company, assignments } = await UserService.listByCompany(String(req.params.companyPublicId), req.user!);
+    const publicId = String(req.params.companyPublicId);
+    const user = req.user!;
+    const { company, assignments } = await UserService.listByCompany(publicId, user);
     return ApiResponse.ok(res, toCompanyAssignmentsDto(company, assignments), 'Usuarios obtenidos');
 };
 

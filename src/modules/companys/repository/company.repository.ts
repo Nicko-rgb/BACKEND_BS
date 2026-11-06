@@ -109,6 +109,7 @@ export const findBranchesByParentId = async (companyId: number, allowedIds?: num
 export const findBranchIdentitiesByParentId = async (companyId: number, allowedIds?: number[]) => Company.findAll({
     where: { parent_company_id: companyId, ...(allowedIds ? { company_id: { [Op.in]: allowedIds } } : {}) },
     attributes: ['company_id', 'public_id', 'name'],
+    order: [['name', 'ASC'], ['public_id', 'ASC']],
 });
 
 // Crea la empresa (o sucursal) — usado por el alta de empresa (dentro de una transacción, ver
@@ -158,8 +159,8 @@ export const findByPublicId = async (publicId: string) => {
 
 /**
  * Sucursal por `public_id` (UUID propio, distinto del de su empresa padre). Trae país,
- * el ubigeo con su cadena de padres completa y la empresa padre (`parentCompany`, solo
- * `public_id` — para armar el breadcrumb "volver a la empresa" sin otra consulta).
+ * el ubigeo con su cadena de padres completa y la empresa padre (`parentCompany`)
+ * para armar el breadcrumb sin otra consulta.
  */
 export const findSucursalByPublicId = async (publicId: string) => {
     return Company.findOne({
@@ -170,7 +171,7 @@ export const findSucursalByPublicId = async (publicId: string) => {
                 association: 'ubigeo',
                 include: [{ association: 'parent', include: [{ association: 'parent' }] }],
             },
-            { association: 'parentCompany', attributes: ['company_id', 'public_id'] },
+            { association: 'parentCompany', attributes: ['company_id', 'public_id', 'name'] },
         ],
     });
 };
@@ -203,5 +204,18 @@ export const findByIds = async (ids: number[]) => {
     return Company.findAll({
         where: { company_id: { [Op.in]: ids } },
         attributes: ['company_id', 'tenant_id', 'name'],
+    });
+};
+
+/**
+ * Sucursal pedida por `public_id`, con su empresa padre — solo los campos que
+ * necesita el árbol liviano de reservas. `parent_company_id != null` descarta
+ * que un public_id de empresa principal se use como si fuera sucursal.
+ */
+export const findBranchTreeNodeByPublicId = async (publicId: string) => {
+    return Company.findOne({
+        where: { public_id: publicId, parent_company_id: { [Op.ne]: null } },
+        attributes: ['company_id', 'public_id', 'name', 'status', 'parent_company_id'],
+        include: [{ association: 'parentCompany', attributes: ['company_id', 'public_id', 'name'] }],
     });
 };

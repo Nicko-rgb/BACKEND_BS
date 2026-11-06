@@ -15,6 +15,7 @@ export const toSucursalDto = (sucursal: Company) => {
     return {
         publicId: sucursal.public_id,
         companyPublicId: sucursal.parentCompany?.public_id ?? null,
+        companyName: sucursal.parentCompany?.name ?? null,
         name: sucursal.name,
         address: sucursal.address,
         phoneCell: sucursal.phone_cell,

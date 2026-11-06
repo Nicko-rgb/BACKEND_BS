@@ -2,7 +2,7 @@ import { createRouter } from '../../../shared/utils/createRouter';
 import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
 import { validateDTO, validatePublicId, validateQuery } from '../../../shared/middlewares/validateDTO';
 import { listCompaniesQuerySchema, registerCompanySchema, updateCompanySchema } from '../dto/company.schema';
-import { list, registerCompany, getByPublicId, updateByPublicId } from '../controllers/company.controller';
+import { list, registerCompany, getByPublicId, updateByPublicId, getBranchTree } from '../controllers/company.controller';
 
 const router = createRouter();
 
@@ -28,6 +28,18 @@ router.post('/register',
     resolveAuthorization('company.create'),
     validateDTO(registerCompanySchema),
     registerCompany
+);
+
+/**
+ * @route GET /api/companys/branches/:sucursalPublicId/tree
+ * @desc  Árbol liviano (empresa → sucursales → espacios) para los selectores del
+ *        calendario de reservas, a partir de la sucursal seleccionada.
+ * @access system
+ */
+router.get('/branches/:sucursalPublicId/tree',
+    resolveAuthorization('system.full_access'),
+    validatePublicId('sucursalPublicId'),
+    getBranchTree
 );
 
 /**

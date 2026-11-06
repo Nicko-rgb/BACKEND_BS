@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import * as CompanyService from '../service/company.service';
-import { toCompanyListDto, toCompanyDetailDto } from '../dto/company.dto';
+import { toCompanyListDto, toCompanyDetailDto, toCompanyTreeDto } from '../dto/company.dto';
 import ApiResponse from '../../../shared/utils/ApiResponse';
 import { toPaginationMeta } from '../../../shared/utils/paginate';
 
@@ -38,4 +38,12 @@ export const registerCompany = async (req: Request, res: Response) => {
     const user = req.user;
     const { company, plan } = await CompanyService.register(data, user!);
     return ApiResponse.created(res, toCompanyListDto(company, plan), 'Empresa registrada exitosamente');
+};
+
+// Árbol liviano empresa → sucursales → espacios para los selectores del calendario de reservas.
+export const getBranchTree = async (req: Request, res: Response) => {
+    const sucursalPublicId = String(req.params.sucursalPublicId);
+    const user = req.user;
+    const tree = await CompanyService.getBranchTree(sucursalPublicId, user!);
+    return ApiResponse.ok(res, toCompanyTreeDto(tree), 'Árbol de empresa obtenido exitosamente');
 };
