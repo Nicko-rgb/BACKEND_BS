@@ -5,7 +5,7 @@
  * sucursal.service.ts::register:
  *   - Empresa principal en Perú (country_id 6, ubigeo 2078 Callería/Coronel
  *     Portillo/Ucayali), con su propio tenant_id — is_enabled 'A'.
- *   - Dueño (rol super_admin) + Person con DNI peruano, asignado a la empresa.
+ *   - Dueño (rol super_admin) con DNI peruano, asignado a la empresa.
  *   - Suscripción ACTIVE al plan Start, gateway MANUAL — igual que el alta sin MercadoPago.
  *   - Una sucursal (también en Callería) que hereda RUC y tenant_id del padre.
  *   - Un usuario rol administrador asignado a la sucursal.
@@ -84,11 +84,6 @@ const seedFn = async (systemUserId?: number): Promise<void> => {
             social_provider: null,
             role_id: superAdminRole.role_id,
             is_enabled: true,
-            user_create: systemUserId,
-        }, transaction);
-
-        await UserRepository.createPerson({
-            user_id: owner.user_id,
             country_id: PERU_COUNTRY_ID,
             date_birth: '2002-01-15',
             gender: null,
@@ -96,12 +91,9 @@ const seedFn = async (systemUserId?: number): Promise<void> => {
             document_number: '12345678',
             phone: '999888777',
             ubigeo_id: CALLERIA_UBIGEO_ID,
-            occupation: null,
-            civil_state: null,
-            sports_preferences: null,
-            accept_marketing: false,
             preferences: null,
             default_payment_type_id: null,
+            user_create: systemUserId,
         }, transaction);
 
         // Empresa ─────────────────────────────────────────────────────────────
@@ -199,11 +191,6 @@ const seedFn = async (systemUserId?: number): Promise<void> => {
             social_provider: null,
             role_id: adminRole.role_id,
             is_enabled: true,
-            user_create: systemUserId,
-        }, transaction);
-
-        await UserRepository.createPerson({
-            user_id: admin.user_id,
             country_id: PERU_COUNTRY_ID,
             date_birth: '2004-06-20',
             gender: null,
@@ -211,12 +198,9 @@ const seedFn = async (systemUserId?: number): Promise<void> => {
             document_number: '87654321',
             phone: '987650002',
             ubigeo_id: CALLERIA_UBIGEO_ID,
-            occupation: null,
-            civil_state: null,
-            sports_preferences: null,
-            accept_marketing: false,
             preferences: null,
             default_payment_type_id: null,
+            user_create: systemUserId,
         }, transaction);
 
         await UserCompanyRepository.create({

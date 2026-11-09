@@ -31,13 +31,13 @@ router.post('/register',
 );
 
 /**
- * @route GET /api/companys/branches/:sucursalPublicId/tree
- * @desc  Árbol liviano (empresa → sucursales → espacios) para los selectores del
- *        calendario de reservas, a partir de la sucursal seleccionada.
- * @access system
+ * @route GET /api/companys/public/branches/:sucursalPublicId/tree
+ * @desc  Árbol público (empresa → sucursales → espacios) para los selectores del
+ *        calendario, con apertura/cierre de cada sucursal. Lo consumen tanto el
+ *        panel admin como el portal de reservas.
+ * @access Público
  */
-router.get('/branches/:sucursalPublicId/tree',
-    resolveAuthorization('system.full_access'),
+router.get('/public/branches/:sucursalPublicId/tree',
     validatePublicId('sucursalPublicId'),
     getBranchTree
 );

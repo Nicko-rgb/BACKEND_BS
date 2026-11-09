@@ -5,7 +5,7 @@
  * para espacios deportivos específicos. Incluye detalles de fecha, hora,
  * estado de la reserva y método de pago.
  */
-import { DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional } from 'sequelize';
+import { DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional, NonAttribute } from 'sequelize';
 import sequelize from '../../../../config/db';
 import type { User } from '../../../users/database/models';
 import type { Space, Rating } from '../../../companys/database/models';
@@ -35,6 +35,8 @@ export class Booking extends Model<InferAttributes<Booking>, InferCreationAttrib
     declare approved_at: Date | null;
     declare readonly created_at: CreationOptional<Date>;
     declare readonly updated_at: CreationOptional<Date>;
+    declare user?: NonAttribute<User>;
+    declare payment?: NonAttribute<PaymentBooking>;
 }
 
 Booking.init({

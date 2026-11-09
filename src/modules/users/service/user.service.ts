@@ -6,7 +6,7 @@ import * as CountryRepository from '../../system/repository/country.repository';
 import { assertCompanyScope, hasFullCompanyAccess } from '../../../shared/utils/accessScope';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
 import { BadRequestError, ConflictError, NotFoundError } from '../../../shared/errors/CustomErrors';
-import type { User, Person } from '../database/models';
+import type { User } from '../database/models';
 import type { ProfileFields } from '../interfaces/user.interface';
 
 export const listByCompany = async (companyPublicId: string, actor: AuthenticatedUser) => {
@@ -21,7 +21,7 @@ export const listByCompany = async (companyPublicId: string, actor: Authenticate
     return { company, assignments };
 };
 
-// Usuario con su persona y su rol.
+// Usuario con su país y su rol.
 export const getById = async (id: number) => {
     const user = await UserRepository.findById(id);
     if (!user) throw new NotFoundError('Usuario no encontrado');
@@ -36,40 +36,39 @@ export const assertCountryAvailable = async (countryId: number) => {
 };
 
 /**
- * Aplica sobre un usuario ya cargado los cambios de User y de Person (creando la persona si
- * todavía no existe). Correo vacío se guarda como null — dos '' chocarían contra el índice único,
- * dos NULL no.
+ * Aplica sobre un usuario ya cargado los cambios de perfil. Todo vive en `dsg_bss_user`.
+ * Correo vacío se guarda como null — dos '' chocarían contra el índice único, dos NULL no.
+ * `first_name`/`last_name` son NOT NULL: un null explícito se ignora en vez de romper el UPDATE.
  */
 export const applyProfileChanges = async (
     user: User,
     data: ProfileFields & Partial<Pick<InferAttributes<User>, 'is_enabled' | 'role_id'>>,
     transaction?: Transaction,
 ) => {
-    const { phone, country_id, document_type, document_number, date_birth, ...userFields } = data;
+    const changes: Partial<InferAttributes<User>> = {};
 
-    if (userFields.email === '') userFields.email = null;
-    if (userFields.email && userFields.email !== user.email) {
-        const existing = await UserRepository.findByEmail(userFields.email);
+    if (data.first_name != null) changes.first_name = data.first_name;
+    if (data.last_name != null) changes.last_name = data.last_name;
+    if (data.email !== undefined) changes.email = data.email === '' ? null : data.email;
+    if (data.phone !== undefined) changes.phone = data.phone || null;
+    if (data.country_id !== undefined) changes.country_id = data.country_id;
+    if (data.document_type !== undefined) changes.document_type = data.document_type;
+    if (data.document_number !== undefined) changes.document_number = data.document_number || null;
+    if (data.date_birth !== undefined) changes.date_birth = data.date_birth || null;
+    if (data.is_enabled !== undefined) changes.is_enabled = data.is_enabled;
+    if (data.role_id !== undefined) changes.role_id = data.role_id;
+
+    if (changes.email && changes.email !== user.email) {
+        const existing = await UserRepository.findByEmail(changes.email);
         if (existing && Number(existing.user_id) !== Number(user.user_id)) {
             throw new ConflictError('Ya existe un usuario registrado con este correo electrónico.');
         }
     }
 
-    if (country_id !== undefined) await assertCountryAvailable(country_id);
+    if (data.country_id !== undefined) await assertCountryAvailable(data.country_id);
 
-    const personFields: Partial<InferAttributes<Person>> = {};
-    if (phone !== undefined) personFields.phone = phone;
-    if (country_id !== undefined) personFields.country_id = country_id;
-    if (document_type !== undefined) personFields.document_type = document_type;
-    if (document_number !== undefined) personFields.document_number = document_number;
-    if (date_birth !== undefined) personFields.date_birth = date_birth || null;
-
-    if (Object.keys(userFields).length > 0) {
-        await UserRepository.update(user, userFields, transaction);
-    }
-
-    if (Object.keys(personFields).length > 0) {
-        await UserRepository.upsertPersonForUser(Number(user.user_id), personFields, transaction);
+    if (Object.keys(changes).length > 0) {
+        await UserRepository.update(user, changes, transaction);
     }
 };
 

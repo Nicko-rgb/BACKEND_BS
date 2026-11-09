@@ -1,6 +1,6 @@
 import { Op } from 'sequelize';
 import type { InferAttributes, CreationAttributes, Transaction } from 'sequelize';
-import { User, Person } from '../database/models';
+import { User } from '../database/models';
 import { toSequelizePagination } from '../../../shared/utils/paginate';
 import type { PaginationQuery } from '../../../shared/types/pagination';
 
@@ -26,12 +26,6 @@ export const create = async (data: CreationAttributes<User>, transaction: Transa
     return User.create(data, { transaction });
 };
 
-// Crea la persona del usuario dentro de una transacción — a diferencia de upsertPersonForUser
-// (edición, fuera de transacción), este alta siempre es un usuario recién creado sin persona previa.
-export const createPerson = async (data: CreationAttributes<Person>, transaction: Transaction) => {
-    return Person.create(data, { transaction });
-};
-
 export interface UserFilters {
     search?: string;
     role?: string;
@@ -40,19 +34,18 @@ export interface UserFilters {
 }
 
 /**
- * Todos los usuarios del sistema, paginado, con su persona (`person`, incluye `country`)
- * — de ahí salen phone, country, document_type y document_number. `search` busca por
- * nombre o correo; `countryId` filtra exacto. `role` filtra por la key del rol vía el join
- * a `roleRef` (dsg_bss_role) — no contra la columna legado `role` directo, para que un
- * usuario recién creado (que puede no tener el string legado escrito) siga apareciendo en
- * el filtro. `countryId`/`role` van en un `where` sobre el include correspondiente, por eso
- * `required: true` en esos casos (si no, con `left join` dejaría pasar todos los usuarios igual).
+ * Todos los usuarios del sistema, paginado, con su país (include `country`).
+ * `search` busca por nombre o correo; `countryId` filtra exacto. `role` filtra
+ * por la key del rol vía el join a `roleRef` (dsg_bss_role) — no contra una
+ * columna de texto. `role` va en un `where` sobre el include, por eso
+ * `required: true` en ese caso (si no, con `left join` dejaría pasar todos).
  */
 export const findAll = async (pagination: PaginationQuery, filters: UserFilters = {}) => {
     const { search, role, countryId, companyIds } = filters;
 
     return User.findAndCountAll({
         where: {
+            ...(countryId ? { country_id: countryId } : {}),
             ...(search ? {
                 [Op.or]: [
                     { first_name: { [Op.iLike]: `%${search}%` } },
@@ -68,12 +61,7 @@ export const findAll = async (pagination: PaginationQuery, filters: UserFilters 
                 required: true,
                 where: { company_id: { [Op.in]: companyIds }, is_active: true },
             }] : []),
-            {
-                association: 'person',
-                required: Boolean(countryId),
-                where: countryId ? { country_id: countryId } : undefined,
-                include: [{ association: 'country' }],
-            },
+            { association: 'country' },
             {
                 association: 'roleRef',
                 required: Boolean(role),
@@ -86,14 +74,14 @@ export const findAll = async (pagination: PaginationQuery, filters: UserFilters 
     });
 };
 
-// Busca por public_id, con su persona y su rol — lo único expuesto en URLs. Uso interno sigue por user_id.
+// Busca por public_id, con su país y su rol — lo único expuesto en URLs. Uso interno sigue por user_id.
 export const findByPublicId = async (publicId: string) => {
-    return User.findOne({ where: { public_id: publicId }, include: [{ association: 'person' }, { association: 'roleRef' }] });
+    return User.findOne({ where: { public_id: publicId }, include: [{ association: 'country' }, { association: 'roleRef' }] });
 };
 
 // Busca por PK — SOLO uso interno (auth, FKs, nunca exponer).
 export const findById = async (id: number) => {
-    return User.findByPk(id, { include: [{ association: 'person' }, { association: 'roleRef' }] });
+    return User.findByPk(id, { include: [{ association: 'country' }, { association: 'roleRef' }] });
 };
 
 // Rol y estado de un usuario — lo mínimo para resolver su autorización en cada request.
@@ -114,16 +102,3 @@ export const update = async (user: User, data: Partial<InferAttributes<User>>, t
     return user.update(data, { transaction });
 };
 
-/**
- * Actualiza la persona del usuario si ya existe, o la crea si todavía no tiene (ej. un usuario
- * creado por `system` sin datos personales cargados). `country_id` es NOT NULL en Person, así
- * que si hay que crear una fila nueva y no vino, no se crea — el caller decide qué hacer con eso
- * (hoy, simplemente no se persisten los demás campos hasta que se mande country_id también).
- */
-export const upsertPersonForUser = async (userId: number, data: Partial<InferAttributes<Person>>, transaction?: Transaction) => {
-    const existing = await Person.findOne({ where: { user_id: userId }, transaction });
-    if (existing) return existing.update(data, { transaction });
-
-    if (!data.country_id) return null;
-    return Person.create({ user_id: userId, country_id: data.country_id, ...data }, { transaction });
-};

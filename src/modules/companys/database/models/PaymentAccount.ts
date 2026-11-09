@@ -89,7 +89,7 @@ PaymentAccount.init({
     bank_name: {
         type: DataTypes.STRING(100),
         allowNull: true,
-        comment: 'Nombre del banco (BCP, BBVA, Interbank, Scotiabank)'
+        comment: 'Nombre del banco (BCP, BBVA, Interbank, Scotiabank, Yape)'
     },
     bank_account_type: {
         type: DataTypes.ENUM('AHORROS', 'CORRIENTE'),

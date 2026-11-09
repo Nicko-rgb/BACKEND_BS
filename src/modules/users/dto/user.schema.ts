@@ -2,7 +2,7 @@ import Joi from 'joi';
 
 const DOCUMENT_TYPE_VALUES = ['IDENTITY_CARD', 'PASSPORT', 'LICENSE', 'OTHER'];
 
-// Campos de User y de Person editables, todos opcionales — base de la autoedición de perfil y
+// Campos de User editables, todos opcionales — base de la autoedición de perfil y
 // de los schemas de gestión de usuarios (userManage.schema.ts).
 export const PROFILE_FIELDS = {
     first_name: Joi.string().trim().min(2).max(100)

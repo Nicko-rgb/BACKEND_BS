@@ -34,7 +34,7 @@ export const findAllPrincipal = async (pagination: PaginationQuery, search?: str
                 association: 'ownerAssignments',
                 where: { is_active: true },
                 required: false,
-                include: [{ association: 'user', include: [{ association: 'person', include: [{ association: 'country' }] }] }],
+                include: [{ association: 'user', include: [{ association: 'country' }] }],
             },
         ],
         order: [['created_at', 'DESC']],
@@ -134,7 +134,7 @@ export const findByIdWithOwner = async (companyId: number) => {
                 association: 'ownerAssignments',
                 where: { is_active: true },
                 required: false,
-                include: [{ association: 'user', include: [{ association: 'person', include: [{ association: 'country' }] }] }],
+                include: [{ association: 'user', include: [{ association: 'country' }] }],
             },
         ],
     });

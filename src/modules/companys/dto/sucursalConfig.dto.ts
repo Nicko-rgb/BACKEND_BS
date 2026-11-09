@@ -8,6 +8,8 @@ import type { Configuration } from '../database/models';
  * detalle de la sucursal (sucursal.dto.ts), no en su configuración.
  */
 export const toSucursalConfigDto = (configuration: Configuration) => {
+    // TIME devuelve 'HH:mm:ss'; el contrato expone 'HH:mm' (igual que toHourDto).
+    // El cierre puede ser '24:00' (fin del día).
     return {
         publicId: configuration.public_id,
         socialFacebook: configuration.social_facebook,
@@ -16,8 +18,8 @@ export const toSucursalConfigDto = (configuration: Configuration) => {
         socialYoutube: configuration.social_youtube,
         socialWhatsapp: configuration.social_whatsapp,
         whatsappMessage: configuration.whatsapp_message,
-        openingTime: configuration.opening_time,
-        closingTime: configuration.closing_time,
+        openingTime: configuration.opening_time ? configuration.opening_time.slice(0, 5) : null,
+        closingTime: configuration.closing_time ? configuration.closing_time.slice(0, 5) : null,
         minPrice: configuration.min_price,
         features: configuration.features,
     };

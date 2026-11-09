@@ -60,11 +60,17 @@ export interface RegisterCompanyInput {
 
 /**
  * Árbol liviano empresa → sucursales → espacios para los selectores del
- * calendario de reservas. Solo se expone nombre + public_id de cada nodo.
+ * calendario de reservas. Solo se expone nombre + public_id de cada nodo y la
+ * ventana operativa de la sucursal (apertura/cierre de su configuración).
  */
 export interface CompanyTreeBranchNode {
     branch: Company;
     spaces: Space[];
+    /** Ventana operativa de la sucursal; null si todavía no tiene configuración. */
+    configuration: {
+        opening_time: string;
+        closing_time: string;
+    } | null;
 }
 
 export interface CompanyTree {

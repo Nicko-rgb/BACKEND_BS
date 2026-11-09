@@ -27,7 +27,7 @@ export const findActiveCompanyIdsByUserId = async (userId: number, transaction?:
 };
 
 /**
- * Asignaciones activas de una empresa y sus sucursales, con el usuario y su persona —
+ * Asignaciones activas de una empresa y sus sucursales, con el usuario y su país —
  * dueño explícito incluido: el detalle de empresa lo muestra también en la
  * lista para gestionar sus permisos desde ahí.
  */
@@ -39,7 +39,7 @@ export const findActiveByCompanyIds = async (companyIds: number[]) => {
             company_id: { [Op.in]: companyIds },
             is_active: true,
         },
-        include: [{ association: 'user', include: [{ association: 'roleRef' }, { association: 'person', include: [{ association: 'country' }] }] }],
+        include: [{ association: 'user', include: [{ association: 'roleRef' }, { association: 'country' }] }],
         order: [['created_at', 'ASC']],
     });
 };
@@ -84,7 +84,7 @@ export const destroyByUserId = async (userId: number, companyIds: number[] | und
 export const findOwnerByTenantId = async (tenantId: string, transaction?: Transaction) => {
     return UserCompany.findOne({
         where: { tenant_id: tenantId, is_owner: true, is_active: true },
-        include: [{ association: 'user', include: [{ association: 'roleRef' }, { association: 'person', include: [{ association: 'country' }] }] }],
+        include: [{ association: 'user', include: [{ association: 'roleRef' }, { association: 'country' }] }],
         transaction,
     });
 };

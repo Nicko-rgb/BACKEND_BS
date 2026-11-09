@@ -1,8 +1,7 @@
 import { idPublicId } from '../../../shared/utils/ids';
 import sequelize from '../../../config/db';
-import * as CompanyRepository from '../repository/company.repository';
 import * as SucursalConfigRepository from '../repository/sucursalConfig.repository';
-import { assertCompanyScope } from '../../../shared/utils/accessScope';
+import { resolveSucursalForUser } from './entityScope.service';
 import { BadRequestError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
 import type { SaveSucursalConfigInput } from '../interfaces/sucursalConfig.interface';
@@ -11,21 +10,8 @@ import type { SaveSucursalConfigInput } from '../interfaces/sucursalConfig.inter
 // El estado de la sucursal NO se toca acá: vive en dsg_bss_company y se cambia por su
 // propio endpoint (PATCH /sucursals/:publicId/status — ver sucursal.service.ts::toggleStatus).
 
-// Scope sobre la sucursal ya resuelta — system entra a cualquiera, otro rol solo
-// si está en su company_ids (ver accessScope.ts).
-const assertSucursalAccess = (sucursalCompanyId: number, user: AuthenticatedUser) => {
-    assertCompanyScope(user, sucursalCompanyId, 'No tenés acceso a esta sucursal');
-};
-
-// Sucursal por public_id — findSucursalByPublicId ya filtra parent_company_id NOT NULL,
-// así que si resuelve es sucursal sí o sí (nunca una empresa madre).
-const findSucursalOrFail = async (sucursalPublicId: string, user: AuthenticatedUser) => {
-    const sucursal = await CompanyRepository.findSucursalByPublicId(sucursalPublicId);
-    if (!sucursal) throw new NotFoundError('Sucursal no encontrada');
-
-    assertSucursalAccess(sucursal.company_id, user);
-    return sucursal;
-};
+// 'HH:mm[:ss]' → 'HH:mm' — la columna TIME devuelve los segundos.
+const toShortTime = (value: string): string => value.slice(0, 5);
 
 // 'HH:mm[:ss]' → minutos, para validar cierre posterior a apertura.
 const toMinutes = (value: string): number => {
@@ -33,8 +19,16 @@ const toMinutes = (value: string): number => {
     return hours * 60 + minutes;
 };
 
+/**
+ * Cierre a medianoche: '00:00' y '24:00' son el mismo instante (fin del día) y
+ * el front manda cualquiera de los dos. Se guarda siempre como '24:00' — mismo
+ * criterio que BusinessHour.end_time, y así la validación de horarios del
+ * espacio (hour.service.ts) lo compara como 1440 minutos.
+ */
+const normalizeClosingTime = (value: string): string => (toShortTime(value) === '00:00' ? '24:00' : toShortTime(value));
+
 export const getBySucursalPublicId = async (sucursalPublicId: string, user: AuthenticatedUser) => {
-    const sucursal = await findSucursalOrFail(sucursalPublicId, user);
+    const sucursal = await resolveSucursalForUser(sucursalPublicId, user);
 
     const configuration = await SucursalConfigRepository.findBySucursalId(sucursal.company_id);
     if (!configuration) throw new NotFoundError('La sucursal todavía no tiene configuración');
@@ -43,12 +37,18 @@ export const getBySucursalPublicId = async (sucursalPublicId: string, user: Auth
 };
 
 export const saveBySucursalPublicId = async (sucursalPublicId: string, data: SaveSucursalConfigInput, user: AuthenticatedUser) => {
-    const sucursal = await findSucursalOrFail(sucursalPublicId, user);
+    const sucursal = await resolveSucursalForUser(sucursalPublicId, user);
 
     if (!data.opening_time || !data.closing_time) {
         throw new BadRequestError('El horario de apertura y cierre son requeridos');
     }
-    if (toMinutes(data.closing_time) <= toMinutes(data.opening_time)) {
+
+    // '00:00' y '24:00' son fin del día: se normalizan ANTES de comparar para
+    // que no se lean como el minuto 0 del inicio del día.
+    const openingTime = toShortTime(data.opening_time);
+    const closingTime = normalizeClosingTime(data.closing_time);
+
+    if (toMinutes(closingTime) <= toMinutes(openingTime)) {
         throw new BadRequestError('El cierre debe ser posterior a la apertura');
     }
 
@@ -60,8 +60,8 @@ export const saveBySucursalPublicId = async (sucursalPublicId: string, data: Sav
         social_youtube: data.social_youtube || null,
         social_whatsapp: data.social_whatsapp || null,
         whatsapp_message: data.whatsapp_message || null,
-        opening_time: data.opening_time,
-        closing_time: data.closing_time,
+        opening_time: openingTime,
+        closing_time: closingTime,
         // DECIMAL(10,2) viaja como string en pg — el schema valida number, se convierte acá.
         min_price: data.min_price != null ? String(data.min_price) : null,
         features: data.features || null,

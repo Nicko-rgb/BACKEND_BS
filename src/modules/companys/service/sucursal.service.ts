@@ -4,6 +4,7 @@ import type { InferAttributes } from 'sequelize';
 import * as CompanyRepository from '../repository/company.repository';
 import * as CountryRepository from '../../system/repository/country.repository';
 import * as PlanLimitsService from '../../saas/service/planLimits.service';
+import { resolveSucursalForUser } from './entityScope.service';
 import { assertCompanyScope, hasFullCompanyAccess } from '../../../shared/utils/accessScope';
 import { BadRequestError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
@@ -68,25 +69,12 @@ export const register = async (companyPublicId: string, data: RegisterSucursalIn
     return CompanyRepository.findSucursalByPublicId(sucursal.public_id) as Promise<Company>;
 };
 
-// Scope sobre la sucursal ya resuelta — system entra a cualquiera, otro rol solo
-// si está en su company_ids (ver accessScope.ts).
-const assertSucursalAccess = (sucursal: Company, user: AuthenticatedUser) => {
-    assertCompanyScope(user, sucursal.company_id, 'No tenés acceso a esta sucursal');
-};
-
 export const getByPublicId = async (publicId: string, user: AuthenticatedUser) => {
-    const sucursal = await CompanyRepository.findSucursalByPublicId(publicId);
-    if (!sucursal) throw new NotFoundError('Sucursal no encontrada');
-
-    assertSucursalAccess(sucursal, user);
-    return sucursal;
+    return resolveSucursalForUser(publicId, user);
 };
 
 export const updateByPublicId = async (publicId: string, data: UpdateSucursalInput, user: AuthenticatedUser) => {
-    const sucursal = await CompanyRepository.findSucursalByPublicId(publicId);
-    if (!sucursal) throw new NotFoundError('Sucursal no encontrada');
-
-    assertSucursalAccess(sucursal, user);
+    const sucursal = await resolveSucursalForUser(publicId, user);
 
     if (data.country_id !== undefined) {
         const country = await CountryRepository.findById(data.country_id);
@@ -113,10 +101,7 @@ export const updateByPublicId = async (publicId: string, data: UpdateSucursalInp
 
 // Cambio de estado de la sucursal
 export const toggleStatus = async (publicId: string, data: SucursalStatusInput, user: AuthenticatedUser) => {
-    const sucursal = await CompanyRepository.findSucursalByPublicId(publicId);
-    if (!sucursal) throw new NotFoundError('Sucursal no encontrada');
-
-    assertSucursalAccess(sucursal, user);
+    const sucursal = await resolveSucursalForUser(publicId, user);
 
     await CompanyRepository.update(sucursal, {
         status: data.status,

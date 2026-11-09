@@ -58,9 +58,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     ],
     administrador: [
         // Empresa
-        'company.create',
         'company.view',
-        'company.edit',
 
         // Sucursal
         'sucursal.create',

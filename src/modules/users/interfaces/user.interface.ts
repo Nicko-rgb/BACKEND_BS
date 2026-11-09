@@ -1,22 +1,22 @@
 /**
- * Tipos de dominio de la persona — capa de contratos del módulo `users`.
+ * Tipos de dominio del perfil de usuario — capa de contratos del módulo `users`.
  *
- * Viven acá (y no en `database/models/Person.ts`) para que otros módulos
+ * Viven acá (y no en `database/models/User.ts`) para que otros módulos
  * consuman el enum sin depender del modelo Sequelize: el modelo importa
- * desde acá, nunca al revés. Espeja el ENUM de dsg_bss_person.
+ * desde acá, nunca al revés. Espeja los ENUM de dsg_bss_user.
  */
 
-// Género de la persona — columna `gender` de dsg_bss_person.
+// Género del usuario — columna `gender` de dsg_bss_user.
 export type Gender = 'MALE' | 'FEMALE' | 'OTHER' | 'NOT_SPECIFIED';
 
-// Tipo de documento de identidad — columna `document_type` de dsg_bss_person.
+// Tipo de documento de identidad — columna `document_type` de dsg_bss_user.
 export type DocumentType = 'IDENTITY_CARD' | 'PASSPORT' | 'LICENSE' | 'OTHER';
 
-// Estado civil — columna `civil_state` de dsg_bss_person.
+// Estado civil — legado de dsg_bss_person; ya no se persiste.
 export type CivilState = 'SINGLE' | 'MARRIED' | 'DIVORCED' | 'WIDOWED' | 'COMMON-LAW';
 
 /**
- * Campos de perfil editables — de User y de Person en un solo payload.
+ * Campos de perfil editables — todos viven en `dsg_bss_user`.
  * Compartido por la autoedición del perfil (`user.service.ts`) y la gestión de
  * usuarios por rol (`userManage.service.ts`).
  */

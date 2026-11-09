@@ -21,12 +21,7 @@ router.get('/space/:spacePublicId/list',
 /**
  * @route PUT /api/hours/space/:spacePublicId
  * @desc  Guarda la semana COMPLETA del espacio: crea o reemplaza todos sus
- *        bloques en una transacción. El payload es el estado final — un día sin
- *        bloques es un día ausente del array; `hours: []` deja el espacio sin
- *        horarios. Cada bloque viaja con su `is_closed` (default false) para que
- *        el guardado no pise lo que cerraron los toggles. Valida scope, rango
- *        dentro del mismo día y solapamientos dentro de cada día. Responde la
- *        lista completa ya guardada (los hour_id nuevos).
+ *        bloques en una transacción.
  * @access usuarios con permiso space.business_hour_manage
  */
 router.put('/space/:spacePublicId',

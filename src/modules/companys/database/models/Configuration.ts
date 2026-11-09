@@ -103,7 +103,7 @@ Configuration.init({
     closing_time: {
         type: DataTypes.TIME,
         allowNull: true,
-        comment: 'Horario de cierre de la sucursal'
+        comment: "Horario de cierre de la sucursal — '24:00' representa fin del día"
     },
     min_price: {
         type: DataTypes.DECIMAL(10, 2),

@@ -73,19 +73,26 @@ export const toCompanyDetailDto = (company: Company) => {
     };
 };
 
+// TIME devuelve 'HH:mm:ss'; el contrato expone 'HH:mm'. El cierre a medianoche
+// ('00:00' o '24:00') se normaliza a '24:00', igual que en la config y los horarios.
+const toShortTime = (value: string): string => value.slice(0, 5);
+const normalizeClosingTime = (value: string): string => (toShortTime(value) === '00:00' ? '24:00' : toShortTime(value));
+
 /**
- * Árbol para los selectores del calendario de reservas — solo `publicId` y
- * `name` en los tres niveles (empresa, sucursal y espacio); nunca ids internos
- * ni tenant.
+ * Árbol para los selectores del calendario de reservas — `publicId` y `name`
+ * en los tres niveles (empresa, sucursal y espacio) más la ventana operativa
+ * de la sucursal; nunca ids internos ni tenant.
  */
 export const toCompanyTreeDto = (tree: CompanyTree) => ({
     company: {
         publicId: tree.company.public_id,
         name: tree.company.name,
     },
-    branches: tree.branches.map(({ branch, spaces }) => ({
+    branches: tree.branches.map(({ branch, spaces, configuration }) => ({
         publicId: branch.public_id,
         name: branch.name,
+        openingTime: configuration ? toShortTime(configuration.opening_time) : null,
+        closingTime: configuration ? normalizeClosingTime(configuration.closing_time) : null,
         spaces: spaces.map((space) => ({
             publicId: space.public_id,
             name: space.name,

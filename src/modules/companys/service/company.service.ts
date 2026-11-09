@@ -4,6 +4,7 @@ import sequelize from '../../../config/db';
 import logger from '../../../config/logger';
 import * as CompanyRepository from '../repository/company.repository';
 import * as SpaceRepository from '../repository/space.repository';
+import * as SucursalConfigRepository from '../repository/sucursalConfig.repository';
 import * as SaaSSubscriptionRepository from '../../saas/repository/saasSubscription.repository';
 import { resolveRegistrationCoverage } from './companyRegistrationScope.service';
 import { notify } from '../../notificacions/service/notification.service';
@@ -86,7 +87,7 @@ export const updateByPublicId = async (publicId: string, data: UpdateCompanyInpu
 };
 
 /**
- * Alta de primaria: Company + User (dueño) + Person + UserCompany + suscripción.
+ * Alta de primaria: Company + User (dueño) + UserCompany + suscripción.
  * Alta de hermana: Company + vínculo a la suscripción y dueño existentes.
  * Solo system crea tenant y SaaSSubscription nuevos. Los usuarios acotados crean una
  * hermana en su grupo, con el mismo tenant y suscripción, si permite multiempresa.
@@ -141,27 +142,19 @@ export const register = async (payload: RegisterCompanyInput, user: Authenticate
             role_id: superAdminRole!.role_id,
             public_id: ownerPublicId,
             is_enabled: true,
+            country_id: owner.country_id,
+            date_birth: owner.date_birth || null,
+            gender: null,
+            document_type: owner.document_type,
+            document_number: owner.document_number,
+            phone: owner.phone,
+            ubigeo_id: null,
+            preferences: null,
+            default_payment_type_id: null,
             user_create: user.user_id,
         }, transaction) : inheritedOwner!.user!;
 
         if (owner) {
-            await UserRepository.createPerson({
-                user_id: newUser.user_id,
-                country_id: owner.country_id,
-                date_birth: owner.date_birth || null,
-                gender: null,
-                document_type: owner.document_type,
-                document_number: owner.document_number,
-                phone: owner.phone,
-                ubigeo_id: null,
-                occupation: null,
-                civil_state: null,
-                sports_preferences: null,
-                accept_marketing: false,
-                preferences: null,
-                default_payment_type_id: null,
-            }, transaction);
-
             // Set inicial del dueño = plantilla del rol super_admin (después se edita por usuario).
             await UserPermissionRepository.grantRoleDefaults(
                 Number(newUser.user_id),
@@ -247,23 +240,28 @@ export const register = async (payload: RegisterCompanyInput, user: Authenticate
 };
 
 /**
- * Árbol liviano empresa → sucursales → espacios para los selectores del
+ * Árbol público empresa → sucursales → espacios para los selectores del
  * calendario de reservas, resuelto a partir del `public_id` de la sucursal
- * seleccionada en el front.
+ * seleccionada en el front. Incluye la ventana operativa (apertura/cierre) de
+ * cada sucursal, que es data de negocio visible también desde el portal.
+ *
+ * Sin alcance de usuario: el endpoint es público y el filtrado por acceso de
+ * cada usuario se resuelve en el front con el contexto de sesión.
  */
-export const getBranchTree = async (sucursalPublicId: string, user: AuthenticatedUser): Promise<CompanyTree> => {
+export const getBranchTree = async (sucursalPublicId: string): Promise<CompanyTree> => {
     const branch = await CompanyRepository.findBranchTreeNodeByPublicId(sucursalPublicId);
     if (!branch || !branch.parentCompany) throw new NotFoundError('Sucursal no encontrada');
 
-    assertCompanyScope(user, Number(branch.company_id), 'No tenés acceso a esta sucursal');
-
     const company = branch.parentCompany;
-    const branches = await CompanyRepository.findBranchIdentitiesByParentId(
-        Number(company.company_id),
-        hasFullCompanyAccess(user) ? undefined : (user.company_ids ?? []),
-    );
+    const branches = await CompanyRepository.findBranchIdentitiesByParentId(Number(company.company_id));
+    const branchIds = branches.map((item) => Number(item.company_id));
 
-    const spaces = await SpaceRepository.findSpacesBySucursalIds(branches.map((item) => Number(item.company_id)));
+    // Espacios y configuración en paralelo — el árbol se arma con una sola
+    // pasada por sucursal, sin una consulta de config por cada nodo.
+    const [spaces, configurations] = await Promise.all([
+        SpaceRepository.findSpacesBySucursalIds(branchIds),
+        SucursalConfigRepository.findSchedulesBySucursalIds(branchIds),
+    ]);
 
     const spacesByBranch = new Map<number, Space[]>();
     for (const space of spaces) {
@@ -273,11 +271,23 @@ export const getBranchTree = async (sucursalPublicId: string, user: Authenticate
         spacesByBranch.set(sucursalId, list);
     }
 
+    const configurationByBranch = new Map<number, { opening_time: string; closing_time: string }>();
+    for (const configuration of configurations) {
+        // Una config sin ambos horarios no define ventana operativa y no se expone.
+        if (configuration.opening_time && configuration.closing_time) {
+            configurationByBranch.set(Number(configuration.sucursal_id), {
+                opening_time: configuration.opening_time,
+                closing_time: configuration.closing_time,
+            });
+        }
+    }
+
     return {
         company,
         branches: branches.map((item) => ({
             branch: item,
             spaces: spacesByBranch.get(Number(item.company_id)) ?? [],
+            configuration: configurationByBranch.get(Number(item.company_id)) ?? null,
         })),
     };
 };

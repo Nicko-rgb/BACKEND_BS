@@ -1,14 +1,17 @@
 import Joi from 'joi';
 
-// Upsert de configuración de sucursal — horarios obligatorios, resto opcional (PUT parcial
-// con min(1)). Cada regla trae su propio mensaje explícito. La comparación
-// cierre > apertura vive en el service (sucursalConfig.service.ts::saveBySucursalPublicId).
+// Apertura: dentro del día (00:00–23:59). El cierre además admite '24:00'
+// (fin del día); '00:00' también vale como fin del día y el service lo
+// normaliza a '24:00' antes de comparar y guardar (mismo criterio que
+// BusinessHour.end_time). La comparación cierre > apertura vive en el service
+// (sucursalConfig.service.ts::saveBySucursalPublicId).
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/;
+const END_TIME_PATTERN = /^(([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?|24:00(:00)?)$/;
 
-const timeField = (label: string) =>
-    Joi.string().trim().pattern(TIME_PATTERN).messages({
+const timeField = (label: string, pattern: RegExp, formatMessage: string) =>
+    Joi.string().trim().pattern(pattern).messages({
         'string.empty': `${label} es requerido`,
-        'string.pattern.base': `${label} no es válida (HH:mm)`,
+        'string.pattern.base': formatMessage,
         'any.required': `${label} es requerido`,
     });
 
@@ -30,8 +33,8 @@ export const saveSucursalConfigSchema = Joi.object({
     whatsapp_message: Joi.string().trim().max(300).allow('', null).messages({
         'string.max': 'El mensaje no puede superar 300 caracteres',
     }),
-    opening_time: timeField('El horario de apertura').required(),
-    closing_time: timeField('El horario de cierre').required(),
+    opening_time: timeField('El horario de apertura', TIME_PATTERN, 'El horario de apertura no es válido (HH:mm)').required(),
+    closing_time: timeField('El horario de cierre', END_TIME_PATTERN, 'El horario de cierre no es válido (HH:mm; 24:00 o 00:00 = fin del día)').required(),
     min_price: Joi.number().min(0).allow(null).messages({
         'number.base': 'El precio mínimo debe ser un número',
         'number.min': 'El precio mínimo debe ser mayor o igual a 0',

@@ -31,18 +31,17 @@ const toCompanyUsersDto = (
 
         const userId = Number(user.user_id);
         if (!byUserId.has(userId)) {
-            const person = user.person ?? null;
-            const country = person?.country ?? null;
+            const country = user.country ?? null;
             byUserId.set(userId, {
                 publicId: user.public_id,
                 firstName: user.first_name,
                 lastName: user.last_name,
                 email: user.email,
-                phone: person?.phone ?? null,
+                phone: user.phone ?? null,
                 role: user.roleRef?.key ?? '',
-                documentType: person?.document_type ?? null,
-                documentNumber: person?.document_number ?? null,
-                dateBirth: person?.date_birth ?? null,
+                documentType: user.document_type ?? null,
+                documentNumber: user.document_number ?? null,
+                dateBirth: user.date_birth ?? null,
                 country: country ? {
                     id: Number(country.country_id),
                     name: country.country,

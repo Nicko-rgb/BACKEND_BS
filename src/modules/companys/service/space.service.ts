@@ -1,12 +1,11 @@
 import sequelize from '../../../config/db';
-import * as CompanyRepository from '../repository/company.repository';
 import * as SpaceRepository from '../repository/space.repository';
+import { resolveSpaceForUser, resolveSucursalForUser } from './entityScope.service';
 import * as SurfaceTypeRepository from '../../system/repository/surfaceType.repository';
 import * as SportTypeRepository from '../../system/repository/sportType.repository';
 import * as SportCategoryRepository from '../../system/repository/sportCategory.repository';
 import * as PlanLimitsService from '../../saas/service/planLimits.service';
 import { idPublicId } from '../../../shared/utils/ids';
-import { assertCompanyScope } from '../../../shared/utils/accessScope';
 import { BadRequestError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
 import type { RegisterSpaceInput, UpdateSpaceInput, SpaceUpdateData, SpaceStatusInput } from '../interfaces/space.interface';
@@ -16,10 +15,7 @@ import type { RegisterSpaceInput, UpdateSpaceInput, SpaceUpdateData, SpaceStatus
  * system entra a cualquiera, otro rol solo si la sucursal está en su company_ids.
  */
 export const listBySucursal = async (sucursalPublicId: string, user: AuthenticatedUser) => {
-    const sucursal = await CompanyRepository.findSucursalByPublicId(sucursalPublicId);
-    if (!sucursal) throw new NotFoundError('Sucursal no encontrada');
-
-    assertCompanyScope(user, sucursal.company_id, 'No tenés acceso a esta sucursal');
+    const sucursal = await resolveSucursalForUser(sucursalPublicId, user);
     return SpaceRepository.findBySucursalId(sucursal.company_id);
 };
 
@@ -34,11 +30,8 @@ export const listBySucursal = async (sucursalPublicId: string, user: Authenticat
  * Estado siempre ACTIVO al crear; auditoría con el usuario autenticado.
  */
 export const register = async (sucursalPublicId: string, data: RegisterSpaceInput, user: AuthenticatedUser) => {
-    const sucursal = await CompanyRepository.findSucursalByPublicId(sucursalPublicId);
-    if (!sucursal) throw new NotFoundError('Sucursal no encontrada');
+    const sucursal = await resolveSucursalForUser(sucursalPublicId, user);
     const sucursalId = sucursal.company_id;
-
-    assertCompanyScope(user, sucursalId, 'No tenés acceso a esta sucursal');
 
     const [surfaceType, sportType, sportCategory] = await Promise.all([
         SurfaceTypeRepository.findById(data.surface_type_id),
@@ -86,13 +79,7 @@ export const register = async (sucursalPublicId: string, data: RegisterSpaceInpu
  */
 export const update = async (spacePublicId: string, data: UpdateSpaceInput, user: AuthenticatedUser) => {
     // 1. Resolver espacio y validar scope sobre SU sucursal
-    const spaceId = await SpaceRepository.getSpaceIdByPublicId(spacePublicId);
-    if (!spaceId) throw new NotFoundError('Espacio deportivo no encontrado');
-
-    const space = await SpaceRepository.findById(spaceId);
-    if (!space) throw new NotFoundError('Espacio deportivo no encontrado');
-
-    assertCompanyScope(user, space.sucursal_id, 'No tenés acceso a este espacio');
+    const space = await resolveSpaceForUser(spacePublicId, user);
 
     // 2. Validar catálogos solo si vienen en el payload
     if (data.surface_type_id != null) {
@@ -147,14 +134,7 @@ export const update = async (spacePublicId: string, data: UpdateSpaceInput, user
  * esté dentro del alcance del usuario (user.company_ids).
  */
 export const spaceById = async (spacePublicId: string, user: AuthenticatedUser) => {
-    const spaceId = await SpaceRepository.getSpaceIdByPublicId(spacePublicId);
-    if (!spaceId) throw new NotFoundError('Espacio deportivo no encontrado');
-
-    const space = await SpaceRepository.findById(spaceId);
-    if (!space) throw new NotFoundError('Espacio deportivo no encontrado');
-
-    assertCompanyScope(user, space.sucursal_id, 'No tenés acceso a este espacio');
-    return space;
+    return resolveSpaceForUser(spacePublicId, user);
 };
 
 /**
@@ -167,13 +147,7 @@ export const spaceById = async (spacePublicId: string, user: AuthenticatedUser) 
  */
 export const toggleStatus = async (spacePublicId: string, data: SpaceStatusInput, user: AuthenticatedUser) => {
     // 1. Resolver espacio y validar scope sobre SU sucursal
-    const spaceId = await SpaceRepository.getSpaceIdByPublicId(spacePublicId);
-    if (!spaceId) throw new NotFoundError('Espacio deportivo no encontrado');
-
-    const space = await SpaceRepository.findById(spaceId);
-    if (!space) throw new NotFoundError('Espacio deportivo no encontrado');
-
-    assertCompanyScope(user, space.sucursal_id, 'No tenés acceso a este espacio');
+    const space = await resolveSpaceForUser(spacePublicId, user);
 
     // 2. Solo el estado cambia (el schema Joi ya valida el valor del ENUM)
     return SpaceRepository.update(space, {

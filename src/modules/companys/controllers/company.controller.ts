@@ -40,10 +40,9 @@ export const registerCompany = async (req: Request, res: Response) => {
     return ApiResponse.created(res, toCompanyListDto(company, plan), 'Empresa registrada exitosamente');
 };
 
-// Árbol liviano empresa → sucursales → espacios para los selectores del calendario de reservas.
+// Árbol público empresa → sucursales → espacios, con la ventana operativa de cada sucursal.
 export const getBranchTree = async (req: Request, res: Response) => {
     const sucursalPublicId = String(req.params.sucursalPublicId);
-    const user = req.user;
-    const tree = await CompanyService.getBranchTree(sucursalPublicId, user!);
+    const tree = await CompanyService.getBranchTree(sucursalPublicId);
     return ApiResponse.ok(res, toCompanyTreeDto(tree), 'Árbol de empresa obtenido exitosamente');
 };

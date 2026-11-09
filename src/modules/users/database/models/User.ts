@@ -13,18 +13,18 @@
 import { DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional, NonAttribute } from 'sequelize';
 import sequelize from '../../../../config/db';
 import { idPublicId } from '../../../../shared/utils/ids';
-import type { Person } from './Person';
 import type { UserFavorite } from './UserFavorite';
 import type { UserCompany } from './UserCompany';
 import type { UserPermission } from './UserPermission';
 import type { UserPageTour } from './UserPageTour';
-import type { Media, Role } from '../../../system/database/models';
+import type { Country, Media, PaymentType, Role, Ubigeo } from '../../../system/database/models';
+import type { DocumentType, Gender } from '../../interfaces/user.interface';
 
 export class User extends Model<InferAttributes<User>, InferCreationAttributes<User>> {
     declare user_id: CreationOptional<number>;
     declare public_id: CreationOptional<string>;
-    declare first_name: string | null;
-    declare last_name: string | null;
+    declare first_name: string;
+    declare last_name: string;
     declare email: string | null;
     declare password: string | null;
     declare password_changed_at: Date | null;
@@ -34,12 +34,27 @@ export class User extends Model<InferAttributes<User>, InferCreationAttributes<U
     // Los permisos salen de dsg_bss_user_permissions, no del rol.
     declare role_id: number;
     declare is_enabled: CreationOptional<boolean>;
+
+    // Perfil del usuario — antes vivía en dsg_bss_person (relación 1:1).
+    declare country_id: number | null;
+    declare date_birth: string | null;
+    declare gender: Gender | null;
+    declare document_type: DocumentType | null;
+    declare document_number: string | null;
+    declare phone: string | null;
+    declare ubigeo_id: number | null;
+    declare preferences: unknown | null;
+    declare default_payment_type_id: number | null;
+    declare source_from: string | null;
+
     declare user_create: number | null;
     declare readonly created_at: CreationOptional<Date>;
     declare readonly updated_at: CreationOptional<Date>;
 
     // Asociaciones (poblado por include, no columnas propias) ─────────────────
-    declare person?: NonAttribute<Person>;
+    declare country?: NonAttribute<Country>;
+    declare ubigeo?: NonAttribute<Ubigeo>;
+    declare defaultPaymentType?: NonAttribute<PaymentType>;
     declare favorites?: NonAttribute<UserFavorite[]>;
     declare companyAssignments?: NonAttribute<UserCompany[]>;
     declare directPermissions?: NonAttribute<UserPermission[]>;
@@ -64,12 +79,12 @@ User.init({
     },
     first_name: {
         type: DataTypes.STRING(100),
-        allowNull: true,
+        allowNull: false,
         comment: 'Nombre del usuario'
     },
     last_name: {
         type: DataTypes.STRING(100),
-        allowNull: true,
+        allowNull: false,
         comment: 'Apellido del usuario'
     },
     email: {
@@ -109,6 +124,65 @@ User.init({
         allowNull: false,
         defaultValue: true,
         comment: 'Indica si el usuario está habilitado para autenticarse'
+    },
+    country_id: {
+        type: DataTypes.BIGINT,
+        allowNull: true,
+        references: { model: 'dsg_bss_country', key: 'country_id' },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL',
+        comment: 'País del usuario'
+    },
+    date_birth: {
+        type: DataTypes.DATEONLY,
+        allowNull: true,
+        comment: 'Fecha de nacimiento'
+    },
+    gender: {
+        type: DataTypes.ENUM('MALE', 'FEMALE', 'OTHER', 'NOT_SPECIFIED'),
+        allowNull: true,
+        comment: 'Género del usuario'
+    },
+    document_type: {
+        type: DataTypes.ENUM('IDENTITY_CARD', 'PASSPORT', 'LICENSE', 'OTHER'),
+        allowNull: true,
+        comment: 'Tipo de documento de identidad'
+    },
+    document_number: {
+        type: DataTypes.STRING(50),
+        allowNull: true,
+        comment: 'Número del documento de identidad'
+    },
+    phone: {
+        type: DataTypes.STRING(20),
+        allowNull: true,
+        comment: 'Número de teléfono del usuario'
+    },
+    ubigeo_id: {
+        type: DataTypes.BIGINT,
+        allowNull: true,
+        references: { model: 'dsg_bss_ubigeo', key: 'ubigeo_id' },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL',
+        comment: 'Ubigeo de residencia'
+    },
+    preferences: {
+        type: DataTypes.JSONB,
+        allowNull: true,
+        comment: 'Preferencias de notificaciones, privacidad y pantalla'
+    },
+    default_payment_type_id: {
+        type: DataTypes.BIGINT,
+        allowNull: true,
+        references: { model: 'dsg_bss_payment_types', key: 'payment_type_id' },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL',
+        comment: 'Tipo de pago preferido del usuario'
+    },
+    source_from: {
+        type: DataTypes.STRING(50),
+        allowNull: true,
+        comment: 'Origen del registro (web, admin, booking, etc.)'
     },
     user_create: {
         type: DataTypes.BIGINT,
@@ -159,15 +233,16 @@ User.init({
 // Definir asociaciones — solo las que caen dentro de módulos ya portados.
 // TODO: wire cuando se porten booking (Booking), companys (Rating) y media (Media polimórfica).
 export function associateUser(models: {
-    Person: typeof Person;
     UserFavorite: typeof UserFavorite;
     UserCompany: typeof UserCompany;
     UserPermission: typeof UserPermission;
     UserPageTour: typeof UserPageTour;
+    Country: typeof Country;
+    PaymentType: typeof PaymentType;
+    Ubigeo: typeof Ubigeo;
     Media: typeof Media;
     Role: typeof Role;
 }): void {
-    User.hasOne(models.Person, { foreignKey: 'user_id', as: 'person' });
     User.hasMany(models.UserFavorite, { foreignKey: 'user_id', as: 'favorites' });
     User.hasMany(models.UserCompany, { foreignKey: 'user_id', as: 'companyAssignments' });
     User.hasMany(models.UserPermission, { foreignKey: 'user_id', as: 'directPermissions' });
@@ -175,4 +250,7 @@ export function associateUser(models: {
     User.hasMany(models.Media, { foreignKey: 'medible_id', constraints: false, scope: { medible_type: 'User' }, as: 'media' });
     User.belongsTo(User, { foreignKey: 'user_create', as: 'creator' });
     User.belongsTo(models.Role, { foreignKey: 'role_id', as: 'roleRef' });
+    User.belongsTo(models.Country, { foreignKey: 'country_id', as: 'country' });
+    User.belongsTo(models.Ubigeo, { foreignKey: 'ubigeo_id', as: 'ubigeo' });
+    User.belongsTo(models.PaymentType, { foreignKey: 'default_payment_type_id', as: 'defaultPaymentType' });
 }

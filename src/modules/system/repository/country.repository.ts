@@ -2,11 +2,11 @@ import type { InferAttributes, InferCreationAttributes } from 'sequelize';
 import { Country } from '../database/models';
 import { countReferences } from '../../../shared/utils/checkReferences';
 
-// Tablas que referencian a un país — empresas, tipos de pago y usuarios (persona).
+// Tablas que referencian a un país — empresas, tipos de pago y usuarios.
 const REFERENCE_CHECKS = [
     { table: 'dsg_bss_company', column: 'country_id' },
     { table: 'dsg_bss_payment_types', column: 'country_id' },
-    { table: 'dsg_bss_person', column: 'country_id' },
+    { table: 'dsg_bss_user', column: 'country_id' },
 ];
 
 // Todos los países (activos e inactivos), sin paginar — catálogo chico, no filtra por is_active.

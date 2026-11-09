@@ -154,7 +154,7 @@ export const getById = async (roleParam: string, publicId: string, user: Authent
 };
 
 /**
- * Alta de un usuario con el rol de la ruta. Crea User + Person + sus asignaciones (empresa para
+ * Alta de un usuario con el rol de la ruta. Crea User + sus asignaciones (empresa para
  * super_admin, sucursales para administrador/empleado) + su set inicial de permisos copiado de
  * la plantilla del rol (dsg_bss_role_permission), todo en una sola transacción. Después el
  * usuario vive independiente del rol: se ajusta con el picker de permisos por usuario.
@@ -191,11 +191,6 @@ export const create = async (roleParam: string, data: CreateManagedUserInput, us
             role_id: roleRow.role_id,
             public_id: idPublicId(),
             is_enabled: true,
-            user_create: user.user_id,
-        }, transaction);
-
-        await UserRepository.createPerson({
-            user_id: newUser.user_id,
             country_id: data.country_id!,
             date_birth: data.date_birth || null,
             gender: null,
@@ -203,12 +198,9 @@ export const create = async (roleParam: string, data: CreateManagedUserInput, us
             document_number: data.document_number || null,
             phone: data.phone || null,
             ubigeo_id: null,
-            occupation: null,
-            civil_state: null,
-            sports_preferences: null,
-            accept_marketing: false,
             preferences: null,
             default_payment_type_id: null,
+            user_create: user.user_id,
         }, transaction);
 
         if (assignments.length > 0) {

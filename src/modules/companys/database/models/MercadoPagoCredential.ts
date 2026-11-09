@@ -19,7 +19,7 @@ type MpEnvironment = 'SANDBOX' | 'PRODUCTION';
 
 export class MercadoPagoCredential extends Model<InferAttributes<MercadoPagoCredential>, InferCreationAttributes<MercadoPagoCredential>> {
     declare credential_id: CreationOptional<number>;
-    declare company_id: number;
+    declare sucursal_id: number;
     declare tenant_id: string;
     declare access_token_encrypted: string;
     declare public_key: string | null;
@@ -42,7 +42,7 @@ MercadoPagoCredential.init({
         primaryKey: true,
         comment: 'Identificador único de la credencial'
     },
-    company_id: {
+    sucursal_id: {
         type: DataTypes.BIGINT,
         allowNull: false,
         references: { model: 'dsg_bss_company', key: 'company_id' },
@@ -116,7 +116,7 @@ MercadoPagoCredential.init({
     createdAt: 'created_at',
     updatedAt: 'updated_at',
     indexes: [
-        { unique: true, fields: ['company_id'], name: 'idx_mp_credential_company_unique' }
+        { unique: true, fields: ['sucursal_id'], name: 'idx_mp_credential_sucursal_unique' }
     ],
     comment: 'Credenciales de Mercado Pago conectadas por empresa/sucursal'
 });

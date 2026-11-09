@@ -18,6 +18,7 @@ import systemRoutes from './modules/system/routes/index.routes';
 import companysRoutes from './modules/companys/routes/index.routes';
 import usersRoutes from './modules/users/routes/index.routes';
 import saasRoutes from './modules/saas/routes/index.routes';
+import bookingsRoutes from './modules/bookings/routes/index.routes';
 
 export function createApp(): Express {
     const app = express();
@@ -145,6 +146,7 @@ export function createApp(): Express {
     app.use('/api', companysRoutes);
     app.use('/api', usersRoutes);
     app.use('/api', saasRoutes);
+    app.use('/api', bookingsRoutes);
 
     // Manejo de 404 y errores globales
     app.use(GlobalErrorHandler.notFound);

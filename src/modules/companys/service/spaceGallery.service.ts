@@ -10,10 +10,9 @@
  *
  * A diferencia de la portada (que reemplaza), la galería ACUMULA archivos.
  */
-import * as SpaceRepository from '../repository/space.repository';
 import * as MediaRepository from '../../system/repository/media.repository';
 import * as MediaCore from '../../system/service/mediaCore.service';
-import { assertCompanyScope } from '../../../shared/utils/accessScope';
+import { resolveSpaceForUser } from './entityScope.service';
 import { BadRequestError, ForbiddenError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
 
@@ -24,25 +23,10 @@ const GALLERY_CATEGORY = 'GALLERY';
 const MEDIBLE_TYPE = 'Space';
 
 /**
- * Resuelve el espacio por public_id y valida que esté dentro del alcance del
- * usuario — el scope se evalúa sobre la sucursal a la que pertenece el espacio.
- */
-const resolveSpace = async (spacePublicId: string, user: AuthenticatedUser) => {
-    const spaceId = await SpaceRepository.getSpaceIdByPublicId(spacePublicId);
-    if (!spaceId) throw new NotFoundError('Espacio deportivo no encontrado');
-
-    const space = await SpaceRepository.findById(spaceId);
-    if (!space) throw new NotFoundError('Espacio deportivo no encontrado');
-
-    assertCompanyScope(user, space.sucursal_id, 'No tenés acceso a este espacio');
-    return space;
-};
-
-/**
  * Archivos de la galería del espacio — lista vacía si todavía no subió ninguno.
  */
 export const getGallery = async (spacePublicId: string, user: AuthenticatedUser) => {
-    const space = await resolveSpace(spacePublicId, user);
+    const space = await resolveSpaceForUser(spacePublicId, user);
     return MediaRepository.findByMedibleAndCategory(Number(space.space_id), MEDIBLE_TYPE, GALLERY_CATEGORY);
 };
 
@@ -57,7 +41,7 @@ export const uploadGalleryFile = async (
     description?: string | null,
 ) => {
     if (!file) throw new BadRequestError('Archivo requerido');
-    const space = await resolveSpace(spacePublicId, user);
+    const space = await resolveSpaceForUser(spacePublicId, user);
 
     return MediaCore.createRecord({
         medible_id: Number(space.space_id),
@@ -83,7 +67,7 @@ export const removeGalleryFile = async (
     mediaPublicId: string,
     user: AuthenticatedUser,
 ) => {
-    const space = await resolveSpace(spacePublicId, user);
+    const space = await resolveSpaceForUser(spacePublicId, user);
 
     const media = await MediaRepository.findByPublicId(mediaPublicId);
     if (!media) throw new NotFoundError('El archivo no existe');

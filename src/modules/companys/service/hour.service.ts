@@ -4,33 +4,16 @@
  * spaceGallery.service.ts: la autorización real es la PERTENENCIA — el espacio
  * tiene que estar dentro del alcance del usuario (su sucursal en company_ids).
  */
-import * as SpaceRepository from '../repository/space.repository';
 import sequelize from '../../../config/db';
 import type { Transaction } from 'sequelize';
 import * as HourRepository from '../repository/hour.repository';
-import { assertCompanyScope } from '../../../shared/utils/accessScope';
+import * as SucursalConfigRepository from '../repository/sucursalConfig.repository';
+import { resolveSpaceForUser } from './entityScope.service';
 import { BadRequestError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
 import type { BusinessHour, Space } from '../database/models';
 import type { DayOfWeek, SaveScheduleInput, ScheduleBlockInput } from '../interfaces/hour.interface';
 import { DAY_LABELS } from '../interfaces/hour.interface';
-
-/**
- * Resuelve el espacio por public_id y valida que esté dentro del alcance del
- * usuario — el scope se evalúa sobre la sucursal a la que pertenece el espacio.
- */
-const resolveSpace = async (spacePublicId: string, user: AuthenticatedUser, transaction?: Transaction) => {
-    const spaceId = await SpaceRepository.getSpaceIdByPublicId(spacePublicId);
-    if (!spaceId) throw new NotFoundError('Espacio deportivo no encontrado');
-
-    const space = transaction
-        ? await SpaceRepository.lockById(spaceId, transaction)
-        : await SpaceRepository.findById(spaceId);
-    if (!space) throw new NotFoundError('Espacio deportivo no encontrado');
-
-    assertCompanyScope(user, space.sucursal_id, 'No tenés acceso a este espacio');
-    return space;
-};
 
 /** 'HH:mm' | '24:00' → minutos transcurridos del día ('24:00' = 1440). */
 const toMinutes = (time: string): number => {
@@ -95,6 +78,55 @@ const assertScheduleCoherent = (hours: ScheduleBlockInput[]): void => {
 };
 
 /**
+ * Ventana operativa de la sucursal: `Configuration.opening_time` /
+ * `closing_time` de la sucursal a la que pertenece el espacio.
+ *
+ *   - Sin configuración (o con alguno de los dos horarios en null) la sucursal
+ *     no tiene ventana definida → no se pueden registrar horarios del espacio.
+ *   - Con ventana, cada bloque tiene que caber COMPLETO dentro de ella: el
+ *     inicio no puede ser antes de la apertura ni el fin posterior al cierre.
+ *   - El cierre de la sucursal también puede ser fin del día ('24:00' o, por
+ *     convención del front, '00:00'): se normaliza con normalizeEndTime y se
+ *     compara como 1440, igual que el cierre de un bloque.
+ *
+ * Se compara en minutos y en el mismo formato ('HH:mm'), porque la columna TIME
+ * devuelve 'HH:mm:ss' y el payload trae 'HH:mm'.
+ */
+const assertWithinSucursalHours = async (
+    sucursalId: number,
+    hours: ScheduleBlockInput[],
+    transaction?: Transaction,
+): Promise<void> => {
+    const configuration = await SucursalConfigRepository.findBySucursalId(sucursalId, transaction);
+
+    const openingTime = configuration?.opening_time ? toShortTime(configuration.opening_time) : null;
+    const closingTime = configuration?.closing_time ? normalizeEndTime(configuration.closing_time) : null;
+
+    if (!openingTime || !closingTime) {
+        throw new BadRequestError(
+            'La sucursal del espacio no tiene configurados los horarios de apertura y cierre. '
+            + 'Configuralos antes de registrar horarios de atención',
+        );
+    }
+
+    const openingMinutes = toMinutes(openingTime);
+    const closingMinutes = toMinutes(closingTime);
+
+    for (const block of hours) {
+        const startMinutes = toMinutes(block.start_time);
+        const endMinutes = toMinutes(block.end_time);
+
+        if (startMinutes < openingMinutes || endMinutes > closingMinutes) {
+            throw new BadRequestError(
+                `El bloque del ${DAY_LABELS[block.day_of_week]} `
+                + `(${toShortTime(block.start_time)} – ${toShortTime(block.end_time)}) está fuera del horario `
+                + `de atención de la sucursal (${openingTime} – ${closingTime})`,
+            );
+        }
+    }
+};
+
+/**
  * Resuelve el bloque por hour_id y verifica que sea de ESTE espacio — sin ese
  * chequeo, un usuario con acceso a un espacio podría tocar el horario de otro
  * espacio pasando el hour_id (el id es interno, no un dato expuesto).
@@ -105,7 +137,7 @@ const resolveManagingSpace = async (
     user: AuthenticatedUser,
     transaction: Transaction,
 ): Promise<{ space: Space; hour: BusinessHour }> => {
-    const space = await resolveSpace(spacePublicId, user, transaction);
+    const space = await resolveSpaceForUser(spacePublicId, user, transaction);
 
     const hour = await HourRepository.findById(hourId, transaction);
     if (!hour || hour.space_id !== space.space_id) {
@@ -119,7 +151,7 @@ const resolveManagingSpace = async (
  * Bloques de horario del espacio — lista completa (el front los agrupa por día).
  */
 export const list = async (spacePublicId: string, user: AuthenticatedUser) => {
-    const space = await resolveSpace(spacePublicId, user);
+    const space = await resolveSpaceForUser(spacePublicId, user);
     return HourRepository.findBySpace(space.space_id as number);
 };
 
@@ -131,11 +163,15 @@ export const list = async (spacePublicId: string, user: AuthenticatedUser) => {
  *     '24:00' (fin del día) y '00:00' como sinónimo: se guarda como '24:00'.
  *   - `is_closed` viaja por bloque (default false) para que el guardado no pise
  *     lo que ya cerraron los toggles.
+ *   - Los bloques tienen que caer dentro de la ventana de apertura/cierre de la
+ *     sucursal del espacio (ver assertWithinSucursalHours). Sin ventana
+ *     configurada no se permite registrar horarios; `hours: []` sí deja vaciar
+ *     el horario porque no registra ningún bloque.
  *   - Reemplazo transaccional (delete + insert): o queda la semana nueva
  *     completa o la vieja intacta. Devuelve las filas nuevas con sus hour_id.
  */
 export const replaceSchedule = async (spacePublicId: string, data: SaveScheduleInput, user: AuthenticatedUser) => sequelize.transaction(async (transaction) => {
-    const space = await resolveSpace(spacePublicId, user, transaction);
+    const space = await resolveSpaceForUser(spacePublicId, user, transaction);
 
     // El cierre '00:00' se normaliza a '24:00' ANTES de validar: si no, el
     // chequeo de rango lo vería como las 00:00 del inicio del día y lo rechazaría.
@@ -146,6 +182,10 @@ export const replaceSchedule = async (spacePublicId: string, data: SaveScheduleI
     }));
 
     assertScheduleCoherent(hours);
+
+    if (hours.length > 0) {
+        await assertWithinSucursalHours(space.sucursal_id as number, hours, transaction);
+    }
 
     const rows = hours.map((block) => ({
         space_id: space.space_id as number,
@@ -176,7 +216,7 @@ export const toggleClosed = async (spacePublicId: string, hourId: number, user: 
  * Habilita o deshabilita un DÍA completo — todos sus bloques, con su is_closed.
  */
 export const toggleDayClosed = async (spacePublicId: string, day: DayOfWeek, user: AuthenticatedUser) => sequelize.transaction(async (transaction) => {
-    const space = await resolveSpace(spacePublicId, user, transaction);
+    const space = await resolveSpaceForUser(spacePublicId, user, transaction);
     const spaceId = space.space_id as number;
 
     const rows = await HourRepository.findBySpaceAndDay(spaceId, day, transaction);

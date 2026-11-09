@@ -25,7 +25,7 @@ const migration: MigrationFile = {
 
         await queryInterface.createTable('dsg_bss_mercadopago_credential', {
             credential_id: { type: DataTypes.BIGINT, autoIncrement: true, primaryKey: true },
-            company_id: {
+            sucursal_id: {
                 type: DataTypes.BIGINT,
                 allowNull: false,
                 references: { model: 'dsg_bss_company', key: 'company_id' },
@@ -63,8 +63,8 @@ const migration: MigrationFile = {
             updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
         }, { transaction });
 
-        await queryInterface.addIndex('dsg_bss_mercadopago_credential', ['company_id'], { transaction,
-            name: 'idx_mp_credential_company_unique',
+        await queryInterface.addIndex('dsg_bss_mercadopago_credential', ['sucursal_id'], { transaction,
+            name: 'idx_mp_credential_sucursal_unique',
             unique: true
         });
     },
