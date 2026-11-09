@@ -6,7 +6,7 @@
  *   - Empresa principal en Perú (country_id 6, ubigeo 2078 Callería/Coronel
  *     Portillo/Ucayali), con su propio tenant_id — is_enabled 'A'.
  *   - Dueño (rol super_admin) con DNI peruano, asignado a la empresa.
- *   - Suscripción ACTIVE al plan Start, gateway MANUAL — igual que el alta sin MercadoPago.
+ *   - Suscripción ACTIVE al plan Pro, gateway MANUAL — igual que el alta sin MercadoPago.
  *   - Una sucursal (también en Callería) que hereda RUC y tenant_id del padre.
  *   - Un usuario rol administrador asignado a la sucursal.
  *
@@ -59,9 +59,9 @@ const seedFn = async (systemUserId?: number): Promise<void> => {
         throw new Error('Perú (country_id 6) no existe o no está activo — corré countrySeed antes que demoCompanySeed.');
     }
 
-    const startPlan = await SaaSPlan.findOne({ where: { code: 'START', is_active: true } });
-    if (!startPlan) {
-        throw new Error('Plan START no encontrado — corré saasPlansSeed antes que demoCompanySeed.');
+    const proPlan = await SaaSPlan.findOne({ where: { code: 'PRO', is_active: true } });
+    if (!proPlan) {
+        throw new Error('Plan PRO no encontrado — corré saasPlansSeed antes que demoCompanySeed.');
     }
 
     const superAdminRole = await RoleRepository.findByKey('super_admin');
@@ -136,13 +136,13 @@ const seedFn = async (systemUserId?: number): Promise<void> => {
             transaction
         );
 
-        // Suscripción Start ACTIVE (gateway MANUAL, como el alta sin MP) ───────
+        // Suscripción Pro ACTIVE (gateway MANUAL, como el alta sin MP) ───────
         const now = new Date();
         const periodEnd = new Date(now);
         periodEnd.setDate(periodEnd.getDate() + 30);
 
         const subscription = await SaaSSubscriptionRepository.create({
-            plan_id: startPlan.plan_id,
+            plan_id: proPlan.plan_id,
             public_id: idPublicId(),
             status: 'ACTIVE',
             is_effective: true,
