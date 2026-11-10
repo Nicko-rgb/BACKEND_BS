@@ -1,5 +1,5 @@
 import { createRouter } from '../../../shared/utils/createRouter';
-import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
+import { resolveAuthorization } from '../../../shared/middlewares/resolveAuthorization';
 import { validateQuery, validateDTO } from '../../../shared/middlewares/validateDTO';
 import { paginationQuerySchema } from '../../../shared/dto/pagination.schema';
 import { createSurfaceTypeSchema, updateSurfaceTypeSchema } from '../dto/surfaceType.dto';

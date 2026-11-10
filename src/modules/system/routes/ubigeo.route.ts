@@ -1,5 +1,5 @@
 import { createRouter } from '../../../shared/utils/createRouter';
-import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
+import { resolveAuthorization } from '../../../shared/middlewares/resolveAuthorization';
 import { validateQuery, validateDTO } from '../../../shared/middlewares/validateDTO';
 import { createUbigeoSchema, updateUbigeoSchema, ubigeoChildrenQuerySchema } from '../dto/ubigeo.dto';
 import { listChildren, create, update, remove } from '../controllers/ubigeo.controller';

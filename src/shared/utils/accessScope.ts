@@ -28,7 +28,7 @@ export const hasCompanyScope = (user: ScopeUser, companyId: number): boolean => 
  * interno. El mensaje se pasa en cada llamada para no perder el contexto
  * (empresa vs sucursal vs archivo).
  */
-export const assertCompanyScope = (user: ScopeUser, companyId: number, message = 'No tenés acceso a esta empresa o sucursal.'): void => {
+export const assertCompanyScope = (user: ScopeUser, companyId: number, message = 'No tienes acceso a esta empresa o sucursal.'): void => {
     if (!hasCompanyScope(user, companyId)) {
         throw new ForbiddenError(message);
     }

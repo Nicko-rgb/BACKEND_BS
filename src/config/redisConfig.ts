@@ -7,7 +7,7 @@
 import { createClient } from 'redis';
 import chalk from 'chalk';
 import logger from './logger';
-import { toErrorMessage } from '../shared/utils/errorUtils';
+import { toErrorMessage } from '../shared/errors/errorUtils';
 
 type RedisClientInstance = ReturnType<typeof createClient>;
 

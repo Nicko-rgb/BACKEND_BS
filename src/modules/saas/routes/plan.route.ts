@@ -2,7 +2,7 @@
 // CATALOGO DE PLANES
 
 import { createRouter } from '../../../shared/utils/createRouter';
-import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
+import { resolveAuthorization } from '../../../shared/middlewares/resolveAuthorization';
 import { validateDTO, validatePublicId } from '../../../shared/middlewares/validateDTO';
 import { updatePlanSchema } from '../dto/plan.schema';
 import { list, listActive, update, remove } from '../controllers/plan.controller';

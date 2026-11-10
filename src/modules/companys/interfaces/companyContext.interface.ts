@@ -35,3 +35,46 @@ export interface CompanyContextNode {
     isPrimary: boolean;
     sucursales: CompanyContextSucursalNode[];
 }
+
+/** Formato de salida del contexto de empresa — única fuente de verdad para el front. */
+export interface CompanyContextSucursalOut {
+    publicId: string;
+    name: string;
+    openTime: string | null;
+    closeTime: string | null;
+    access: boolean;
+    currency: {
+        code: string;
+        name: string;
+        symbol: string;
+    } | null;
+    spaces: Array<{
+        publicId: string;
+        name: string;
+        access: boolean;
+    }>;
+}
+
+export interface CompanyContextCompanyOut {
+    publicId: string;
+    name: string;
+    access: boolean;
+    isPrimary: boolean;
+    sucursales: CompanyContextSucursalOut[];
+}
+
+export interface CompanyContextPlanOut {
+    name: string;
+    code: string;
+    status: string;
+    isEffective: boolean;
+    currentPeriodStart: Date | string | null;
+    currentPeriodEnd: Date | string | null;
+}
+
+export interface CompanyContextTreeOut {
+    companies: CompanyContextCompanyOut[];
+    currentPlan: CompanyContextPlanOut | null;
+    loadedAt: string;
+    userPublicId: string;
+}

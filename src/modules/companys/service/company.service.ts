@@ -3,8 +3,6 @@ import bcrypt from 'bcryptjs';
 import sequelize from '../../../config/db';
 import logger from '../../../config/logger';
 import * as CompanyRepository from '../repository/company.repository';
-import * as SpaceRepository from '../repository/space.repository';
-import * as SucursalConfigRepository from '../repository/sucursalConfig.repository';
 import * as SaaSSubscriptionRepository from '../../saas/repository/saasSubscription.repository';
 import { resolveRegistrationCoverage } from './companyRegistrationScope.service';
 import { notify } from '../../notificacions/service/notification.service';
@@ -17,8 +15,7 @@ import * as RoleRepository from '../../system/repository/role.repository';
 import { hasFullCompanyAccess, assertCompanyScope } from '../../../shared/utils/accessScope';
 import { BadRequestError, ConflictError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
-import type { RegisterCompanyInput, UpdateCompanyInput, ListCompaniesQuery, CompanyTree } from '../interfaces/company.interface';
-import type { Space } from '../database/models';
+import type { RegisterCompanyInput, UpdateCompanyInput, ListCompaniesQuery } from '../interfaces/company.interface';
 
 /**
  * Empresas principales, paginado, con su dueño (resuelto por include en el repository) y su
@@ -237,57 +234,4 @@ export const register = async (payload: RegisterCompanyInput, user: Authenticate
     }
 
     return { company: companyWithOwner!, plan: plans[newCompany.company_id] ?? null };
-};
-
-/**
- * Árbol público empresa → sucursales → espacios para los selectores del
- * calendario de reservas, resuelto a partir del `public_id` de la sucursal
- * seleccionada en el front. Incluye la ventana operativa (apertura/cierre) de
- * cada sucursal, que es data de negocio visible también desde el portal.
- *
- * Sin alcance de usuario: el endpoint es público y el filtrado por acceso de
- * cada usuario se resuelve en el front con el contexto de sesión.
- */
-export const getBranchTree = async (sucursalPublicId: string): Promise<CompanyTree> => {
-    const branch = await CompanyRepository.findBranchTreeNodeByPublicId(sucursalPublicId);
-    if (!branch || !branch.parentCompany) throw new NotFoundError('Sucursal no encontrada');
-
-    const company = branch.parentCompany;
-    const branches = await CompanyRepository.findBranchIdentitiesByParentId(Number(company.company_id));
-    const branchIds = branches.map((item) => Number(item.company_id));
-
-    // Espacios y configuración en paralelo — el árbol se arma con una sola
-    // pasada por sucursal, sin una consulta de config por cada nodo.
-    const [spaces, configurations] = await Promise.all([
-        SpaceRepository.findSpacesBySucursalIds(branchIds),
-        SucursalConfigRepository.findSchedulesBySucursalIds(branchIds),
-    ]);
-
-    const spacesByBranch = new Map<number, Space[]>();
-    for (const space of spaces) {
-        const sucursalId = Number(space.sucursal_id);
-        const list = spacesByBranch.get(sucursalId) ?? [];
-        list.push(space);
-        spacesByBranch.set(sucursalId, list);
-    }
-
-    const configurationByBranch = new Map<number, { opening_time: string; closing_time: string }>();
-    for (const configuration of configurations) {
-        // Una config sin ambos horarios no define ventana operativa y no se expone.
-        if (configuration.opening_time && configuration.closing_time) {
-            configurationByBranch.set(Number(configuration.sucursal_id), {
-                opening_time: configuration.opening_time,
-                closing_time: configuration.closing_time,
-            });
-        }
-    }
-
-    return {
-        company,
-        branches: branches.map((item) => ({
-            branch: item,
-            spaces: spacesByBranch.get(Number(item.company_id)) ?? [],
-            configuration: configurationByBranch.get(Number(item.company_id)) ?? null,
-        })),
-    };
 };

@@ -2,7 +2,7 @@ import cron from 'node-cron';
 import logger from '../../../config/logger';
 import * as PasswordResetTokenRepository from '../repository/passwordResetToken.repository';
 import * as AuthSessionRepository from '../repository/authSession.repository';
-import { toErrorMessage } from '../../../shared/utils/errorUtils';
+import { toErrorMessage } from '../../../shared/errors/errorUtils';
 
 // Limpieza diaria de madrugada (tráfico mínimo). Acepta expresión de 5 campos;
 // se puede pisar con env sin tocar código.

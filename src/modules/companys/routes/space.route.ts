@@ -1,5 +1,5 @@
 import { createRouter } from '../../../shared/utils/createRouter';
-import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
+import { resolveAuthorization } from '../../../shared/middlewares/resolveAuthorization';
 import { validateDTO, validatePublicId } from '../../../shared/middlewares/validateDTO';
 import upload from '../../../shared/middlewares/uploadMiddleware';
 import { registerSpaceSchema, updateSpaceSchema, spaceStatusSchema } from '../dto/space.schema';

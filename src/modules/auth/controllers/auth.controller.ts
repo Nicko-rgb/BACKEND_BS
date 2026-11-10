@@ -3,12 +3,6 @@ import * as AuthService from '../service/auth.service';
 import * as PasswordResetService from '../service/passwordReset.service';
 import { toLoginAdminDto } from '../dto/loginAdmin.dto';
 import ApiResponse from '../../../shared/utils/ApiResponse';
-import { getCompanyContext } from '../../companys/service/companyContext.service';
-import { toCompanyContextDto } from '../../companys/dto/companyContext.dto';
-
-export const context = async (req: Request, res: Response) => {
-    return ApiResponse.ok(res, toCompanyContextDto(await getCompanyContext(req.user!)), 'Contexto actualizado');
-};
 
 export const loginAdmin = async (req: Request, res: Response) => {
     const result = await AuthService.loginAdmin(req.validatedData);

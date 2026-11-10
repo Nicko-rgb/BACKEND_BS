@@ -1,5 +1,5 @@
 import { createRouter } from '../../../shared/utils/createRouter';
-import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
+import { resolveAuthorization } from '../../../shared/middlewares/resolveAuthorization';
 import { validatePublicId } from '../../../shared/middlewares/validateDTO';
 import { getPlanUsage } from '../controllers/planUsage.controller';
 

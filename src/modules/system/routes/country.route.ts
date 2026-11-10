@@ -1,5 +1,5 @@
 import { createRouter } from '../../../shared/utils/createRouter';
-import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
+import { resolveAuthorization } from '../../../shared/middlewares/resolveAuthorization';
 import { validateDTO } from '../../../shared/middlewares/validateDTO';
 import { createCountrySchema, updateCountrySchema } from '../dto/country.dto';
 import { list, listActive, create, update, remove } from '../controllers/country.controller';

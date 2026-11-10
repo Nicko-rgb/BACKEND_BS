@@ -1,26 +1,101 @@
 import * as CompanyContextRepository from '../repository/companyContext.repository';
-import { findCompanyMemberships } from '../../saas/repository/saasSubscription.repository';
-import { hasCompanyScope, hasFullCompanyAccess } from '../../../shared/utils/accessScope';
+import * as CompanyRepository from '../repository/company.repository';
+import * as SucursalConfigRepository from '../repository/sucursalConfig.repository';
+import { findCompanyMemberships, findPlanByCompanyId } from '../../saas/repository/saasSubscription.repository';
+import { hasCompanyScope } from '../../../shared/utils/accessScope';
+import { NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
-import type { CompanyContextNode, ContextCompanyRecord, ContextSpaceRecord } from '../interfaces/companyContext.interface';
+import type { ContextCompanyRecord, ContextSpaceRecord } from '../interfaces/companyContext.interface';
+import type {
+    CompanyContextCompanyOut,
+    CompanyContextPlanOut,
+    CompanyContextTreeOut,
+} from '../interfaces/companyContext.interface';
 
 /**
- * Contexto informativo del login. `access` indica alcance resuelto;
- * los permisos para cada acción siguen siendo responsabilidad del backend.
- * Incluye la estructura de las empresas relacionadas; cada nodo indica su alcance.
+ * Árbol empresa → sucursales → espacios con moneda y ventana operativa.
+ *
+ * Recibe opcionalmente un `publicId` de empresa o sucursal:
+ *   - Si se pasa: resuelve a la empresa matriz y devuelve su árbol completo.
+ *     El acceso del usuario se refleja en el campo `access` de cada nodo
+ *     (true/false), sin bloquear la respuesta con 403.
+ *   - Si no se pasa: usa los `company_ids` del usuario y devuelve solo las
+ *     empresas a las que tiene acceso.
+ *
+ * Es la única fuente de verdad del árbol: auth lo consume en el login y
+ * el front no arma el árbol por su cuenta.
+ *
+ * La protección de autenticación vive en el router (`resolveAuthorization()`).
+ * Este service nunca tira 403: si el usuario no tiene acceso a una entidad,
+ * simplemente devuelve `access: false` en ese nodo.
  */
-export const getCompanyContext = async (
-    user: Pick<AuthenticatedUser, 'scope_level' | 'company_ids'>,
-): Promise<CompanyContextNode[]> => {
-    // `system` autoriza globalmente, pero no pertenece a ninguna empresa:
-    // admin-context representa membresí­as, no el alcance global de permisos.
-    if (hasFullCompanyAccess(user) || !user.company_ids?.length) return [];
+export const getCompanyContextTree = async (
+    user?: Pick<AuthenticatedUser, 'scope_level' | 'company_ids' | 'user_id'> | null,
+    publicId?: string,
+): Promise<CompanyContextTreeOut> => {
+    const effectiveUser = user ?? { scope_level: null, company_ids: [], user_id: 0 };
 
-    const entities = await CompanyContextRepository.findCompanies(user.company_ids);
+    // 1. Resolver tenant_id
+    let tenantId: string | null = null;
+
+    if (publicId) {
+        // ¿Es empresa principal?
+        let entity = await CompanyRepository.findByPublicId(publicId);
+        if (entity) {
+            tenantId = entity.tenant_id;
+        } else {
+            // ¿Es sucursal?
+            const sucursal = await CompanyRepository.findSucursalByPublicId(publicId);
+            if (sucursal) {
+                tenantId = sucursal.tenant_id;
+            }
+        }
+
+        if (!tenantId) {
+            throw new NotFoundError('Empresa o sucursal no encontrada.');
+        }
+    } else {
+        // Sin publicId: tomar el tenant de la primera empresa del usuario
+        if (effectiveUser.company_ids?.length) {
+            const rows = await CompanyRepository.findByIds([effectiveUser.company_ids[0]]);
+            if (rows?.[0]) {
+                tenantId = rows[0].tenant_id;
+            }
+        }
+    }
+
+    if (!tenantId) {
+        return {
+            companies: [],
+            currentPlan: null,
+            loadedAt: new Date().toISOString(),
+            userPublicId: String(effectiveUser.user_id ?? ''),
+        };
+    }
+
+    // 2. Qué IDs de empresa usar para traer el árbol: todas las del tenant
+    const entities = await CompanyContextRepository.findCompaniesByTenantId(tenantId);
     const sucursales = entities.filter((entity) => entity.parent_company_id !== null);
-    const spaces = sucursales.length
-        ? await CompanyContextRepository.findSpaces(sucursales.map((entity) => Number(entity.company_id)))
-        : [];
+    const principalEntities = entities.filter((entity) => entity.parent_company_id === null);
+
+    const sucursalIds = sucursales.map((e) => Number(e.company_id));
+
+    const [spaces, configurations] = await Promise.all([
+        sucursalIds.length
+            ? CompanyContextRepository.findSpaces(sucursalIds)
+            : [],
+        sucursalIds.length
+            ? SucursalConfigRepository.findSchedulesBySucursalIds(sucursalIds)
+            : [],
+    ]);
+
+    const schedulesBySucursal = new Map<number, { opening_time: string | null; closing_time: string | null }>();
+    for (const config of configurations) {
+        schedulesBySucursal.set(Number(config.sucursal_id), {
+            opening_time: config.opening_time ?? null,
+            closing_time: config.closing_time ?? null,
+        });
+    }
 
     const spacesBySucursal = new Map<number, ContextSpaceRecord[]>();
     for (const space of spaces) {
@@ -30,38 +105,93 @@ export const getCompanyContext = async (
         spacesBySucursal.set(id, list);
     }
 
-    const companies = new Map<number, CompanyContextNode>();
-    const addCompany = (entity: ContextCompanyRecord) => {
+    // 4. Armar árbol de empresas
+    const companiesMap = new Map<number, CompanyContextCompanyOut>();
+
+    const addCompany = (entity: ContextCompanyRecord): CompanyContextCompanyOut => {
         const id = Number(entity.company_id);
-        if (!companies.has(id)) {
-            companies.set(id, { entity, access: hasCompanyScope(user, id), isPrimary: false, sucursales: [] });
+        if (!companiesMap.has(id)) {
+            companiesMap.set(id, {
+                publicId: entity.public_id,
+                name: entity.name,
+                access: hasCompanyScope(effectiveUser, id),
+                isPrimary: false,
+                sucursales: [],
+            });
         }
-        return companies.get(id)!;
+        return companiesMap.get(id)!;
     };
 
-    for (const entity of entities) {
-        if (entity.parent_company_id === null && hasCompanyScope(user, entity.company_id)) addCompany(entity);
+    // Empresas principales que están en alcance (o la solicitada por publicId)
+    for (const entity of principalEntities) {
+        if (publicId || hasCompanyScope(effectiveUser, Number(entity.company_id))) {
+            addCompany(entity);
+        }
     }
 
+    // Sucursales bajo sus padres
     for (const sucursal of sucursales) {
-        // El padre agrupa las sucursales del mismo tenant.
-        const parent = companies.get(Number(sucursal.parent_company_id))
-            ?? (sucursal.parentCompany ? addCompany(sucursal.parentCompany) : undefined);
+        const parentId = Number(sucursal.parent_company_id);
+        const parent = companiesMap.get(parentId);
         if (!parent) continue;
+
+        const schedule = schedulesBySucursal.get(Number(sucursal.company_id));
+        const sucursalSpaces = spacesBySucursal.get(Number(sucursal.company_id)) ?? [];
+
         parent.sucursales.push({
-            entity: sucursal,
-            access: hasCompanyScope(user, sucursal.company_id),
-            spaces: spacesBySucursal.get(Number(sucursal.company_id)) ?? [],
+            publicId: sucursal.public_id,
+            name: sucursal.name,
+            openTime: schedule?.opening_time ?? null,
+            closeTime: schedule?.closing_time ?? null,
+            access: hasCompanyScope(effectiveUser, Number(sucursal.company_id)),
+            currency: sucursal.country ? {
+                code: sucursal.country.iso_currency,
+                name: sucursal.country.currency,
+                symbol: sucursal.country.currency_simbol,
+            } : null,
+            spaces: sucursalSpaces.map((space) => ({
+                publicId: space.public_id,
+                name: space.name,
+                access: parent.access,
+            })),
         });
     }
 
-    const memberships = await findCompanyMemberships([...companies.keys()]);
+    // 5. Marcar isPrimary según membresía de suscripción
+    const companyIds = [...companiesMap.keys()];
+    const memberships = await findCompanyMemberships(companyIds);
     for (const membership of memberships) {
-        const company = companies.get(Number(membership.company_id));
+        const company = companiesMap.get(Number(membership.company_id));
         if (company) company.isPrimary = membership.is_primary;
     }
 
-    // Los padres añadidos desde una sucursal pueden llegar en otro orden.
-    return [...companies.values()].sort((a, b) =>
-        a.entity.name.localeCompare(b.entity.name, 'es') || a.entity.public_id.localeCompare(b.entity.public_id));
+    // 6. Plan de la empresa primaria (o la primera con acceso)
+    let currentPlan: CompanyContextPlanOut | null = null;
+    const primaryCompanyId =
+        companyIds.find((id) => companiesMap.get(id)!.isPrimary) ?? companyIds[0];
+
+    if (primaryCompanyId !== undefined) {
+        const plan = await findPlanByCompanyId(primaryCompanyId);
+        if (plan) {
+            currentPlan = {
+                name: plan.planName,
+                code: plan.planCode,
+                status: plan.status,
+                isEffective: plan.isEffective,
+                currentPeriodStart: plan.currentPeriodStart,
+                currentPeriodEnd: plan.currentPeriodEnd,
+            };
+        }
+    }
+
+    const companies = [...companiesMap.values()].sort((a, b) =>
+        a.name.localeCompare(b.name, 'es') || a.publicId.localeCompare(b.publicId)
+    );
+
+    return {
+        companies,
+        currentPlan,
+        loadedAt: new Date().toISOString(),
+        userPublicId: String(effectiveUser.user_id ?? ''),
+    };
 };

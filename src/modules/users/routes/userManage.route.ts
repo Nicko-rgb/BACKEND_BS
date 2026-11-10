@@ -1,5 +1,5 @@
 import { createRouter } from '../../../shared/utils/createRouter';
-import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
+import { resolveAuthorization } from '../../../shared/middlewares/resolveAuthorization';
 import { validateQuery, validateDTOByParam, validatePublicId } from '../../../shared/middlewares/validateDTO';
 import { listUsersQuerySchema, createUserSchemas, updateUserSchemas } from '../dto/userManage.schema';
 import { list, getById, create, update } from '../controllers/userManage.controller';

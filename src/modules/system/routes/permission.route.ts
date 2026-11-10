@@ -1,5 +1,5 @@
 import { createRouter } from '../../../shared/utils/createRouter';
-import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
+import { resolveAuthorization } from '../../../shared/middlewares/resolveAuthorization';
 import { validateQuery, validateDTO } from '../../../shared/middlewares/validateDTO';
 import { listPermissionsQuerySchema, createPermissionSchema, updatePermissionSchema } from '../dto/permission.dto';
 import { listAdmin, listModules, listAssignable, create, update, remove } from '../controllers/permission.controller';

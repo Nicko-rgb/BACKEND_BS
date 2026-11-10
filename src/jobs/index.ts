@@ -2,7 +2,7 @@ import logger from '../config/logger';
 import { startPasswordResetCleanup } from '../modules/auth/jobs/passwordResetCleanup.job';
 import { startSubscriptionExpiration } from '../modules/saas/jobs/subscriptionExpiration.job';
 import chalk from 'chalk';
-import { toErrorMessage } from '../shared/utils/errorUtils';
+import { toErrorMessage } from '../shared/errors/errorUtils';
 
 // Cada job expone `start*()` que devuelve algo con `.stop()` (ej. ScheduledTask de
 // node-cron). Agregar un job nuevo = 1 línea acá (import + entrada en `jobStarters`);

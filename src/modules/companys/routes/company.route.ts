@@ -1,5 +1,5 @@
 import { createRouter } from '../../../shared/utils/createRouter';
-import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
+import { resolveAuthorization } from '../../../shared/middlewares/resolveAuthorization';
 import { validateDTO, validatePublicId, validateQuery } from '../../../shared/middlewares/validateDTO';
 import { listCompaniesQuerySchema, registerCompanySchema, updateCompanySchema } from '../dto/company.schema';
 import { list, registerCompany, getByPublicId, updateByPublicId, getBranchTree } from '../controllers/company.controller';
@@ -31,18 +31,6 @@ router.post('/register',
 );
 
 /**
- * @route GET /api/companys/public/branches/:sucursalPublicId/tree
- * @desc  Árbol público (empresa → sucursales → espacios) para los selectores del
- *        calendario, con apertura/cierre de cada sucursal. Lo consumen tanto el
- *        panel admin como el portal de reservas.
- * @access Público
- */
-router.get('/public/branches/:sucursalPublicId/tree',
-    validatePublicId('sucursalPublicId'),
-    getBranchTree
-);
-
-/**
  * @route GET /api/companys/:publicId
  * @desc  Detalle de una empresa
  * @access system, super_admin
@@ -64,6 +52,18 @@ router.put('/:publicId',
     validatePublicId('publicId'),
     validateDTO(updateCompanySchema),
     updateByPublicId
+);
+
+/**
+ * @route GET /api/companys/public/branches/:sucursalPublicId/tree
+ * @desc  Árbol empresa → sucursales → espacios con moneda y ventana operativa.
+ *        Única fuente de verdad del contexto de empresa para el panel admin.
+ * @access Autenticado (panel admin).
+ */
+router.get('/public/branches/:sucursalPublicId/tree',
+    resolveAuthorization(),
+    validatePublicId('sucursalPublicId'),
+    getBranchTree
 );
 
 export default router;

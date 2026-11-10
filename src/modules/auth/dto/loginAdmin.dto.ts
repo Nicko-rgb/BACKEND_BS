@@ -1,13 +1,12 @@
 import type { User } from '../../users/database/models';
-import type { CompanyContextNode } from '../../companys/interfaces/companyContext.interface';
-import { toCompanyContextDto } from '../../companys/dto/companyContext.dto';
+import type { CompanyContextTreeOut } from '../../companys/interfaces/companyContext.interface';
 
 interface LoginAdminResult {
     token: string;
     user: User;
     permissions: string[];
     scopeLevel: number | null;
-    context: CompanyContextNode[];
+    context: CompanyContextTreeOut;
 }
 
 // Da forma a la respuesta del login — nunca expone el password hash ni el modelo Sequelize crudo.
@@ -26,5 +25,5 @@ export const toLoginAdminDto = ({ token, user, permissions, scopeLevel, context 
     },
     permissions,
     scopeLevel,
-    context: toCompanyContextDto(context),
+    context,
 });

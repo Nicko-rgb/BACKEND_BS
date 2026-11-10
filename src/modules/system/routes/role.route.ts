@@ -1,5 +1,5 @@
 import { createRouter } from '../../../shared/utils/createRouter';
-import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
+import { resolveAuthorization } from '../../../shared/middlewares/resolveAuthorization';
 import { validateDTO } from '../../../shared/middlewares/validateDTO';
 import { createRoleSchema, updateRoleSchema, replaceRolePermissionsSchema } from '../dto/role.dto';
 import { listAll, create, update, remove, getPermissions, replacePermissions } from '../controllers/role.controller';
