@@ -1,7 +1,7 @@
 import { createRouter } from '../../../shared/utils/createRouter';
 import { resolveAuthorization } from '../../../shared/middlewares/resolveAuthorization';
 import { validatePublicId } from '../../../shared/middlewares/validateDTO';
-import { getPlanUsage } from '../controllers/planUsage.controller';
+import { getPlanUsage, getPlanUsageOverview } from '../controllers/planUsage.controller';
 
 const router = createRouter();
 
@@ -11,5 +11,7 @@ const router = createRouter();
  * @access usuarios con acceso a esa empresa (el alcance lo valida el service)
  */
 router.get('/:companyPublicId', resolveAuthorization(), validatePublicId('companyPublicId'), getPlanUsage);
+
+router.get('/:companyPublicId/overview', resolveAuthorization(), validatePublicId('companyPublicId'), getPlanUsageOverview);
 
 export default router;
