@@ -8,35 +8,35 @@ import { list, listActive, create, update, remove } from '../controllers/sportCa
 const router = createRouter();
 
 /**
- * @route GET /api/system/sport-categories
+ * @route GET /api/v2/system/sport-categories
  * @desc  Lista todas las categorías deportivas, paginado
  * @access system
  */
 router.get('/sport-categories', resolveAuthorization('sport_category.manage'), validateQuery(paginationQuerySchema), list);
 
 /**
- * @route GET /api/system/sport-categories/active
+ * @route GET /api/v2/system/sport-categories/active
  * @desc  Lista categorías deportivas activas, sin paginar, para selects/lógica de negocio
  * @access Público
  */
 router.get('/sport-categories/active', listActive);
 
 /**
- * @route POST /api/system/sport-categories
+ * @route POST /api/v2/system/sport-categories
  * @desc  Crea una categoría deportiva nueva
  * @access system
  */
 router.post('/sport-categories', resolveAuthorization('sport_category.manage'), validateDTO(createSportCategorySchema), create);
 
 /**
- * @route PUT /api/system/sport-categories/:id
+ * @route PUT /api/v2/system/sport-categories/:id
  * @desc  Actualiza una categoría deportiva existente
  * @access system
  */
 router.put('/sport-categories/:id', resolveAuthorization('sport_category.manage'), validateDTO(updateSportCategorySchema), update);
 
 /**
- * @route DELETE /api/system/sport-categories/:id
+ * @route DELETE /api/v2/system/sport-categories/:id
  * @desc  Elimina una categoría deportiva
  * @access system
  */

@@ -10,14 +10,14 @@ const router = createRouter();
 router.get('/company/:companyPublicId/users-for-company', resolveAuthorization('company.view'), validatePublicId('companyPublicId'), listByCompany);
 
 /**
- * @route GET /api/users/me
+ * @route GET /api/v2/users/me
  * @desc  Detalle del propio perfil, para precargar la página de autoedición
  * @access cualquier usuario autenticado con `user.profile_edit`
  */
 router.get('/me', resolveAuthorization('user.profile_view'), getOwnProfile);
 
 /**
- * @route PUT /api/users/me
+ * @route PUT /api/v2/users/me
  * @desc  Autoedición del propio perfil — todo menos password, role e is_enabled
  * @access cualquier usuario autenticado con `user.profile_edit`
  */

@@ -5,7 +5,7 @@ suscripción que la cubre. La fila con `is_primary = true` identifica a la titul
 Las sucursales resuelven la cobertura mediante su empresa padre; no necesitan
 otra fila en la tabla puente. Primaria, hermanas y sucursales comparten `tenant_id`.
 
-## Alta: POST /api/companys/register
+## Alta: POST /api/v2/companys/register
 
 - Alcance global (`scope_level = 1`, actualmente `system`): requiere `plan`, crea
   un tenant, una suscripción y un vínculo primario dentro de la misma transacción.
@@ -29,7 +29,7 @@ otra fila en la tabla puente. Primaria, hermanas y sucursales comparten `tenant_
 `planLimits.service.ts` consulta puente → suscripción → plan y concede acceso
 únicamente cuando `is_effective = true`. `status` expresa el estado comercial:
 una suscripción `CANCELED` puede conservar acceso hasta finalizar su período.
-El endpoint `GET /api/saas/subscription/:companyPublicId/current-plan` devuelve
+El endpoint `GET /api/v2/saas/subscription/:companyPublicId/current-plan` devuelve
 la suscripción compartida en cualquier estado, con `status` e `isEffective`
 separados; el perfil muestra ambos sin recalcular la vigencia.
 
@@ -70,7 +70,7 @@ quedar sin primaria, ni un grupo sin dueño. La gestión genérica de usuarios n
 puede reemplazar la membresía del dueño. No se incluye un flujo de transferencia
 de propiedad en esta entrega.
 
-El login y `GET /api/auth/context` sirven `companies[] → sucursales[] → spaces[]`.
+El login y `GET /api/v2/auth/context` sirven `companies[] → sucursales[] → spaces[]`.
 Cada empresa incluye `isPrimary`. El árbol puede incluir sucursales hermanas y sus
 espacios como contexto con `access: false`; solo las entidades del alcance efectivo
 tienen `access: true`. El DTO no expone tenant ni PKs internos.

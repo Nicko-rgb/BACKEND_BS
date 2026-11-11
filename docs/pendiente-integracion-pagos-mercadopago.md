@@ -3,7 +3,7 @@
 
 ## Estado actual (temporal)
 
-`POST /api/companys/register` (`companys/service/company.service.ts` → `register`) activa la
+`POST /api/v2/companys/register` (`companys/service/company.service.ts` → `register`) activa la
 empresa **de una**, sin comunicarse con MercadoPago:
 
 - `company.is_enabled: 'A'`
@@ -54,7 +54,7 @@ resuelto correctamente al vendedor de prueba de la app), y por API real desde el
 - **`FRONT_ADMIN_BOOKING`**: configurar la URL donde esté desplegado el `ADMIN_APP`.
   Es solo el rebote del navegador después de autorizar — no
   afecta la activación (eso lo hace el webhook), pero conviene que sea prolijo.
-- **Webhook**: la URL pública real del backend + `/api/saas/webhooks/mercadopago` hay que
+- **Webhook**: la URL pública real del backend + `/api/v2/saas/webhooks/mercadopago` hay que
   cargarla en MercadoPago bajo **"Modo productivo"** (pestaña aparte de "Modo de prueba" en
   Webhooks), con su propia `MP_WEBHOOK_SECRET` — es una clave distinta a la de prueba.
 

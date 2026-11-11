@@ -11,28 +11,28 @@ const router = createRouter();
 // el service contra roleHierarchy.ts.
 
 /**
- * @route GET /api/users/manage
+ * @route GET /api/v2/users/manage
  * @desc  Catálogo global de usuarios, paginado, con búsqueda (nombre o correo) y filtros por rol y país
  * @access system
  */
 router.get('/', resolveAuthorization('user.manage_all'), validateQuery(listUsersQuerySchema), list);
 
 /**
- * @route GET /api/users/manage/:role/:publicId
+ * @route GET /api/v2/users/manage/:role/:publicId
  * @desc  Detalle de un usuario de ese rol, con sus asignaciones de empresa/sucursal
  * @access permiso de gestión del rol
  */
 router.get('/:role/:publicId', resolveAuthorization('user.manage_all', 'user.administrator_manage', 'user.employee_manage', 'user.client_manage'), validatePublicId('publicId'), getById);
 
 /**
- * @route POST /api/users/manage/:role
+ * @route POST /api/v2/users/manage/:role
  * @desc  Alta de un usuario con ese rol
  * @access permiso de gestión del rol
  */
 router.post('/:role', resolveAuthorization('user.manage_all', 'user.administrator_manage', 'user.employee_manage', 'user.client_manage'), validateDTOByParam('role', createUserSchemas), create);
 
 /**
- * @route PUT /api/users/manage/:role/:publicId
+ * @route PUT /api/v2/users/manage/:role/:publicId
  * @desc  Edición de un usuario de ese rol (su rol actual) — nunca contraseña
  * @access permiso de gestión del rol
  */

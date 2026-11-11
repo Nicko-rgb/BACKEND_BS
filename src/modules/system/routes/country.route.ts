@@ -7,35 +7,35 @@ import { list, listActive, create, update, remove } from '../controllers/country
 const router = createRouter();
 
 /**
- * @route GET /api/system/countries
+ * @route GET /api/v2/system/countries
  * @desc  Lista todos los países, sin paginar (catálogo chico)
  * @access system
  */
 router.get('/countries', resolveAuthorization('country.manage'), list);
 
 /**
- * @route GET /api/system/countries/active
+ * @route GET /api/v2/system/countries/active
  * @desc  Lista países activos, sin paginar, para selects/lógica de negocio
  * @access Público
  */
 router.get('/countries/active', listActive);
 
 /**
- * @route POST /api/system/countries
+ * @route POST /api/v2/system/countries
  * @desc  Crea un país nuevo
  * @access system
  */
 router.post('/countries', resolveAuthorization('country.manage'), validateDTO(createCountrySchema), create);
 
 /**
- * @route PUT /api/system/countries/:id
+ * @route PUT /api/v2/system/countries/:id
  * @desc  Actualiza un país existente
  * @access system
  */
 router.put('/countries/:id', resolveAuthorization('country.manage'), validateDTO(updateCountrySchema), update);
 
 /**
- * @route DELETE /api/system/countries/:id
+ * @route DELETE /api/v2/system/countries/:id
  * @desc  Elimina un país
  * @access system
  */

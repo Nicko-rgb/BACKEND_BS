@@ -8,7 +8,7 @@ import { registerSpace, listBySucursal, spaceById, updateSpace, getGallery, uplo
 const router = createRouter();
 
 /**
- * @route POST /api/spaces/:sucursalPublicId
+ * @route POST /api/v2/spaces/:sucursalPublicId
  * @desc  Registro de un espacio deportivo bajo una sucursal — valida scope
  *        (dueño/admin/empleado de esa sucursal, system bypasea), catálogos y
  *        límite maxSpaces del plan por sucursal
@@ -22,7 +22,7 @@ router.post('/:sucursalPublicId',
 );
 
 /**
- * @route GET /api/spaces/sucursals/:sucursalPublicId/list
+ * @route GET /api/v2/spaces/sucursals/:sucursalPublicId/list
  * @desc  Espacios deportivos de la sucursal
  * @access usuarios con permiso space.view (sobre sucursales de su alcance)
  */
@@ -33,7 +33,7 @@ router.get('/sucursals/:sucursalPublicId/list-spaces',
 );
 
 /**
- * @route GET /api/spaces/space/:spacePublicId
+ * @route GET /api/v2/spaces/space/:spacePublicId
  * @desc  Detalle de un espacio deportivo
  * @access usuarios con permiso space.view (sobre espacios que estan dentro de sus sucursales)
  */
@@ -44,7 +44,7 @@ router.get('/space/:spacePublicId/data-space',
 );
 
 /**
- * @route PUT /api/spaces/space/:spacePublicId
+ * @route PUT /api/v2/spaces/space/:spacePublicId
  * @desc  Actualización de un espacio deportivo — valida scope sobre la sucursal
  *        del espacio (dueño/admin/empleado de esa sucursal, system bypasea),
  *        catálogos si se envían, y coherencia min/max booking.
@@ -58,7 +58,7 @@ router.put('/space/:spacePublicId',
 );
 
 /**
- * @route PATCH /api/spaces/space/:spacePublicId/status
+ * @route PATCH /api/v2/spaces/space/:spacePublicId/status
  * @desc  Cambio de estado del espacio (ACTIVE | MAINTENANCE | INACTIVE) — lo que
  *        mueve el switch de estado. Valida scope sobre la sucursal del espacio
  *        (dueño/admin/empleado de esa sucursal, system bypasea).
@@ -74,7 +74,7 @@ router.patch('/space/:spacePublicId/status',
 /* ── Media Gallery de Space ───────────────────────────────────────── */
 
 /**
- * @route GET /api/spaces/space/:spacePublicId/gallery
+ * @route GET /api/v2/spaces/space/:spacePublicId/gallery
  * @desc  Archivos de la galería del espacio (imágenes y videos) — lista vacía si no hay
  * @access usuarios con permiso space.view (sobre espacios dentro de su alcance)
  */
@@ -85,7 +85,7 @@ router.get('/space/:spacePublicId/gallerys-space',
 );
 
 /**
- * @route POST /api/spaces/space/:spacePublicId/gallery
+ * @route POST /api/v2/spaces/space/:spacePublicId/gallery
  * @desc  Sube un archivo a la galería del espacio (campo `media` — imagen o video)
  * @access usuarios con permiso space.media_manage
  */
@@ -97,7 +97,7 @@ router.post('/space/:spacePublicId/gallery',
 );
 
 /**
- * @route DELETE /api/spaces/space/:spacePublicId/gallery/:mediaPublicId
+ * @route DELETE /api/v2/spaces/space/:spacePublicId/gallery/:mediaPublicId
  * @desc  Elimina un archivo de la galería del espacio (registro + archivo físico)
  * @access usuarios con permiso space.media_manage
  */

@@ -10,28 +10,28 @@ import { list, listActive, update, remove } from '../controllers/plan.controller
 const router = createRouter();
 
 /**
- * @route GET /api/saas/plans
+ * @route GET /api/v2/saas/plans
  * @desc  Lista todos los planes (activos e inactivos), sin paginar (catálogo chico)
  * @access system
  */
 router.get('/plans', resolveAuthorization('plan.manage'), list);
 
 /**
- * @route GET /api/saas/plans/active
+ * @route GET /api/v2/saas/plans/active
  * @desc  Lista planes activos, sin paginar, para selects/lógica de negocio
  * @access Público
  */
 router.get('/plans/active', listActive);
 
 /**
- * @route PUT /api/saas/plans/:publicId
+ * @route PUT /api/v2/saas/plans/:publicId
  * @desc  Actualiza un plan existente
  * @access system
  */
 router.put('/plans/:publicId', resolveAuthorization('plan.manage'), validatePublicId('publicId'), validateDTO(updatePlanSchema), update);
 
 /**
- * @route DELETE /api/saas/plans/:publicId
+ * @route DELETE /api/v2/saas/plans/:publicId
  * @desc  Elimina un plan — bloqueado si tiene suscripciones asociadas
  * @access system
  */

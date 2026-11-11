@@ -1,23 +1,27 @@
-/**
- * Seed: roles asignados a cada ítem de menú (dsg_bss_role_menu_item).
- * Corre después de roleSeed (order 11) y menuItemSeed (order 11).
- *
- * Mapeo MANUAL rol → keys de menú (mismo estilo que 003_role_permission.ts):
- * no deriva de permisos, solo declara qué ve cada rol. La coherencia entre
- * "ver el menú" y "poder usar la página" es manual — si mapeás un menú cuyo
- * permiso el rol no tiene, verá la entrada pero la página lo rebotará con
- * ForbiddenScreen (el permiso sigue mandando en backend y front).
- * `system` se agrega a todo para que la UI de administración lo refleje
- * explícito (igual ve todo por scope_level, ver menu.service.ts::getMenuForUser).
- *
- * Punto de partida = lo que el sistema anterior mostraba por rol. Ajustalo
- * acá o desde System > Menú sin tocar código.
- */
+// Asignaciones iniciales de menús por rol; los permisos de acciones se gestionan por separado.
 import type { SeederConfig } from '../../../../../scripts/seederRunner';
 import sequelize from '../../../../config/db';
 import { Role, MenuItem, RoleMenuItem } from '../models';
 
 const ROLE_MENU_ITEMS: Record<string, string[]> = {
+    system: [
+        'dashboard',
+        'companys',
+        'users',
+        'permissions',
+        'menu_config',
+        'catalogs',
+        'cat_countries',
+        'cat_sport_types',
+        'cat_sport_cats',
+        'cat_surface_types',
+        'cat_payment_types',
+        'cat_ubigeo',
+        'cat_plans',
+        'suscripciones',
+        'reports',
+        'statistics',
+    ],
     empleado: [
         'dashboard',
         'companys',
@@ -30,6 +34,7 @@ const ROLE_MENU_ITEMS: Record<string, string[]> = {
         'companys',
         'bookings',
         'suscripciones',
+        'usage',
         'reports',
         'statistics',
     ],
@@ -38,6 +43,7 @@ const ROLE_MENU_ITEMS: Record<string, string[]> = {
         'companys',
         'bookings',
         'suscripciones',
+        'usage',
         'reports',
         'statistics',
     ],
@@ -64,7 +70,6 @@ const seedFn = async (): Promise<void> => {
         );
     }
 
-    const systemRoleId = roleIdByKey.get('system');
     const rows: { role_id: number; menu_id: number }[] = [];
 
     Object.entries(ROLE_MENU_ITEMS).forEach(([roleKey, menuKeys]) => {
@@ -75,11 +80,6 @@ const seedFn = async (): Promise<void> => {
             if (menuId) rows.push({ role_id: roleId, menu_id: menuId });
         });
     });
-
-    // system ve todo — explícito para la UI de administración.
-    if (systemRoleId) {
-        menuItems.forEach((item) => rows.push({ role_id: systemRoleId, menu_id: item.menu_id }));
-    }
 
     const t = await sequelize.transaction();
     try {
