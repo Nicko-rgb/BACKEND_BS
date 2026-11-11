@@ -6,7 +6,7 @@ import planRoutes from './plan.route';
 
 const router = createRouter();
 
-// Prefijo base del módulo — app.ts solo hace app.use('/api', saasRoutes),
+// Prefijo base del módulo — app.ts solo hace app.use('/api/v2', saasRoutes),
 // sin conocer las subrutas internas. Cada recurso nuevo del módulo se suma
 // acá con su propio *.route.ts.
 //

@@ -7,7 +7,7 @@ import { listAll, create, update, remove, getPermissions, replacePermissions } f
 const router = createRouter();
 
 /**
- * @route GET /api/system/roles
+ * @route GET /api/v2/system/roles
  * @desc  Roles visibles para el usuario autenticado, sin paginar — system ve el catálogo completo;
  *        el resto, solo los roles que puede asignar (ver roleHierarchy.ts)
  * @access cualquier usuario autenticado
@@ -15,35 +15,35 @@ const router = createRouter();
 router.get('/roles', resolveAuthorization(), listAll);
 
 /**
- * @route POST /api/system/roles
+ * @route POST /api/v2/system/roles
  * @desc  Crea un rol nuevo
  * @access system
  */
 router.post('/roles', resolveAuthorization('system.full_access'), validateDTO(createRoleSchema), create);
 
 /**
- * @route PUT /api/system/roles/:id
+ * @route PUT /api/v2/system/roles/:id
  * @desc  Edición parcial de un rol (label/scope_level/is_active) — key no se edita
  * @access system
  */
 router.put('/roles/:id', resolveAuthorization('system.full_access'), validateDTO(updateRoleSchema), update);
 
 /**
- * @route DELETE /api/system/roles/:id
+ * @route DELETE /api/v2/system/roles/:id
  * @desc  Elimina un rol — bloqueado si es uno de los roles base o si todavía tiene usuarios asignados
  * @access system
  */
 router.delete('/roles/:id', resolveAuthorization('system.full_access'), remove);
 
 /**
- * @route GET /api/system/roles/:id/permissions
+ * @route GET /api/v2/system/roles/:id/permissions
  * @desc  Keys de la plantilla de permisos del rol
  * @access system
  */
 router.get('/roles/:id/permissions', resolveAuthorization('system.full_access'), getPermissions);
 
 /**
- * @route PUT /api/system/roles/:id/permissions
+ * @route PUT /api/v2/system/roles/:id/permissions
  * @desc  Reemplaza el set completo de permisos base del rol — aplica de inmediato a todos sus usuarios
  * @access system
  */

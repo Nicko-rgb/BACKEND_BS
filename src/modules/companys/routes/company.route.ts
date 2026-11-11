@@ -7,7 +7,7 @@ import { list, registerCompany, getByPublicId, updateByPublicId, getBranchTree }
 const router = createRouter();
 
 /**
- * @route GET /api/companys
+ * @route GET /api/v2/companys
  * @desc  Lista las empresas principales (parent_company_id null), paginado, con su dueño y su plan.
  *        `company.view` solo habilita la acción — el alcance (todas vs. las propias) lo decide el
  *        rol en company.service.ts, no el permiso.
@@ -20,7 +20,7 @@ router.get('/',
 );
 
 /**
- * @route POST /api/companys/register
+ * @route POST /api/v2/companys/register
  * @desc  Alta de empresa (wizard de 3 pasos: empresa, dueño, plan) — queda activa de una.
  * @access system crea primaria; company.create dentro del propio árbol crea hermana.
  */
@@ -31,7 +31,7 @@ router.post('/register',
 );
 
 /**
- * @route GET /api/companys/:publicId
+ * @route GET /api/v2/companys/:publicId
  * @desc  Detalle de una empresa
  * @access system, super_admin
  */
@@ -42,7 +42,7 @@ router.get('/:publicId',
 );
 
 /**
- * @route PUT /api/companys/:publicId
+ * @route PUT /api/v2/companys/:publicId
  * @desc  Autoedición de la propia empresa (nombre, teléfonos, dirección, país, ubigeo) — sin
  *        `document` (RUC), no se edita desde acá.
  * @access system, super_admin (solo su propia empresa — chequeo manual en el service)
@@ -55,7 +55,7 @@ router.put('/:publicId',
 );
 
 /**
- * @route GET /api/companys/public/branches/:sucursalPublicId/tree
+ * @route GET /api/v2/companys/public/branches/:sucursalPublicId/tree
  * @desc  Árbol empresa → sucursales → espacios con moneda y ventana operativa.
  *        Única fuente de verdad del contexto de empresa para el panel admin.
  * @access Autenticado (panel admin).

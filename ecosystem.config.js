@@ -6,7 +6,8 @@
 module.exports = {
     apps: [
         {
-            name: 'booking-backend',
+            name: 'backend-app-v2',
+            cwd: __dirname,
             script: './server.ts',
             // Corre el .ts directo sin paso de compilación previo — requiere que
             // `tsx` esté instalado en el servidor (hoy es devDependency: si el
@@ -27,7 +28,7 @@ module.exports = {
             // Variables de entorno de producción
             env_production: {
                 NODE_ENV: 'production',
-                PORT: 5010,
+                PORT: 5020,
             },
 
             // Logs separados con fecha para facilitar debugging

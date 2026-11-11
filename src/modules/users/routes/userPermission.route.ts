@@ -7,7 +7,7 @@ import { getByUserId, update } from '../controllers/userPermission.controller';
 const router = createRouter();
 
 /**
- * @route GET /api/users/:publicId/permissions
+ * @route GET /api/v2/users/:publicId/permissions
  * @desc  Keys del set efectivo de permisos de un usuario
  * @access con user.permission_manage (sobre usuarios de su alcance; system bypasea)
  */
@@ -18,7 +18,7 @@ router.get('/:publicId/permissions',
 );
 
 /**
- * @route PUT /api/users/:publicId/permissions
+ * @route PUT /api/v2/users/:publicId/permissions
  * @desc  Reemplaza el set completo de permisos de un usuario
  * @access con user.permission_manage (sobre usuarios de su alcance; system bypasea)
  */

@@ -7,7 +7,7 @@ import { listHours, saveSchedule, toggleHourClosed, toggleHourDay } from '../con
 const router = createRouter();
 
 /**
- * @route GET /api/hours/space/:spacePublicId/list
+ * @route GET /api/v2/hours/space/:spacePublicId/list
  * @desc  Bloques de horario del espacio — cada uno es día + rango + precio y
  *        aplica a todas las semanas (es semanal, sin fechas)
  * @access usuarios con permiso space.business_hour_manage (sobre espacios de su alcance)
@@ -19,7 +19,7 @@ router.get('/space/:spacePublicId/list',
 );
 
 /**
- * @route PUT /api/hours/space/:spacePublicId
+ * @route PUT /api/v2/hours/space/:spacePublicId
  * @desc  Guarda la semana COMPLETA del espacio: crea o reemplaza todos sus
  *        bloques en una transacción.
  * @access usuarios con permiso space.business_hour_manage
@@ -32,7 +32,7 @@ router.put('/space/:spacePublicId',
 );
 
 /**
- * @route PATCH /api/hours/space/:spacePublicId/:hourId/close
+ * @route PATCH /api/v2/hours/space/:spacePublicId/:hourId/close
  * @desc  Habilita/deshabilita UN bloque (is_closed) — bloquea el bloque, no el
  *        día entero: los otros bloques del día siguen operando.
  * @access usuarios con permiso space.business_hour_manage
@@ -44,7 +44,7 @@ router.patch('/space/:spacePublicId/:hourId/close',
 );
 
 /**
- * @route PATCH /api/hours/space/:spacePublicId/:day
+ * @route PATCH /api/v2/hours/space/:spacePublicId/:day
  * @desc  Habilita/deshabilita un día entero: invierte is_closed en TODOS sus
  *        bloques (habilitado → cierra todos; cerrado → abre todos). No recibe
  *        hourId (el día es la unidad, no el bloque) ni body: el estado se

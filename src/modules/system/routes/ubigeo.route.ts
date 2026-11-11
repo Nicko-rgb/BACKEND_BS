@@ -7,28 +7,28 @@ import { listChildren, create, update, remove } from '../controllers/ubigeo.cont
 const router = createRouter();
 
 /**
- * @route GET /api/system/ubigeo
+ * @route GET /api/v2/system/ubigeo
  * @desc  Lista en cascada — ?country_id= trae el nivel 1 de ese país, ?parent_id= trae los hijos directos de un nodo (nunca el árbol completo de una)
  * @access Público
  */
 router.get('/ubigeo', validateQuery(ubigeoChildrenQuerySchema), listChildren);
 
 /**
- * @route POST /api/system/ubigeo
+ * @route POST /api/v2/system/ubigeo
  * @desc  Crea un nodo nuevo — nivel 1 de un país o hijo directo de otro nodo
  * @access system
  */
 router.post('/ubigeo', resolveAuthorization('ubigeo.manage'), validateDTO(createUbigeoSchema), create);
 
 /**
- * @route PUT /api/system/ubigeo/:id
+ * @route PUT /api/v2/system/ubigeo/:id
  * @desc  Actualiza el nombre/código de un nodo existente
  * @access system
  */
 router.put('/ubigeo/:id', resolveAuthorization('ubigeo.manage'), validateDTO(updateUbigeoSchema), update);
 
 /**
- * @route DELETE /api/system/ubigeo/:id
+ * @route DELETE /api/v2/system/ubigeo/:id
  * @desc  Elimina un nodo — bloqueado si tiene hijos
  * @access system
  */

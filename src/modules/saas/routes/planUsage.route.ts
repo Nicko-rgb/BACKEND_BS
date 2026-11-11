@@ -1,15 +1,17 @@
 import { createRouter } from '../../../shared/utils/createRouter';
 import { resolveAuthorization } from '../../../shared/middlewares/resolveAuthorization';
 import { validatePublicId } from '../../../shared/middlewares/validateDTO';
-import { getPlanUsage } from '../controllers/planUsage.controller';
+import { getPlanUsage, getPlanUsageOverview } from '../controllers/planUsage.controller';
 
 const router = createRouter();
 
 /**
- * @route GET /api/saas/plan-usage/:companyPublicId
+ * @route GET /api/v2/saas/plan-usage/:companyPublicId
  * @desc  Plan de la empresa, su empresa primaria y cuánto usa de cada límite (sucursales, usuarios, espacios, facturas)
  * @access usuarios con acceso a esa empresa (el alcance lo valida el service)
  */
 router.get('/:companyPublicId', resolveAuthorization(), validatePublicId('companyPublicId'), getPlanUsage);
+
+router.get('/:companyPublicId/overview', resolveAuthorization(), validatePublicId('companyPublicId'), getPlanUsageOverview);
 
 export default router;

@@ -42,6 +42,7 @@ const MENU_ITEMS: MenuItemSeed[] = [
     { key: 'menu_config', label: 'Configurar Menú', icon: 'Menu', path: '/menu', parent_key: null, app_access: 'admin', group_title: 'SISTEMA', sort_order: 2, is_active: true },
     { key: 'catalogs', label: 'Catálogos', icon: 'Layers', path: null, parent_key: null, app_access: 'admin', group_title: 'SISTEMA', sort_order: 3, is_active: true },
     { key: 'suscripciones', label: 'Suscripción', icon: 'Crown', path: '/suscriptions', parent_key: null, app_access: 'admin', group_title: 'SISTEMA', sort_order: 4, is_active: true },
+    { key: 'usage', label: 'Uso', icon: 'Gauge', path: '/usage', parent_key: null, app_access: 'admin', group_title: 'SISTEMA', sort_order: 5, is_active: true },
 
     { key: 'cat_countries', label: 'Países', icon: 'Globe', path: '/catalogs/countries', parent_key: 'catalogs', app_access: 'admin', group_title: 'SISTEMA', sort_order: 1, is_active: true },
     { key: 'cat_sport_types', label: 'Deportes', icon: 'Trophy', path: '/catalogs/sport-types', parent_key: 'catalogs', app_access: 'admin', group_title: 'SISTEMA', sort_order: 2, is_active: true },

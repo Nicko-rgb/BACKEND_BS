@@ -7,7 +7,7 @@ import { getConfiguration, saveConfiguration } from '../controllers/sucursalConf
 const router = createRouter();
 
 /**
- * @route GET /api/sucursal-configurations/:sucursalPublicId
+ * @route GET /api/v2/sucursal-configurations/:sucursalPublicId
  * @desc  Configuración de una sucursal — 404 si todavía no tiene.
  * @access system, super_admin (dueño de la empresa), administrador de la sucursal
  */
@@ -18,7 +18,7 @@ router.get('/:sucursalPublicId',
 );
 
 /**
- * @route PUT /api/sucursal-configurations/:sucursalPublicId
+ * @route PUT /api/v2/sucursal-configurations/:sucursalPublicId
  * @desc  Upsert de configuración — crea si no existe, actualiza si existe.
  * @access system, super_admin (dueño de la empresa), administrador de la sucursal
  */

@@ -186,7 +186,7 @@ Los tokens de color viven **solo** en `shared/styles/colors.css` y traen su valo
 
 ### 6.1. Login y autorización
 
-1. `POST /api/auth/login` con credenciales.
+1. `POST /api/v2/auth/login` con credenciales.
 2. Se verifican contra `dsg_bss_user` (bcrypt) y se comprueba `is_enabled`.
 3. Se emite el JWT con identidad básica.
    El JWT incluye `jti` y una sesión persistida en PostgreSQL; logout y recuperación de contraseña permiten revocarla.
@@ -198,7 +198,7 @@ Los tokens de color viven **solo** en `shared/styles/colors.css` y traen su valo
 
 ### 6.2. Alta de empresa (wizard de 3 pasos)
 
-`POST /api/companys/register` — payload anidado (`company` + `owner` + `plan`), todo en **una transacción**:
+`POST /api/v2/companys/register` — payload anidado (`company` + `owner` + `plan`), todo en **una transacción**:
 
 ```
 Company (empresa raíz, tenant_id nuevo)
@@ -212,9 +212,9 @@ Después el dueño puede abrir sucursales, espacios y asignar empleados/administ
 ### 6.3. Registro y edición de un espacio
 
 ```
-POST /api/spaces/:sucursalPublicId        → alta (valida scope, catálogos y límite maxSpaces del plan)
-PUT  /api/spaces/space/:spacePublicId      → edición (valida scope sobre la sucursal del espacio)
-GET  /api/spaces/space/:spacePublicId      → detalle
+POST /api/v2/spaces/:sucursalPublicId        → alta (valida scope, catálogos y límite maxSpaces del plan)
+PUT  /api/v2/spaces/space/:spacePublicId      → edición (valida scope sobre la sucursal del espacio)
+GET  /api/v2/spaces/space/:spacePublicId      → detalle
 ```
 
 El scope se valida siempre contra `space.sucursal_id` — el espacio no se puede mover de sucursal.
