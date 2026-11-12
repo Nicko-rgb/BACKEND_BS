@@ -5,9 +5,8 @@ import type { SubscriptionStatus } from './subscription.interface';
  *
  * El vocabulario de cupos vive acá y es la fuente de verdad: el repository, los
  * services de límites y los DTO lo consumen desde este archivo. Los `max*` de
- * `CompanyPlanSummary` van en su unidad cruda (número), no formateados — quien
- * los use decide cómo mostrarlos ("∞" a partir de 999, ver convención del
- * frontend en RegisterCompany.tsx).
+ * `CompanyPlanSummary` van en su unidad cruda (número) o NULL cuando el plan no
+ * tiene límite — quien los use decide cómo mostrarlos ("∞" para NULL).
  */
 
 // Forma resumida del plan/suscripción de una empresa — usada en el listado de companys y en la
@@ -25,10 +24,10 @@ export interface CompanyPlanSummary {
     planPublicId: string;
     planName: string;
     planCode: string;
-    maxSubsidiaries: number;
-    maxSpaces: number;
-    maxUsers: number;
-    maxInvoicesMonthly: number;
+    maxSubsidiaries: number | null;
+    maxSpaces: number | null;
+    maxUsers: number | null;
+    maxInvoicesMonthly: number | null;
     notificationsTier: string;
 }
 

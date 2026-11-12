@@ -1,4 +1,3 @@
-import { isUnlimitedLimit } from '../utils/planLimits';
 import type { CompanyPlanSummary } from '../interfaces/plan.interface';
 import type { CompanyUsageCounts, PlanUsageCounts } from '../interfaces/planUsage.interface';
 import type { Company } from '../../companys/database/models';
@@ -6,7 +5,7 @@ import type { SaaSSubscription } from '../database/models';
 import { toSubscriptionDto } from './subscription.dto';
 
 // Uso de un límite — `max` en null cuando el plan lo tiene ilimitado.
-const toLimitUsage = (used: number, max: number) => ({ used, max: isUnlimitedLimit(max) ? null : max });
+const toLimitUsage = (used: number, max: number | null) => ({ used, max });
 
 export const toPlanUsageDto = (plan: CompanyPlanSummary, primaryCompany: Company | null, usage: PlanUsageCounts) => ({
     planName: plan.planName,
@@ -45,7 +44,7 @@ export const toPlanUsageOverviewDto = (
                 spaces: toLimitUsage(branch.spaces, plan.max_spaces),
                 invoicesMonthly: {
                     used: null,
-                    max: isUnlimitedLimit(plan.max_invoices_monthly) ? null : plan.max_invoices_monthly,
+                    max: plan.max_invoices_monthly,
                 },
             })),
         })),
