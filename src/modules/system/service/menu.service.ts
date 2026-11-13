@@ -21,19 +21,9 @@ const validateRoleIds = async (roleIds: number[]): Promise<void> => {
     }
 };
 
-/**
- * Menú del usuario autenticado — filtra por dsg_bss_role_menu_item (asignación por rol,
- * gestionada desde el form de cada ítem en MenuManage.tsx), ya no por required_permission
- * contra user.permissions. scope_level=1 (system) ve todo sin excepción. `app` decide si se
- * sirve el menú del panel admin o del portal booking.
- */
+// Menús activos de la app asignados al rol del usuario, incluido system.
 export const getMenuForUser = async (user: AuthenticatedUser, app: 'admin' | 'booking') => {
     const items = await MenuItemRepository.findActiveByApp(app);
-
-    if (user.scope_level === 1) {
-        return items;
-    }
-
     const allowedMenuIds = await RoleMenuItemRepository.findMenuIdsByRoleId(user.role_id);
     return items.filter((item) => allowedMenuIds.has(item.menu_id));
 };

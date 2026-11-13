@@ -1,7 +1,7 @@
 import cron from 'node-cron';
 import logger from '../../../config/logger';
 import * as SaaSSubscriptionRepository from '../repository/saasSubscription.repository';
-import { toErrorMessage } from '../../../shared/utils/errorUtils';
+import { toErrorMessage } from '../../../shared/errors/errorUtils';
 
 const cronExpression = '0 0 * * *';
 

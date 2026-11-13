@@ -5,7 +5,7 @@ import { Server, Socket } from 'socket.io';
 import type { Server as HttpServer } from 'http';
 import chalk from 'chalk';
 import logger from './logger';
-import { toErrorMessage } from '../shared/utils/errorUtils';
+import { toErrorMessage } from '../shared/errors/errorUtils';
 
 let io: Server | undefined;
 

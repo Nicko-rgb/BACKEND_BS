@@ -7,7 +7,7 @@ import * as UserRepository from '../../users/repository/user.repository';
 import { invalidateUserAuthCache } from '../../../shared/utils/authorizationCache';
 import { UnauthorizedError } from '../../../shared/errors/CustomErrors';
 import logger from '../../../config/logger';
-import { readErrorProp } from '../../../shared/utils/errorUtils';
+import { readErrorProp } from '../../../shared/errors/errorUtils';
 import type { WebhookNotification } from '../interfaces/webhook.interface';
 
 // Cuántos días dura el trial antes del primer cobro automático — mismo valor que se manda

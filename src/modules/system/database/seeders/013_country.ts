@@ -1,8 +1,14 @@
 /**
  * Seed: países activos del sistema (dsg_bss_country) — mismo set de datos que usaba el
  * backend anterior (BACKEND_BOOKING/src/modules/system/database/seeders/003_paises.js).
- * TRUNCATE + insert dentro de una transacción — para repetirlo a mano: DELETE FROM
- * dsg_bss_seed_meta WHERE seed_name = 'countrySeed'.
+ *
+ * Upsert por `iso_country` dentro de una transacción — NUNCA truncate. `dsg_bss_country`
+ * es destino de FK de `dsg_bss_user` (country_id, ver 050_migrate_user_tabla) y de
+ * `dsg_bss_company`/`dsg_bss_ubigeo`/`dsg_bss_payment_types`: un TRUNCATE ... CASCADE
+ * acá vacía también `dsg_bss_user` y se lleva puesto al usuario system (order 12), que
+ * ya quedó marcado como ejecutado en dsg_bss_seed_meta y no se vuelve a crear.
+ *
+ * Para repetirlo a mano: DELETE FROM dsg_bss_seed_meta WHERE seed_name = 'countrySeed'.
  */
 import type { SeederConfig } from '../../../../../scripts/seederRunner';
 import sequelize from '../../../../config/db';
@@ -24,11 +30,15 @@ const COUNTRIES = [
 const seedFn = async (systemUserId?: number): Promise<void> => {
     const t = await sequelize.transaction();
     try {
-        await Country.destroy({ truncate: true, cascade: true, restartIdentity: true, transaction: t });
-        await Country.bulkCreate(
-            COUNTRIES.map((c) => ({ ...c, is_active: true, user_create: systemUserId!, user_update: systemUserId! })),
-            { transaction: t }
-        );
+        for (const country of COUNTRIES) {
+            const data = { ...country, is_active: true, user_create: systemUserId!, user_update: systemUserId! };
+            const existing = await Country.findOne({ where: { iso_country: country.iso_country }, transaction: t });
+            if (existing) {
+                await existing.update(data, { transaction: t });
+            } else {
+                await Country.create(data, { transaction: t });
+            }
+        }
         await t.commit();
     } catch (err) {
         await t.rollback();

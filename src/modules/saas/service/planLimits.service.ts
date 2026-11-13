@@ -2,8 +2,9 @@ import * as SaaSSubscriptionRepository from '../repository/saasSubscription.repo
 import * as CompanyRepository from '../../companys/repository/company.repository';
 import * as UserCompanyRepository from '../../users/repository/userCompany.repository';
 import * as SpaceRepository from '../../companys/repository/space.repository';
+import * as PlanUsageRepository from '../repository/planUsage.repository';
 import { isUnlimitedLimit } from '../utils/planLimits';
-import { assertCompanyScope } from '../../../shared/utils/accessScope';
+import { assertCompanyScope, hasCompanyScope } from '../../../shared/utils/accessScope';
 import { ConflictError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { CompanyPlanSummary, PlanLimitField, PlanFeature } from '../interfaces/plan.interface';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
@@ -80,4 +81,29 @@ export const getPlanUsage = async (companyPublicId: string, user: AuthenticatedU
     const spaces = await SpaceRepository.countBySucursalIds(sucursalIds);
 
     return { plan, primaryCompany, usage: { subsidiaries: sucursalIds.length, users, spaces, invoicesMonthly: 0 } };
+};
+
+export const getPlanUsageOverview = async (companyPublicId: string, user: AuthenticatedUser) => {
+    const company = await CompanyRepository.findRootIdentityByPublicId(companyPublicId);
+    if (!company) throw new NotFoundError('Empresa no encontrada');
+    assertCompanyScope(user, Number(company.company_id), 'No tienes acceso a esta empresa');
+
+    const subscription = await SaaSSubscriptionRepository.findByCompanyId(Number(company.company_id));
+    if (!subscription?.plan) throw new NotFoundError('La empresa no tiene un plan asociado.');
+
+    const [primaryCompany, companies] = await Promise.all([
+        SaaSSubscriptionRepository.findPrimaryCompany(subscription.subscription_id),
+        PlanUsageRepository.findCompaniesBySubscriptionId(subscription.subscription_id),
+    ]);
+    const visibleCompanies = companies.filter((item) => hasCompanyScope(user, Number(item.companyId)));
+    const branches = await PlanUsageRepository.findBranchUsageByCompanyIds(visibleCompanies.map((item) => Number(item.companyId)));
+    const companyUsage = await Promise.all(visibleCompanies.map(async (item) => {
+        const companyBranches = branches.filter((branch) => Number(branch.companyId) === Number(item.companyId));
+        const users = await UserCompanyRepository.countActiveUsersByCompanyIds([
+            Number(item.companyId), ...companyBranches.map((branch) => Number(branch.branchId)),
+        ]);
+        return { ...item, users, branches: companyBranches };
+    }));
+
+    return { company, subscription, primaryCompany, companiesCount: companies.length, companyUsage };
 };

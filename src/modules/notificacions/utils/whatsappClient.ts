@@ -1,6 +1,6 @@
 import whatsappConfig from './whatsapp';
 import logger from '../../../config/logger';
-import { toErrorMessage } from '../../../shared/utils/errorUtils';
+import { toErrorMessage } from '../../../shared/errors/errorUtils';
 
 interface SendTemplateMessageOptions {
     /** número en formato E.164 (ej. "51987654321") */

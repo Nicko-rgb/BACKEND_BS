@@ -2,6 +2,8 @@
 
 Servidor backend para la aplicación de reservas deportivas con autenticación de usuarios.
 
+API local: `http://localhost:5020/api/v2`. PM2: `backend-app-v2` (`pm2 start ecosystem.config.js --env production`).
+
 ## Configuración Inicial
 
 ### 1. Crear archivo .env
@@ -17,7 +19,7 @@ DB_USER=postgres
 DB_PASSWORD=
 
 # Server Configuration
-PORT=5010
+PORT=5020
 NODE_ENV=development
 
 # JWT Configuration

@@ -96,9 +96,7 @@ export const updateMenuItemSchema = Joi.object({
             'any.required': 'El estado activo es requerido',
         }),
 
-    // Roles que ven este ítem — reemplaza a required_permission como mecanismo de filtrado
-    // (ver menu.service.ts::getMenuForUser). Array vacío es válido: nadie lo ve todavía (salvo
-    // system, que ve todo sin excepción).
+    // Roles que ven este ítem. Con una lista vacía no aparece para ningún rol.
     role_ids: Joi.array().items(Joi.number().integer().positive()).required()
         .messages({
             'array.base': 'Los roles deben ser una lista',

@@ -2,7 +2,7 @@ import { PreApproval, client as mpClient } from '../../../config/mercadopago';
 import * as SaaSSubscriptionRepository from '../repository/saasSubscription.repository';
 import { BadRequestError } from '../../../shared/errors/CustomErrors';
 import logger from '../../../config/logger';
-import { readErrorProp, toErrorMessage } from '../../../shared/utils/errorUtils';
+import { readErrorProp, toErrorMessage } from '../../../shared/errors/errorUtils';
 import type { SaaSSubscription } from '../database/models';
 import type { SaaSPlan } from '../database/models';
 import type { Country } from '../../system/database/models';

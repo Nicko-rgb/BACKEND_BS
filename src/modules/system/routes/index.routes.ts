@@ -11,7 +11,7 @@ import ubigeoRoutes from './ubigeo.route';
 
 const router = createRouter();
 
-// Prefijo base del módulo — app.ts solo hace app.use('/api', systemRoutes),
+// Prefijo base del módulo — app.ts solo hace app.use('/api/v2', systemRoutes),
 // sin conocer las subrutas internas. Cada recurso nuevo del módulo se suma
 // acá con su propio *.route.ts.
 router.use('/system', permissionRoutes);

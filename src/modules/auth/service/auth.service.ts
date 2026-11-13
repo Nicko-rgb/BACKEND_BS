@@ -5,7 +5,7 @@ import sequelize from '../../../config/db';
 import * as AuthSessionRepository from '../repository/authSession.repository';
 import * as UserRepository from '../../users/repository/user.repository';
 import { resolveAuthorization } from './authorizationResolver.service';
-import { getCompanyContext } from '../../companys/service/companyContext.service';
+import { getCompanyContextTree } from '../../companys/service/companyContext.service';
 import { UnauthorizedError, ForbiddenError } from '../../../shared/errors/CustomErrors';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
 
@@ -41,7 +41,7 @@ export const loginAdmin = async ({ email, password }: LoginAdminInput) => {
     const roleId = Number(user.role_id);
 
     const { permissions, companyIds, scopeLevel } = await resolveAuthorization(userId);
-    const context = await getCompanyContext({ scope_level: scopeLevel, company_ids: companyIds });
+    const context = await getCompanyContextTree({ scope_level: scopeLevel, company_ids: companyIds, user_id: userId });
 
     const payload: Pick<AuthenticatedUser, 'user_id' | 'role_id' | 'app'> = {
         user_id: userId,

@@ -13,11 +13,11 @@ export class SaaSPlan extends Model<InferAttributes<SaaSPlan>, InferCreationAttr
     declare code: string;
     declare price_monthly: string;
     declare price_yearly: string;
-    declare max_subsidiaries: number;
-    declare max_spaces: number;
-    declare max_users: number;
+    declare max_subsidiaries: number | null;
+    declare max_spaces: number | null;
+    declare max_users: number | null;
     declare has_stripe_connect: CreationOptional<boolean>;
-    declare max_invoices_monthly: number;
+    declare max_invoices_monthly: number | null;
     declare notifications_tier: string;
     declare has_advanced_reports: CreationOptional<boolean>;
     declare allows_multi_company: CreationOptional<boolean>;
@@ -65,15 +65,18 @@ SaaSPlan.init({
     },
     max_subsidiaries: {
         type: DataTypes.INTEGER,
-        allowNull: false
+        allowNull: true,
+        comment: 'Límite de sucursales. NULL = ilimitado'
     },
     max_spaces: {
         type: DataTypes.INTEGER,
-        allowNull: false
+        allowNull: true,
+        comment: 'Límite de canchas por sucursal. NULL = ilimitado'
     },
     max_users: {
         type: DataTypes.INTEGER,
-        allowNull: false
+        allowNull: true,
+        comment: 'Límite de empleados. NULL = ilimitado'
     },
     has_stripe_connect: {
         type: DataTypes.BOOLEAN,
@@ -81,9 +84,9 @@ SaaSPlan.init({
     },
     max_invoices_monthly: {
         type: DataTypes.INTEGER,
-        allowNull: false,
+        allowNull: true,
         defaultValue: 20,
-        comment: 'Límite de facturas electrónicas por mes. 999 para ilimitado'
+        comment: 'Límite de facturas electrónicas por mes. NULL = ilimitado'
     },
     notifications_tier: {
         type: DataTypes.STRING(20),

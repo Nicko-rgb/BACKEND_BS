@@ -1,5 +1,5 @@
 import { createRouter } from '../../../shared/utils/createRouter';
-import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
+import { resolveAuthorization } from '../../../shared/middlewares/resolveAuthorization';
 import { validateDTO, validatePublicId } from '../../../shared/middlewares/validateDTO';
 import upload from '../../../shared/middlewares/uploadMiddleware';
 import { registerSucursalSchema, updateSucursalSchema, sucursalStatusSchema } from '../dto/sucursal.schema';
@@ -7,11 +7,15 @@ import { registerSucursal, getByPublicId, updateByPublicId, toggleStatus, getBan
 
 const router = createRouter();
 
-// Sucursales de la empresa autorizada, sin cargar usuarios.
-router.get('/company/:companyPublicId/branches', resolveAuthorization('sucursal.view'), validatePublicId('companyPublicId'), listByCompany);
+// Sucursales de la empresa autorizada
+router.get('/company/:companyPublicId/branches',
+    resolveAuthorization('sucursal.view'),
+    validatePublicId('companyPublicId'),
+    listByCompany
+);
 
 /**
- * @route POST /api/sucursals/:companyPublicId
+ * @route POST /api/v2/sucursals/:companyPublicId
  * @desc  Registro de una sucursal bajo una empresa
  * @access system, super_admin (dueño de esa empresa)
  */
@@ -23,7 +27,7 @@ router.post('/:companyPublicId',
 );
 
 /**
- * @route GET /api/sucursals/:publicId
+ * @route GET /api/v2/sucursals/:publicId
  * @desc  Detalle de una sucursal — se busca por su propio public_id
  * @access system, super_admin,
  */
@@ -34,7 +38,7 @@ router.get('/:publicId',
 );
 
 /**
- * @route PUT /api/sucursals/:publicId
+ * @route PUT /api/v2/sucursals/:publicId
  * @desc  Actualiza los datos de una sucursal.
  * @access system, super_admin (dueño de la empresa)
  */
@@ -46,7 +50,7 @@ router.put('/:publicId',
 );
 
 /**
- * @route PATCH /api/sucursals/:publicId/status
+ * @route PATCH /api/v2/sucursals/:publicId/status
  * @desc  Cambio de estado de la sucursal (ACTIVE | MAINTENANCE | INACTIVE
  * @access usuarios con permiso sucursal.edit
  */
@@ -59,7 +63,7 @@ router.patch('/:publicId/status',
 
 /** ____ IMAGEN ______ */
 /**
- * @route GET /api/sucursals/:publicId/banner
+ * @route GET /api/v2/sucursals/:publicId/banner
  * @desc  Portada actual de la sucursal — null si no tiene
  * @access solo auth + pertenencia (la sucursal debe estar en el alcance del usuario)
  */
@@ -70,7 +74,7 @@ router.get('/:publicId/banner',
 );
 
 /**
- * @route POST /api/sucursals/:publicId/banner
+ * @route POST /api/v2/sucursals/:publicId/banner
  * @desc  Sube la portada (campo `cover`, pasa a primaria y desmarca la anterior)
  * @access solo auth + pertenencia (la sucursal debe estar en el alcance del usuario)
  */
@@ -82,7 +86,7 @@ router.post('/:publicId/banner',
 );
 
 /**
- * @route DELETE /api/sucursals/:publicId/banner
+ * @route DELETE /api/v2/sucursals/:publicId/banner
  * @desc  Elimina la portada actual (físico + registro)
  * @access solo auth + pertenencia (la sucursal debe estar en el alcance del usuario)
  */

@@ -2,7 +2,7 @@
 
 ## Registrar
 
-`POST /api/bookings/admin/spaces/:spacePublicId`
+`POST /api/v2/bookings/admin/spaces/:spacePublicId`
 
 Requiere sesión `admin`, acceso a la sucursal del espacio y permisos
 `booking.create`, `booking.confirm`, `payment.create` y `user.client_manage`.
@@ -110,7 +110,7 @@ Responde `201` con la reserva actualizada (mismo formato que el alta).
 
 ## Listar reservas de un espacio
 
-`GET /api/bookings/admin/spaces/:spacePublicId?start_date=2026-12-01&end_date=2026-12-31&page=1&limit=20`
+`GET /api/v2/bookings/admin/spaces/:spacePublicId?start_date=2026-12-01&end_date=2026-12-31&page=1&limit=20`
 
 Requiere sesión `admin`, permiso `booking.view` y alcance sobre la sucursal.
 Las dos fechas son obligatorias e inclusivas; el rango no puede superar 366 días.

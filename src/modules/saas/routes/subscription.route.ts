@@ -1,12 +1,12 @@
 import { createRouter } from '../../../shared/utils/createRouter';
-import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
+import { resolveAuthorization } from '../../../shared/middlewares/resolveAuthorization';
 import { validatePublicId } from '../../../shared/middlewares/validateDTO';
 import { getDetail } from '../controllers/subscription.controller';
 
 const router = createRouter();
 
 /**
- * @route GET /api/saas/subscription/:companyPublicId/current-plan
+ * @route GET /api/v2/saas/subscription/:companyPublicId/current-plan
  * @desc  Suscripción compartida del grupo de la empresa: plan, estado, vigencia, período,
  *        período de facturación, pasarela y empresa titular.
  * @access usuarios con acceso a esa empresa (el alcance lo valida el service)

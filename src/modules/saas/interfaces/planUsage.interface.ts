@@ -9,3 +9,23 @@ export interface PlanUsageCounts {
     spaces: number;
     invoicesMonthly: number;
 }
+
+export interface PlanUsageCompanyRecord {
+    companyId: number;
+    publicId: string;
+    name: string;
+    isPrimary: boolean;
+}
+
+export interface PlanUsageBranchRecord {
+    companyId: number;
+    branchId: number;
+    publicId: string;
+    name: string;
+    spaces: number;
+}
+
+export interface CompanyUsageCounts extends PlanUsageCompanyRecord {
+    users: number;
+    branches: PlanUsageBranchRecord[];
+}

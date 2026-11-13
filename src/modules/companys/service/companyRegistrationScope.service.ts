@@ -31,7 +31,7 @@ export const resolveRegistrationCoverage = async (
         if (!payload.plan) throw new BadRequestError('La empresa primaria debe seleccionar un plan.');
         const plan = await SaaSPlanRepository.findByPublicId(payload.plan.plan_public_id, transaction);
         if (!plan?.is_active) throw new BadRequestError('El plan seleccionado no existe o no está activo.');
-        if (plan.max_users < 1) throw new ConflictError('El plan debe permitir al menos un usuario para registrar al dueño.');
+        if (plan.max_users !== null && plan.max_users < 1) throw new ConflictError('El plan debe permitir al menos un usuario para registrar al dueño.');
         return { tenantId: idPublicId(), planId: plan.plan_id, planName: plan.name, subscriptionId: null };
     }
 
@@ -66,7 +66,7 @@ export const resolveRegistrationCoverage = async (
     // Releer vigencia y características después del bloqueo, antes de agregar la hermana.
     const plan = await PlanLimitsService.assertPlanFeature(source.company_id, 'allowsMultiCompany', transaction);
     if (plan.subscriptionId !== subscriptionId) throw new ConflictError('La suscripción cambió. Intentá nuevamente.');
-    if (plan.maxUsers < 1) throw new ConflictError('El plan debe permitir al menos un usuario para registrar al dueño.');
+    if (plan.maxUsers !== null && plan.maxUsers < 1) throw new ConflictError('El plan debe permitir al menos un usuario para registrar al dueño.');
     const primary = await SubscriptionRepository.findPrimaryCompany(subscriptionId, transaction);
     if (!primary || primary.parent_company_id !== null || primary.tenant_id !== source.tenant_id) {
         throw new ConflictError('La suscripción no tiene una empresa primaria válida en este grupo.');

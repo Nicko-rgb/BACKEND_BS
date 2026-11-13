@@ -235,7 +235,7 @@ Son de **todos** los módulos, no de uno.
 ## Flujo completo de una request
 
 ```
-POST /api/spaces/:sucursalPublicId
+POST /api/v2/spaces/:sucursalPublicId
    │
    ├─ app.ts ──── helmet, cors, compression, rate limit, express.json
    │

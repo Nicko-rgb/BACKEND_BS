@@ -36,21 +36,21 @@ export const updatePlanSchema = Joi.object({
             'any.required': 'El precio anual es requerido',
         }),
 
-    max_subsidiaries: Joi.number().integer().min(0).required()
+    max_subsidiaries: Joi.number().integer().min(0).allow(null).required()
         .messages({
             'number.base': 'El máximo de sucursales es requerido',
             'number.min': 'El máximo de sucursales no puede ser negativo',
             'any.required': 'El máximo de sucursales es requerido',
         }),
 
-    max_spaces: Joi.number().integer().min(0).required()
+    max_spaces: Joi.number().integer().min(0).allow(null).required()
         .messages({
             'number.base': 'El máximo de espacios es requerido',
             'number.min': 'El máximo de espacios no puede ser negativo',
             'any.required': 'El máximo de espacios es requerido',
         }),
 
-    max_users: Joi.number().integer().min(0).required()
+    max_users: Joi.number().integer().min(0).allow(null).required()
         .messages({
             'number.base': 'El máximo de usuarios es requerido',
             'number.min': 'El máximo de usuarios no puede ser negativo',
@@ -63,7 +63,7 @@ export const updatePlanSchema = Joi.object({
             'any.required': 'Stripe Connect es requerido',
         }),
 
-    max_invoices_monthly: Joi.number().integer().min(0).required()
+    max_invoices_monthly: Joi.number().integer().min(0).allow(null).required()
         .messages({
             'number.base': 'El máximo de facturas mensuales es requerido',
             'number.min': 'El máximo de facturas mensuales no puede ser negativo',

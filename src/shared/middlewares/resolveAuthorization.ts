@@ -5,14 +5,10 @@
  * permisos indicados. Sin argumentos solo exige una sesión válida y resuelve
  * el alcance. El acceso a la entidad concreta se valida en el service.
  *
- * verificarTokenAuth sigue viviendo en shared/middlewares, no acá: ahí no
- * puede importar modelos de otros módulos sin crear una dependencia
- * circular, y la resolución de permisos/scope sí necesita leer Role/
- * UserPermission/UserCompany — por eso vive en `auth`, que sí
- * puede importar esos módulos (igual que ya hace auth.service.ts para el
- * login). Este middleware compone los tres pasos; verificarTokenAuth sigue
- * siendo una pieza aparte, usable sola si algún día hiciera falta solo
- * autenticación sin resolver todo el árbol de permisos.
+ * verificarTokenAuth vive en shared/middlewares (mismo directorio).
+ * La resolución de permisos/scope lee Role / UserPermission / UserCompany
+ * desde modules/auth/service/authorizationResolver.service — shared puede
+ * importar de modules sin crear dependencia circular.
  *
  * Uso:
  *   router.put('/company/:publicId', resolveAuthorization('company.edit'), handler);
@@ -20,9 +16,9 @@
  *   router.get('/users', resolveAuthorization('user.manage_all', 'user.employee_manage'), handler);
  */
 import type { Request, Response, NextFunction } from 'express';
-import { verificarTokenAuth } from '../../../shared/middlewares/verificarTokenAuth';
-import { resolveAuthorization as resolve } from '../service/authorizationResolver.service';
-import { ForbiddenError, UnauthorizedError } from '../../../shared/errors/CustomErrors';
+import { verificarTokenAuth } from './verificarTokenAuth';
+import { resolveAuthorization as resolve } from '../../modules/auth/service/authorizationResolver.service';
+import { ForbiddenError, UnauthorizedError } from '../errors/CustomErrors';
 
 export const resolveAuthorization = (...requiredPerms: string[]) => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {

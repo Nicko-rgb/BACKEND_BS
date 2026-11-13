@@ -1,5 +1,5 @@
 import logger from '../../config/logger';
-import { toErrorMessage } from './errorUtils';
+import { toErrorMessage } from '../errors/errorUtils';
 
 const DNI_API_URL = process.env.DNI_LOOKUP_API_URL;
 

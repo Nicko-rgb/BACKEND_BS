@@ -84,11 +84,11 @@ export function createApp(): Express {
         message: { error: 'Demasiadas solicitudes de recuperación, intenta en 15 minutos.' }
     });
 
-    app.use('/api/', generalLimiter);
-    app.use('/api/auth/login', authLimiter);
-    app.use('/api/auth/register', authLimiter);
-    app.use('/api/auth/password-request', passwordResetLimiter);
-    app.use('/api/auth/password-reset', passwordResetLimiter);
+    app.use('/api/v2/', generalLimiter);
+    app.use('/api/v2/auth/login', authLimiter);
+    app.use('/api/v2/auth/register', authLimiter);
+    app.use('/api/v2/auth/password-request', passwordResetLimiter);
+    app.use('/api/v2/auth/password-reset', passwordResetLimiter);
 
     /**
      * Request ID — asigna un ID único a cada request para correlacionar logs.
@@ -141,12 +141,12 @@ export function createApp(): Express {
 
     // Cada índice de rutas se agrega acá a medida que su módulo completa la
     // capa routes/controller/service/repository
-    app.use('/api', authRoutes);
-    app.use('/api', systemRoutes);
-    app.use('/api', companysRoutes);
-    app.use('/api', usersRoutes);
-    app.use('/api', saasRoutes);
-    app.use('/api', bookingsRoutes);
+    app.use('/api/v2', authRoutes);
+    app.use('/api/v2', systemRoutes);
+    app.use('/api/v2', companysRoutes);
+    app.use('/api/v2', usersRoutes);
+    app.use('/api/v2', saasRoutes);
+    app.use('/api/v2', bookingsRoutes);
 
     // Manejo de 404 y errores globales
     app.use(GlobalErrorHandler.notFound);

@@ -1,5 +1,5 @@
 import { createRouter } from '../../../shared/utils/createRouter';
-import { resolveAuthorization } from '../../auth/middlewares/resolveAuthorization';
+import { resolveAuthorization } from '../../../shared/middlewares/resolveAuthorization';
 import { validateDTO, validatePublicId, validateQuery } from '../../../shared/middlewares/validateDTO';
 import { listCompaniesQuerySchema, registerCompanySchema, updateCompanySchema } from '../dto/company.schema';
 import { list, registerCompany, getByPublicId, updateByPublicId, getBranchTree } from '../controllers/company.controller';
@@ -7,7 +7,7 @@ import { list, registerCompany, getByPublicId, updateByPublicId, getBranchTree }
 const router = createRouter();
 
 /**
- * @route GET /api/companys
+ * @route GET /api/v2/companys
  * @desc  Lista las empresas principales (parent_company_id null), paginado, con su dueño y su plan.
  *        `company.view` solo habilita la acción — el alcance (todas vs. las propias) lo decide el
  *        rol en company.service.ts, no el permiso.
@@ -20,7 +20,7 @@ router.get('/',
 );
 
 /**
- * @route POST /api/companys/register
+ * @route POST /api/v2/companys/register
  * @desc  Alta de empresa (wizard de 3 pasos: empresa, dueño, plan) — queda activa de una.
  * @access system crea primaria; company.create dentro del propio árbol crea hermana.
  */
@@ -31,19 +31,7 @@ router.post('/register',
 );
 
 /**
- * @route GET /api/companys/public/branches/:sucursalPublicId/tree
- * @desc  Árbol público (empresa → sucursales → espacios) para los selectores del
- *        calendario, con apertura/cierre de cada sucursal. Lo consumen tanto el
- *        panel admin como el portal de reservas.
- * @access Público
- */
-router.get('/public/branches/:sucursalPublicId/tree',
-    validatePublicId('sucursalPublicId'),
-    getBranchTree
-);
-
-/**
- * @route GET /api/companys/:publicId
+ * @route GET /api/v2/companys/:publicId
  * @desc  Detalle de una empresa
  * @access system, super_admin
  */
@@ -54,7 +42,7 @@ router.get('/:publicId',
 );
 
 /**
- * @route PUT /api/companys/:publicId
+ * @route PUT /api/v2/companys/:publicId
  * @desc  Autoedición de la propia empresa (nombre, teléfonos, dirección, país, ubigeo) — sin
  *        `document` (RUC), no se edita desde acá.
  * @access system, super_admin (solo su propia empresa — chequeo manual en el service)
@@ -64,6 +52,18 @@ router.put('/:publicId',
     validatePublicId('publicId'),
     validateDTO(updateCompanySchema),
     updateByPublicId
+);
+
+/**
+ * @route GET /api/v2/companys/public/branches/:sucursalPublicId/tree
+ * @desc  Árbol empresa → sucursales → espacios con moneda y ventana operativa.
+ *        Única fuente de verdad del contexto de empresa para el panel admin.
+ * @access Autenticado (panel admin).
+ */
+router.get('/public/branches/:sucursalPublicId/tree',
+    resolveAuthorization(),
+    validatePublicId('sucursalPublicId'),
+    getBranchTree
 );
 
 export default router;
