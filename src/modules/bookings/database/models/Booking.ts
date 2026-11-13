@@ -37,6 +37,8 @@ export class Booking extends Model<InferAttributes<Booking>, InferCreationAttrib
     declare readonly updated_at: CreationOptional<Date>;
     declare user?: NonAttribute<User>;
     declare payment?: NonAttribute<PaymentBooking>;
+    /** Todos los movimientos de dinero de la reserva (adelanto, saldo, pago único). */
+    declare payments?: NonAttribute<PaymentBooking[]>;
 }
 
 Booking.init({
@@ -95,7 +97,7 @@ Booking.init({
     payment_id: {
         type: DataTypes.BIGINT,
         allowNull: true,
-        comment: 'Referencia al pago global de PaymentBooking',
+        comment: 'Primer pago registrado de la reserva — todos sus pagos están en PaymentBooking.booking_id',
         references: { model: 'dsg_bss_payment_booking', key: 'payment_id' }
     },
     total_amount: {
@@ -165,5 +167,6 @@ export function associateBooking(models: {
     Booking.belongsTo(models.User, { foreignKey: 'user_id', as: 'user' });
     Booking.belongsTo(models.Space, { foreignKey: 'space_id', as: 'space' });
     Booking.belongsTo(models.PaymentBooking, { foreignKey: 'payment_id', as: 'payment' });
+    Booking.hasMany(models.PaymentBooking, { foreignKey: 'booking_id', as: 'payments' });
     Booking.hasOne(models.Rating, { foreignKey: 'booking_id', as: 'rating' });
 }

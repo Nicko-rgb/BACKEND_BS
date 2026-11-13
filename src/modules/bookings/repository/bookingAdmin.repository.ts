@@ -1,5 +1,5 @@
 import { Op } from 'sequelize';
-import type { CreationAttributes, Transaction, WhereOptions } from 'sequelize';
+import type { CreationAttributes, InferAttributes, Transaction, WhereOptions } from 'sequelize';
 import { Booking, BookingHold } from '../database/models';
 import { Company } from '../../companys/database/models';
 import type { ListSpaceBookingsQuery } from '../interfaces/booking.interface';
@@ -33,6 +33,31 @@ export const findActiveHold = (spaceId: number, date: string, start: string, end
 
 export const create = (data: CreationAttributes<Booking>, transaction: Transaction) => Booking.create(data, { transaction });
 
+export const update = (booking: Booking, data: Partial<InferAttributes<Booking>>, transaction: Transaction) => booking.update(data, { transaction });
+
+// Bloquea la reserva: serializa los cobros concurrentes de la misma reserva.
+export const lockById = (bookingId: number, transaction: Transaction) => Booking.findByPk(bookingId, {
+    transaction, lock: transaction.LOCK.UPDATE,
+});
+
+const USER_ATTRIBUTES = ['public_id', 'first_name', 'last_name', 'email', 'phone'];
+const PAYMENT_ATTRIBUTES = ['payment_id', 'booking_id', 'concept', 'payment_type_id', 'amount', 'method', 'status', 'moneda', 'payment_date', 'created_at'];
+
+// `separate`: los pagos (hasMany) se cargan en una consulta aparte, compatible con limit/offset.
+const paymentsInclude = {
+    association: 'payments',
+    attributes: PAYMENT_ATTRIBUTES,
+    separate: true,
+    order: [['payment_id', 'ASC']] as [string, string][],
+    include: [{ association: 'payment_type', attributes: ['payment_type_id', 'name'] }],
+};
+
+// Reserva con su cliente y todos sus pagos — la forma que consume toBookingDto.
+export const findByIdWithDetails = (bookingId: number, transaction?: Transaction) => Booking.findByPk(bookingId, {
+    include: [{ association: 'user', attributes: USER_ATTRIBUTES }, paymentsInclude],
+    transaction,
+});
+
 export const listBySpace = (spaceId: number, query: ListSpaceBookingsQuery) => {
     const where: WhereOptions = {
         space_id: spaceId,
@@ -42,10 +67,11 @@ export const listBySpace = (spaceId: number, query: ListSpaceBookingsQuery) => {
     return Booking.findAndCountAll({
         where,
         include: [
-            { association: 'user', attributes: ['public_id', 'first_name', 'last_name', 'email', 'phone'] },
-            { association: 'payment', attributes: ['payment_id', 'payment_type_id', 'amount', 'method', 'status', 'moneda', 'payment_date'] },
+            { association: 'user', attributes: USER_ATTRIBUTES },
+            paymentsInclude,
         ],
         order: [['booking_date', 'ASC'], ['start_time', 'ASC'], ['booking_id', 'ASC']],
+        distinct: true,
         ...toSequelizePagination(query),
     });
 };
