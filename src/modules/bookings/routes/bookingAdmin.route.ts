@@ -16,7 +16,7 @@ router.post('/spaces/:spacePublicId',
 );
 
 /**
- * @route POST /api/bookings/admin/bookings/:bookingId/payments
+ * @route POST /api/v2/bookings/admin/bookings/:bookingId/payments
  * @desc  Registra un cobro de la reserva (ej. el saldo al llegar a la cancha), total o parcial
  * @access payment.confirmed, sobre reservas de espacios dentro del alcance del usuario
  */

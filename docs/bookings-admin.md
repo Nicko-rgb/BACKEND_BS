@@ -56,7 +56,7 @@ permisos, tenant ni configuración de proveedores.
 ## Pagos: adelanto y saldo
 
 Cada movimiento de dinero de una reserva es una fila de `dsg_bss_payment_booking`
-con `booking_id` y `concept` (migración `051`):
+con `booking_id` y `concept` (migración `052`):
 
 | `concept` | Significado |
 |-----------|-------------|
@@ -91,7 +91,7 @@ de pago de una fila pendiente es provisional: se reemplaza por el real al cobrar
 
 ### Registrar un cobro (saldo en la cancha)
 
-`POST /api/bookings/admin/bookings/:bookingId/payments`
+`POST /api/v2/bookings/admin/bookings/:bookingId/payments`
 
 ```json
 { "amount": 30, "payment_type_id": 3 }
@@ -124,7 +124,7 @@ recorrer las páginas si el rango contiene más resultados que el límite.
 ## Verificación local
 
 ```sh
-npm run migrate          # aplica 051_add_booking_payment_ledger (en desarrollo no corre al arrancar)
+npm run migrate          # aplica 052_add_booking_payment_ledger (en desarrollo no corre al arrancar)
 npm run typecheck
 node --require tsx/cjs --test tests/bookingPayments.test.cjs
 ```
