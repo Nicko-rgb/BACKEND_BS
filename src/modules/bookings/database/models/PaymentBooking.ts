@@ -4,16 +4,20 @@
  * Almacena la información de los pagos realizados para las reservas
  * deportivas, incluyendo método de pago, estado y detalles de la transacción.
  */
-import { DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional } from 'sequelize';
+import { DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional, NonAttribute } from 'sequelize';
 import sequelize from '../../../../config/db';
 import type { PaymentType } from '../../../system/database/models';
 import type { Booking } from './Booking';
+import type { PaymentConcept } from '../../interfaces/booking.interface';
 
 type PaymentMethod = 'ONLINE' | 'IN_PERSON';
 type PaymentStatus = 'PENDING' | 'AWAITING_APPROVAL' | 'PAID' | 'FAILED' | 'CANCELED' | 'REFUNDED';
 
 export class PaymentBooking extends Model<InferAttributes<PaymentBooking>, InferCreationAttributes<PaymentBooking>> {
     declare payment_id: CreationOptional<number>;
+    // Reserva dueña del movimiento — una reserva puede tener varios (adelanto + saldo).
+    declare booking_id: number | null;
+    declare concept: CreationOptional<PaymentConcept>;
     declare payment_type_id: number;
     declare tenant_id: string;
     declare amount: string;
@@ -38,6 +42,7 @@ export class PaymentBooking extends Model<InferAttributes<PaymentBooking>, Infer
     declare user_update: number | null;
     declare readonly created_at: CreationOptional<Date>;
     declare readonly updated_at: CreationOptional<Date>;
+    declare payment_type?: NonAttribute<PaymentType>;
 }
 
 PaymentBooking.init({
@@ -46,6 +51,19 @@ PaymentBooking.init({
         autoIncrement: true,
         primaryKey: true,
         comment: 'Identificador único del pago'
+    },
+    booking_id: {
+        type: DataTypes.BIGINT,
+        allowNull: true,
+        comment: 'Reserva a la que pertenece este movimiento de dinero',
+        references: { model: 'dsg_bss_booking', key: 'booking_id' }
+    },
+    concept: {
+        // VARCHAR: los valores válidos viven en PAYMENT_CONCEPTS (booking.interface.ts)
+        type: DataTypes.STRING(20),
+        allowNull: false,
+        defaultValue: 'FULL',
+        comment: 'FULL (pago único) | DEPOSIT (adelanto) | BALANCE (saldo)'
     },
     payment_type_id: {
         type: DataTypes.BIGINT,
@@ -179,7 +197,8 @@ PaymentBooking.init({
         { name: 'idx_payment_type', fields: ['payment_type_id'] },
         { name: 'idx_payment_status', fields: ['status'] },
         { name: 'idx_payment_date', fields: ['payment_date'] },
-        { name: 'idx_payment_tenant', fields: ['tenant_id'] }
+        { name: 'idx_payment_tenant', fields: ['tenant_id'] },
+        { name: 'idx_payment_booking_booking', fields: ['booking_id'] }
     ],
     comment: 'Tabla de pagos de reservas'
 });

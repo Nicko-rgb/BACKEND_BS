@@ -1,8 +1,8 @@
 import { createRouter } from '../../../shared/utils/createRouter';
 import { resolveAuthorization } from '../../../shared/middlewares/resolveAuthorization';
 import { validateDTO, validatePublicId, validateQuery } from '../../../shared/middlewares/validateDTO';
-import { createManualBookingSchema, listSpaceBookingsSchema } from '../dto/booking.schema';
-import { create, listBySpace } from '../controllers/bookingAdmin.controller';
+import { createManualBookingSchema, listSpaceBookingsSchema, registerBookingPaymentSchema } from '../dto/booking.schema';
+import { create, listBySpace, registerPayment } from '../controllers/bookingAdmin.controller';
 
 const router = createRouter();
 
@@ -13,6 +13,17 @@ router.post('/spaces/:spacePublicId',
     validatePublicId('spacePublicId'),
     validateDTO(createManualBookingSchema),
     create
+);
+
+/**
+ * @route POST /api/bookings/admin/bookings/:bookingId/payments
+ * @desc  Registra un cobro de la reserva (ej. el saldo al llegar a la cancha), total o parcial
+ * @access payment.confirmed, sobre reservas de espacios dentro del alcance del usuario
+ */
+router.post('/bookings/:bookingId/payments',
+    resolveAuthorization('payment.confirmed'),
+    validateDTO(registerBookingPaymentSchema),
+    registerPayment
 );
 
 router.get('/spaces/:spacePublicId',

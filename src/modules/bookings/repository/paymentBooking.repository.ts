@@ -1,4 +1,4 @@
-import type { CreationAttributes, Transaction } from 'sequelize';
+import type { CreationAttributes, InferAttributes, Transaction } from 'sequelize';
 import { PaymentBooking } from '../database/models';
 import { ConfigurationPayment } from '../../companys/database/models';
 import { PaymentType } from '../../system/database/models';
@@ -12,3 +12,10 @@ export const findEnabledConfiguration = (sucursalId: number, paymentTypeId: numb
 });
 
 export const create = (data: CreationAttributes<PaymentBooking>, transaction: Transaction) => PaymentBooking.create(data, { transaction });
+
+// Pagos de una reserva en orden de registro — el llamador ya bloqueó la reserva.
+export const findByBookingId = (bookingId: number, transaction: Transaction) => PaymentBooking.findAll({
+    where: { booking_id: bookingId }, order: [['payment_id', 'ASC']], transaction,
+});
+
+export const update = (payment: PaymentBooking, data: Partial<InferAttributes<PaymentBooking>>, transaction: Transaction) => payment.update(data, { transaction });

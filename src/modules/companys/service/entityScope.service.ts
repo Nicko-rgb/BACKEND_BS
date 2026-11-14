@@ -44,3 +44,15 @@ export const resolveSpaceForUser = async (
     assertCompanyScope(user, space.sucursal_id, 'No tenés acceso a este espacio');
     return space;
 };
+
+/**
+ * Espacio por su PK interna — para entidades hijas que ya la conocen (ej. una
+ * reserva). 404 si no existe, 403 si su sucursal está fuera del alcance.
+ */
+export const resolveSpaceByIdForUser = async (spaceId: number, user: AuthenticatedUser) => {
+    const space = await SpaceRepository.findById(spaceId);
+    if (!space) throw new NotFoundError('Espacio deportivo no encontrado');
+
+    assertCompanyScope(user, space.sucursal_id, 'No tenés acceso a este espacio');
+    return space;
+};
