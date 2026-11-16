@@ -35,7 +35,7 @@ const migration: MigrationFile = {
     meta: {
         description: 'Add booking payment ledger (booking_id + concept) to dsg_bss_payment_booking',
         module: 'bookings',
-        order: 51
+        order: 52
     },
 
     async up(queryInterface: QueryInterface, sequelize: Sequelize, transaction: Transaction) {

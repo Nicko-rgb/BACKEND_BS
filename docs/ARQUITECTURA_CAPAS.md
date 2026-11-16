@@ -50,6 +50,7 @@ router.put('/space/:spacePublicId',
 **Termina:** en el controller, pasando por todos los middlewares.
 
 **Reglas:**
+
 - Se usa `createRouter()` (no `Router()`): envuelve cada handler en `asyncHandler` y evita que una promesa rechazada cuelgue el request.
 - Los middlewares van **en este orden**: `resolveAuthorization(...permisos)` → `validateDTO` → handler.
 - El path expone **solo `public_id` (UUID)**, nunca `company_id`/`space_id` internos.
@@ -59,6 +60,7 @@ router.put('/space/:spacePublicId',
 ### `dto/` — Contratos de entrada y salida
 
 **Qué hace:** dos cosas separadas en el mismo archivo o en dos:
+
 - `*.schema.ts` — **schema Joi**: valida y normaliza el body/query en runtime.
 - `*.dto.ts` — **forma de salida**: qué campos exactos se exponen al front.
 
@@ -77,6 +79,7 @@ export const toSpaceDto = (space: Space) => ({
 **Termina:** el DTO, después del service, arma el JSON que sale.
 
 **Reglas:**
+
 - Todo schema tiene **mensajes de error explícitos** por campo (nunca el texto genérico de Joi).
 - `stripUnknown: true` (en `validateDTO`) — los campos no declarados se descartan.
 - Todo DTO expone `publicId` y jamás ids internos ni `tenant_id`.
@@ -102,6 +105,7 @@ export const spaceById = async (req: Request, res: Response) => {
 **Termina:** con la respuesta HTTP.
 
 **Reglas:**
+
 - Una función por endpoint, sin lógica condicional de negocio.
 - Delega el formateo al DTO de salida.
 - Los errores **no se try/catch** — se propagan al `GlobalErrorHandler`.
@@ -130,6 +134,7 @@ export const register = async (sucursalPublicId: string, data: RegisterSpaceInpu
 **Termina:** cuando la entidad está persistida y devuelta.
 
 **Reglas:**
+
 - Lanza **errores semánticos** (`NotFoundError`, `ForbiddenError`, `BadRequestError`…), nunca strings sueltos.
 - **No toca Sequelize.** Va siempre por `Repository`.
 - Declara sus payloads como `interface` en `interfaces/` (ver abajo), no acá.
@@ -153,6 +158,7 @@ export type UpdateSpaceInput = Partial<RegisterSpaceInput>;
 ```
 
 **Reglas:**
+
 - **Una interface por entidad, un archivo por entidad** (`space.interface.ts`, `company.interface.ts`…).
 - Un archivo puede mezclar `interface` y `type` — el nombre describe el **ámbito** (contratos de la entidad), no la keyword.
 - **No importa de `database/models/`, `service/`, `repository/` ni `dto/`.** Es una hoja: solo depende de `shared/types/` y de otras `interfaces/`.
@@ -178,6 +184,7 @@ export const getSpaceIdByPublicId = async (publicId: string): Promise<number | n
 **Termina:** en la base de datos.
 
 **Reglas:**
+
 - **Una función = una query.** Sin lógica de negocio ni validaciones de dominio.
 - Resuelve `public_id → id` cuando hace falta, para que el resto del flujo trabaje con PK indexados.
 - Devuelve entidades del modelo o datos planos, nunca DTOs de salida.
@@ -198,6 +205,7 @@ database/
 ```
 
 **Reglas:**
+
 - Los `ENUM` de la DB son `VARCHAR` cuando el valor se agrega sin migración — el type de TS y el schema Joi son la fuente de verdad de los valores válidos.
 - Las **associaciones** entre modelos se wirean desde el `index.ts` del módulo, no desde el service.
 - Un modelo **consume** los types de `interfaces/`, nunca al revés.
@@ -211,6 +219,7 @@ database/
 **Regla que cumple:** *no duplicar el mismo helper en dos módulos*.
 
 **Reglas:**
+
 - `utils/` → funciones puras o helpers sin estado (`system/utils/permissionUsage.ts`, `saas/utils/planLimits.ts`).
 - `constants/` → valores fijos del dominio (`system/constants/assignablePermissions.ts`, `notificacions/constants/notificationEvents.ts`).
 - Lo que sea **compartido entre módulos** vive en `src/shared/`, no acá.
@@ -221,14 +230,14 @@ database/
 
 Son de **todos** los módulos, no de uno.
 
-| Carpeta | Contenido | Regla |
-|---------|-----------|-------|
-| `shared/middlewares/` | `verificarTokenAuth`, `validateDTO`, `uploadMiddleware` | Middlewares reutilizables entre módulos |
-| `shared/errors/` | `CustomErrors.ts` — `ValidationError`, `NotFoundError`, `ConflictError`, `UnauthorizedError`, `ForbiddenError`, `BadRequestError` | Los errores del dominio son clases, no strings |
-| `shared/utils/` | `ApiResponse`, `accessScope`, `cacheUtility`, `createRouter`, `paginate`, `ids`, `roleHierarchy`… | Utilidades sin estado, reutilizables |
-| `shared/types/` | `auth.ts`, `pagination.ts`, `express.d.ts` | Tipos compartidos (incluye la ampliación de `Express.Request`) |
-| `shared/dto/` | `pagination.schema.ts` | Schemas Joi reutilizables |
-| `shared/handlers/` | `GlobalErrorHandler` | Traduce errores semánticos a JSON + `asyncHandler` |
+| Carpeta                 | Contenido                                                                                                                                        | Regla                                                             |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| `shared/middlewares/` | `verificarTokenAuth`, `validateDTO`, `uploadMiddleware`                                                                                    | Middlewares reutilizables entre módulos                          |
+| `shared/errors/`      | `CustomErrors.ts` — `ValidationError`, `NotFoundError`, `ConflictError`, `UnauthorizedError`, `ForbiddenError`, `BadRequestError` | Los errores del dominio son clases, no strings                    |
+| `shared/utils/`       | `ApiResponse`, `accessScope`, `cacheUtility`, `createRouter`, `paginate`, `ids`, `roleHierarchy`…                                 | Utilidades sin estado, reutilizables                              |
+| `shared/types/`       | `auth.ts`, `pagination.ts`, `express.d.ts`                                                                                                 | Tipos compartidos (incluye la ampliación de `Express.Request`) |
+| `shared/dto/`         | `pagination.schema.ts`                                                                                                                         | Schemas Joi reutilizables                                         |
+| `shared/handlers/`    | `GlobalErrorHandler`                                                                                                                           | Traduce errores semánticos a JSON + `asyncHandler`             |
 
 ---
 
@@ -339,4 +348,3 @@ grep -rnE "\b(Model|sequelize)\.(findAll|findOne|findByPk|create|update|destroy|
 - [ ] ¿El repository hace **una query por función** y sin reglas de negocio?
 - [ ] ¿El modelo tiene su migración en `database/migrations/`?
 - [ ] ¿La interface del módulo exporta los tipos que usan otros módulos? (si nadie los importa, quedan en el modelo)
-

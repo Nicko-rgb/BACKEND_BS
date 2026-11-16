@@ -13,7 +13,7 @@ type PaymentCategory = 'tarjeta_credito' | 'tarjeta_debito' | 'transferencia_ban
 
 export class PaymentType extends Model<InferAttributes<PaymentType>, InferCreationAttributes<PaymentType>> {
     declare payment_type_id: CreationOptional<number>;
-    declare country_id: number;
+    declare country_id: number | null;
     declare name: string;
     declare code: string;
     declare category: PaymentCategory;
@@ -42,7 +42,7 @@ PaymentType.init({
     },
     country_id: {
         type: DataTypes.BIGINT,
-        allowNull: false,
+        allowNull: true,
         references: { model: 'dsg_bss_country', key: 'country_id' },
         comment: 'Referencia al país donde está disponible este tipo de pago'
     },
@@ -124,6 +124,7 @@ PaymentType.init({
     updatedAt: 'updated_at',
     indexes: [
         { unique: true, fields: ['country_id', 'code'], name: 'unique_payment_type_por_country' },
+        { unique: true, fields: ['code'], name: 'unique_payment_type_global_code', where: { country_id: null } },
         { fields: ['category'], name: 'idx_category_payment_type' },
         { fields: ['is_enabled'], name: 'idx_is_enabled_payment_type' }
     ],

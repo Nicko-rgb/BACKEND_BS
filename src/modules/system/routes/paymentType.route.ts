@@ -3,7 +3,7 @@ import { resolveAuthorization } from '../../../shared/middlewares/resolveAuthori
 import { validateQuery, validateDTO } from '../../../shared/middlewares/validateDTO';
 import { paginationQuerySchema } from '../../../shared/dto/pagination.schema';
 import { createPaymentTypeSchema, updatePaymentTypeSchema } from '../dto/paymentType.dto';
-import { list, listActive, create, update, remove } from '../controllers/paymentType.controller';
+import { list, listActive, listActiveByCountry, create, update, remove } from '../controllers/paymentType.controller';
 
 const router = createRouter();
 
@@ -20,6 +20,13 @@ router.get('/payment-types', resolveAuthorization('payment_type.manage'), valida
  * @access Público
  */
 router.get('/payment-types/active', listActive);
+
+/**
+ * @route GET /api/v2/system/payment-types/:countryId/payment-country
+ * @desc  Lista tipos de pago activos del país, sin paginar
+ * @access usuarios con permiso
+ */
+router.get('/payment-types/:countryId/payment-country',  resolveAuthorization('payment_type.manage'), listActiveByCountry);
 
 /**
  * @route POST /api/v2/system/payment-types
