@@ -31,7 +31,7 @@ const PAYMENT_CATEGORIES = [
 // PUT reemplaza el registro completo — los campos obligatorios en el modelo son requeridos acá,
 // los que el modelo permite null quedan opcionales + .allow(null).
 export const updatePaymentTypeSchema = Joi.object({
-    country_id: Joi.number().integer().positive().required()
+    country_id: Joi.number().integer().positive().allow(null).required()
         .messages({
             'number.base': 'El país es requerido',
             'any.required': 'El país es requerido',

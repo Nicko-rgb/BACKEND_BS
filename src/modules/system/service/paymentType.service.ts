@@ -7,7 +7,7 @@ import type { PaymentType } from '../database/models';
 
 // Todos los tipos de pago (activos e inactivos), paginado — listado de administración
 export const list = async (pagination: PaginationQuery) => {
-    return cacheUtility.withCache('system:payment-types', pagination, async () => {
+    return cacheUtility.withCache('system:payment-types:global:list', pagination, async () => {
         const { rows, count } = await PaymentTypeRepository.findAll(pagination);
         const referencesCount = await PaymentTypeRepository.countReferencesByIds(rows.map((row) => row.payment_type_id));
         return { rows, count, referencesCount };
@@ -16,13 +16,19 @@ export const list = async (pagination: PaginationQuery) => {
 
 // Solo tipos de pago habilitados — endpoint público, sin paginar, para selects/lógica de negocio
 export const listActive = async () => {
-    return cacheUtility.withCache('system:payment-types:active', {}, () => PaymentTypeRepository.findAllActive());
+    return cacheUtility.withCache('system:payment-types:global:active', {}, () =>
+        PaymentTypeRepository.findAllActive());
+};
+
+export const listActiveByCountry = async (countryId: number) => {
+    return cacheUtility.withCache('system:payment-types:global:country', { countryId }, () =>
+        PaymentTypeRepository.findAllActiveByCountry(countryId));
 };
 
 // Crea un tipo de pago nuevo — bloqueado si ya existe uno con el mismo código para ese país
 export const create = async (data: InferCreationAttributes<PaymentType>) => {
     const existing = await PaymentTypeRepository.findByCountryAndCode(data.country_id, data.code);
-    if (existing) throw new ConflictError(`Ya existe un tipo de pago con el código "${data.code}" para ese país`);
+    if (existing) throw new ConflictError(`Ya existe un tipo de pago con el código "${data.code}" ${data.country_id === null ? 'GLOBAL' : 'para ese país'}`);
 
     const created = await PaymentTypeRepository.create(data);
     await cacheUtility.delByPattern('system:payment-types:*');
@@ -34,11 +40,13 @@ export const update = async (id: number, data: Partial<InferAttributes<PaymentTy
     const paymentType = await PaymentTypeRepository.findById(id);
     if (!paymentType) throw new NotFoundError('Tipo de pago no encontrado');
 
-    if (data.country_id && data.code) {
-        const existing = await PaymentTypeRepository.findByCountryAndCode(data.country_id, data.code);
+    if (data.country_id !== undefined || data.code !== undefined) {
+        const countryId = data.country_id === undefined ? paymentType.country_id : data.country_id;
+        const code = data.code ?? paymentType.code;
+        const existing = await PaymentTypeRepository.findByCountryAndCode(countryId, code);
         // payment_type_id es BIGINT — Sequelize lo devuelve como string, hay que castear antes de comparar contra el number del route param.
         if (existing && Number(existing.payment_type_id) !== id) {
-            throw new ConflictError(`Ya existe un tipo de pago con el código "${data.code}" para ese país`);
+            throw new ConflictError(`Ya existe un tipo de pago con el código "${code}" ${countryId === null ? 'GLOBAL' : 'para ese país'}`);
         }
     }
 

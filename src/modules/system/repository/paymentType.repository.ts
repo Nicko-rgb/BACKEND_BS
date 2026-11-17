@@ -1,4 +1,5 @@
 import type { InferAttributes, InferCreationAttributes } from 'sequelize';
+import { Op } from 'sequelize';
 import { PaymentType, Country } from '../database/models';
 import { toSequelizePagination } from '../../../shared/utils/paginate';
 import { countReferences } from '../../../shared/utils/checkReferences';
@@ -25,13 +26,21 @@ export const findAllActive = async () => {
     });
 };
 
+export const findAllActiveByCountry = async (countryId: number) => {
+    return PaymentType.findAll({
+        where: { is_enabled: true, [Op.or]: [{ country_id: countryId }, { country_id: { [Op.is]: null } }] },
+        include: [{ model: Country, as: 'country' }],
+        order: [['name', 'ASC']],
+    });
+};
+
 // Busca por PK — usado antes de update/delete para confirmar existencia.
 export const findById = async (id: number) => {
     return PaymentType.findByPk(id);
 };
 
 // Busca por país + código — usado antes de crear/actualizar para bloquear duplicados (unique compuesto country_id+code).
-export const findByCountryAndCode = async (countryId: number, code: string) => {
+export const findByCountryAndCode = async (countryId: number | null, code: string) => {
     return PaymentType.findOne({ where: { country_id: countryId, code } });
 };
 
