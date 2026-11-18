@@ -101,7 +101,7 @@ export const findRootIdentityByPublicId = async (publicId: string) => Company.fi
 
 export const findBranchesByParentId = async (companyId: number, allowedIds?: number[]) => Company.findAll({
     where: { parent_company_id: companyId, ...(allowedIds ? { company_id: { [Op.in]: allowedIds } } : {}) },
-    attributes: ['company_id', 'public_id', 'name', 'address', 'status'],
+    attributes: ['company_id', 'public_id', 'name', 'address', 'country_id', 'status'],
     include: [{ association: 'ubigeo', include: [{ association: 'parent', include: [{ association: 'parent' }] }] }],
     order: [['name', 'ASC'], ['public_id', 'ASC']],
 });

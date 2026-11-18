@@ -4,6 +4,7 @@ import sucursalRoutes from './sucursal.route';
 import sucursalConfigRoutes from './sucursalConfig.route';
 import spaceRoutes from './space.route';
 import hourRoutes from './hours.route';
+import paymentConfigRoutes from './paymentConfig.route';
 
 const router = createRouter();
 
@@ -13,6 +14,7 @@ router.use('/sucursals', sucursalRoutes);
 router.use('/sucursal-configurations', sucursalConfigRoutes);
 router.use('/spaces', spaceRoutes);
 router.use('/hours', hourRoutes);
+router.use('/payment-config', paymentConfigRoutes);
 
 // router.use('/config-company', configCompanyRoutes);
 

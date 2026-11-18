@@ -122,7 +122,7 @@ MercadoPagoCredential.init({
 });
 
 export function associateMercadoPagoCredential(models: { Company: typeof Company; User: typeof User }): void {
-    MercadoPagoCredential.belongsTo(models.Company, { foreignKey: 'company_id', as: 'company' });
+    MercadoPagoCredential.belongsTo(models.Company, { foreignKey: 'sucursal_id', as: 'sucursal' });
     MercadoPagoCredential.belongsTo(models.User, { foreignKey: 'user_create', as: 'creator' });
     MercadoPagoCredential.belongsTo(models.User, { foreignKey: 'user_update', as: 'updater' });
 }

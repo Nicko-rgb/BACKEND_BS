@@ -26,7 +26,7 @@ router.get('/payment-types/active', listActive);
  * @desc  Lista tipos de pago activos del país, sin paginar
  * @access usuarios con permiso
  */
-router.get('/payment-types/:countryId/payment-country',  resolveAuthorization('payment_type.manage'), listActiveByCountry);
+router.get('/payment-types/:countryId/payment-country',  resolveAuthorization('payment.account_manage', 'payment_type.manage'), listActiveByCountry);
 
 /**
  * @route POST /api/v2/system/payment-types

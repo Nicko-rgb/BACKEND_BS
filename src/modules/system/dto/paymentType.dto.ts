@@ -6,6 +6,8 @@ export const toPaymentTypeDto = (paymentType: PaymentType, referencesCount = 0) 
     id: paymentType.payment_type_id,
     countryId: paymentType.country_id,
     countryName: paymentType.country?.country ?? null,
+    // Símbolo de la moneda del país ('S/', '$') — la comisión fija está expresada en esa moneda.
+    countryCurrency: paymentType.country?.currency_simbol ?? null,
     name: paymentType.name,
     code: paymentType.code,
     category: paymentType.category,

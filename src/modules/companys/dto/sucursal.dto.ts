@@ -48,6 +48,7 @@ export const toCompanyBranchesDto = (branches: Company[]) => branches.map((s) =>
     publicId: s.public_id,
     name: s.name,
     address: s.address,
+    countryId: s.country_id,
     ubigeo: s.ubigeo ? [s.ubigeo.name, s.ubigeo.parent?.name, s.ubigeo.parent?.parent?.name].filter(Boolean).join(', ') : null,
     status: s.status,
 }));
