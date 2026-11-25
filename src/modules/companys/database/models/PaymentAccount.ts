@@ -3,37 +3,33 @@
  *
  * Almacena los datos específicos de cada cuenta de pago (Yape, Plin,
  * cuentas bancarias) asociados a un tipo de pago de una sucursal.
- * Permite múltiples cuentas bancarias para transferencia.
+ * Una única cuenta por sucursal y tipo de pago.
  */
-import { DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional } from 'sequelize';
+import { DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional, NonAttribute } from 'sequelize';
 import sequelize from '../../../../config/db';
 import type { User } from '../../../users/database/models';
 import type { Company } from './Company';
-import type { ConfigurationPayment } from './ConfigurationPayment';
+import type { Media } from '../../../system/database/models/Media';
 import type { PaymentType } from '../../../system/database/models';
 
-type BankAccountType = 'AHORROS' | 'CORRIENTE';
 
 export class PaymentAccount extends Model<InferAttributes<PaymentAccount>, InferCreationAttributes<PaymentAccount>> {
     declare payment_account_id: CreationOptional<number>;
     declare sucursal_id: number;
     declare payment_type_id: number;
-    declare configuration_payment_id: number | null;
     declare tenant_id: string;
     declare account_alias: string | null;
     declare account_number: string | null;
     declare account_name: string | null;
     declare qr_url: string | null;
     declare bank_name: string | null;
-    declare bank_account_type: BankAccountType | null;
-    declare bank_account_cci: string | null;
-    declare bank_currency: CreationOptional<string | null>;
     declare is_active: CreationOptional<boolean>;
-    declare sort_order: CreationOptional<number | null>;
     declare user_create: number;
     declare user_update: number | null;
     declare readonly created_at: CreationOptional<Date>;
     declare readonly updated_at: CreationOptional<Date>;
+    declare qr?: NonAttribute<Media | null>;
+    declare paymentType?: NonAttribute<PaymentType>;
 }
 
 PaymentAccount.init({
@@ -54,12 +50,6 @@ PaymentAccount.init({
         allowNull: false,
         references: { model: 'dsg_bss_payment_types', key: 'payment_type_id' },
         comment: 'Tipo de pago al que pertenece esta cuenta'
-    },
-    configuration_payment_id: {
-        type: DataTypes.BIGINT,
-        allowNull: true,
-        references: { model: 'dsg_bss_configuration_payment', key: 'configuration_payment_id' },
-        comment: 'Configuración de pago de la sucursal a la que apunta esta cuenta (ConfigurationPayment)'
     },
     tenant_id: {
         type: DataTypes.UUID,
@@ -91,33 +81,11 @@ PaymentAccount.init({
         allowNull: true,
         comment: 'Nombre del banco (BCP, BBVA, Interbank, Scotiabank, Yape)'
     },
-    bank_account_type: {
-        type: DataTypes.ENUM('AHORROS', 'CORRIENTE'),
-        allowNull: true,
-        comment: 'Tipo de cuenta bancaria'
-    },
-    bank_account_cci: {
-        type: DataTypes.STRING(30),
-        allowNull: true,
-        comment: 'Código de Cuenta Interbancario (CCI) — 20 dígitos en Perú'
-    },
-    bank_currency: {
-        type: DataTypes.STRING(3),
-        allowNull: true,
-        defaultValue: 'PEN',
-        comment: 'Moneda de la cuenta (ISO 4217: PEN, USD)'
-    },
     is_active: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
         defaultValue: true,
         comment: 'Indica si la cuenta está activa (soft delete)'
-    },
-    sort_order: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
-        defaultValue: 0,
-        comment: 'Orden de visualización dentro del tipo de pago'
     },
     user_create: {
         type: DataTypes.BIGINT,
@@ -142,7 +110,7 @@ PaymentAccount.init({
     underscored: true,
     indexes: [
         { fields: ['sucursal_id'], name: 'idx_payment_account_sucursal' },
-        { fields: ['sucursal_id', 'payment_type_id'], name: 'idx_payment_account_sucursal_type' }
+        { unique: true, fields: ['sucursal_id', 'payment_type_id'], name: 'unique_payment_account_sucursal_type' }
     ],
     comment: 'Cuentas de pago (Yape, Plin, bancos) configuradas por sucursal'
 });
@@ -150,12 +118,13 @@ PaymentAccount.init({
 export function associatePaymentAccount(models: {
     Company: typeof Company;
     User: typeof User;
-    ConfigurationPayment: typeof ConfigurationPayment;
     PaymentType: typeof PaymentType;
+    Media: typeof Media;
 }): void {
+    PaymentAccount.hasOne(models.Media, { foreignKey: 'medible_id', constraints: false, as: 'qr',
+        scope: { medible_type: 'PaymentAccount', category: 'QR', is_primary: true } });
     PaymentAccount.belongsTo(models.Company, { foreignKey: 'sucursal_id', as: 'sucursal' });
     PaymentAccount.belongsTo(models.PaymentType, { foreignKey: 'payment_type_id', as: 'paymentType' });
-    PaymentAccount.belongsTo(models.ConfigurationPayment, { foreignKey: 'configuration_payment_id', as: 'configurationPayment' });
     PaymentAccount.belongsTo(models.User, { foreignKey: 'user_create', as: 'creator' });
     PaymentAccount.belongsTo(models.User, { foreignKey: 'user_update', as: 'updater' });
 }

@@ -1,8 +1,10 @@
+import { accountQrUpload } from '../../../shared/middlewares/accountQrUpload';
 import { createRouter } from '../../../shared/utils/createRouter';
 import { resolveAuthorization } from '../../../shared/middlewares/resolveAuthorization';
 import { validateDTO, validatePublicId } from '../../../shared/middlewares/validateDTO';
-import { registerMercadoPagoCredentialSchema } from '../dto/paymentConfig.schema';
+import { registerMercadoPagoCredentialSchema, manualPaymentAccountSchema } from '../dto/paymentConfig.schema';
 import {
+    listManualAccounts, getManualAccount, saveManualAccount, deleteManualAccount,
     disconnectMercadoPagoCredential,
     getMercadoPagoStatus,
     registerMercadoPagoCredential,
@@ -43,5 +45,32 @@ router.delete('/:sucursalPublicId/mercadopago-credential',
     validatePublicId('sucursalPublicId'),
     disconnectMercadoPagoCredential
 );
+
+// Una cuenta manual por sucursal y tipo de pago.
+router.get('/:sucursalPublicId/manual-accounts',
+    resolveAuthorization('payment.account_manage'),
+    validatePublicId('sucursalPublicId'),
+    listManualAccounts
+);
+
+router.get('/:sucursalPublicId/manual-accounts/:paymentTypeId',
+    resolveAuthorization('payment.account_manage'),
+    validatePublicId('sucursalPublicId'),
+    getManualAccount
+);
+router.put('/:sucursalPublicId/manual-accounts/:paymentTypeId',
+    resolveAuthorization('payment.account_manage'),
+    validatePublicId('sucursalPublicId'),
+    accountQrUpload,
+    validateDTO(manualPaymentAccountSchema),
+    saveManualAccount
+);
+router.delete('/:sucursalPublicId/manual-accounts/:paymentTypeId',
+    resolveAuthorization('payment.account_manage'),
+    validatePublicId('sucursalPublicId'),
+    deleteManualAccount
+);
+
+
 
 export default router;

@@ -27,6 +27,7 @@ const FIELD_DEST: Record<string, FieldDestination> = {
     banner: { folder: 'companys', sub: '' },
     main_image: { folder: 'companys', sub: '' },
     cover: { folder: 'sucursal', sub: '' },
+    account_qr: { folder: 'accounts', sub: '' },
     yape_qr: { folder: 'companys', sub: 'qr' },
     plin_qr: { folder: 'companys', sub: 'qr' },
     qr_image: { folder: 'companys', sub: 'qr' },

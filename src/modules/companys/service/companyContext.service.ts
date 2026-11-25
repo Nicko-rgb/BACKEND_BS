@@ -114,6 +114,7 @@ export const getCompanyContextTree = async (
             companiesMap.set(id, {
                 publicId: entity.public_id,
                 name: entity.name,
+                countryId: entity.country?.country_id ?? null,
                 access: hasCompanyScope(effectiveUser, id),
                 isPrimary: false,
                 sucursales: [],
@@ -141,6 +142,9 @@ export const getCompanyContextTree = async (
         parent.sucursales.push({
             publicId: sucursal.public_id,
             name: sucursal.name,
+            countryId: sucursal.country?.country_id ?? null,
+            address: sucursal.address ?? null,
+            status: sucursal.status ?? null,
             openTime: schedule?.opening_time ?? null,
             closeTime: schedule?.closing_time ?? null,
             access: hasCompanyScope(effectiveUser, Number(sucursal.company_id)),

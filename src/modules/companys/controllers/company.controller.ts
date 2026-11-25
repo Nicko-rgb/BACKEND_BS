@@ -43,10 +43,11 @@ export const registerCompany = async (req: Request, res: Response) => {
 };
 
 // Árbol público empresa → sucursales → espacios, con moneda y ventana operativa.
-// Ahora servido por companyContext.service.getCompanyContextTree (única fuente de verdad).
+// Acepta `public_id` de empresa o de sucursal: resuelve el tenant y devuelve el
+// árbol completo con `access` por nodo. Única fuente de verdad del contexto.
 export const getBranchTree = async (req: Request, res: Response) => {
-    const sucursalPublicId = String(req.params.sucursalPublicId);
+    const entityPublicId = String(req.params.entityPublicId);
     const user = req.user as Pick<AuthenticatedUser, 'scope_level' | 'company_ids' | 'user_id'> | undefined;
-    const tree = await CompanyContextService.getCompanyContextTree(user, sucursalPublicId);
+    const tree = await CompanyContextService.getCompanyContextTree(user, entityPublicId);
     return ApiResponse.ok(res, tree, 'Árbol de empresa obtenido');
 };

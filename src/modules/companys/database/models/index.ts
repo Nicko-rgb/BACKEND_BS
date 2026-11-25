@@ -23,8 +23,8 @@ associateCompany({ User, UserFavorite, UserCompany, Space, Configuration, Config
 associateSpace({ User, Company, BusinessHour, SurfaceType, SportType, SportCategory, Media });
 associateBusinessHour({ Space });
 associateConfiguration({ Company, User });
-associateConfigurationPayment({ Company, User, PaymentAccount, PaymentType });
-associatePaymentAccount({ Company, User, ConfigurationPayment, PaymentType });
+associateConfigurationPayment({ Company, User, PaymentType });
+associatePaymentAccount({ Company, User, PaymentType, Media });
 associateRating({ User, Company });
 associateMercadoPagoCredential({ Company, User });
 associateMedia({ User, Company, Space });

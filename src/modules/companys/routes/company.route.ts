@@ -55,14 +55,16 @@ router.put('/:publicId',
 );
 
 /**
- * @route GET /api/v2/companys/public/branches/:sucursalPublicId/tree
+ * @route GET /api/v2/companys/public/branches/:entityPublicId/tree
  * @desc  Árbol empresa → sucursales → espacios con moneda y ventana operativa.
- *        Única fuente de verdad del contexto de empresa para el panel admin.
+ *        `entityPublicId` puede ser el public_id de una empresa o de una sucursal;
+ *        devuelve el árbol del tenant con `access` por nodo. Única fuente de
+ *        verdad del contexto de empresa para el panel admin.
  * @access Autenticado (panel admin).
  */
-router.get('/public/branches/:sucursalPublicId/tree',
+router.get('/public/branches/:entityPublicId/tree',
     resolveAuthorization(),
-    validatePublicId('sucursalPublicId'),
+    validatePublicId('entityPublicId'),
     getBranchTree
 );
 

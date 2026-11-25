@@ -37,27 +37,13 @@ const migration: MigrationFile = {
                 onUpdate: 'CASCADE',
                 onDelete: 'CASCADE'
             },
-            configuration_payment_id: {
-                type: DataTypes.BIGINT,
-                allowNull: true,
-                references: { model: 'dsg_bss_configuration_payment', key: 'configuration_payment_id' },
-                onUpdate: 'CASCADE',
-                onDelete: 'SET NULL'
-            },
             tenant_id: { type: DataTypes.UUID, allowNull: false },
             account_alias: { type: DataTypes.STRING(150), allowNull: true },
             account_number: { type: DataTypes.STRING(50), allowNull: true },
             account_name: { type: DataTypes.STRING(200), allowNull: true },
             qr_url: { type: DataTypes.STRING(500), allowNull: true },
             bank_name: { type: DataTypes.STRING(100), allowNull: true },
-            bank_account_type: {
-                type: DataTypes.ENUM('AHORROS', 'CORRIENTE'),
-                allowNull: true
-            },
-            bank_account_cci: { type: DataTypes.STRING(30), allowNull: true },
-            bank_currency: { type: DataTypes.STRING(3), defaultValue: 'PEN' },
             is_active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
-            sort_order: { type: DataTypes.INTEGER, defaultValue: 0 },
             user_create: {
                 type: DataTypes.BIGINT,
                 allowNull: false,

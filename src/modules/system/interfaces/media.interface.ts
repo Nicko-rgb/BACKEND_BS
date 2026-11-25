@@ -11,7 +11,7 @@
 export const MEDIA_TYPES = ['IMAGE', 'VIDEO', 'DOCUMENT', 'AUDIO'] as const;
 export type MediaType = (typeof MEDIA_TYPES)[number];
 
-export const MEDIA_CATEGORIES = ['GALLERY', 'PROFILE', 'COVER', 'THUMBNAIL', 'DOCUMENT'] as const;
+export const MEDIA_CATEGORIES = ['GALLERY', 'PROFILE', 'COVER', 'THUMBNAIL', 'DOCUMENT', 'QR'] as const;
 export type MediaCategory = (typeof MEDIA_CATEGORIES)[number];
 
 /**

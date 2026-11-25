@@ -8,7 +8,6 @@ import { DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOpt
 import sequelize from '../../../../config/db';
 import type { User } from '../../../users/database/models';
 import type { Company } from './Company';
-import type { PaymentAccount } from './PaymentAccount';
 import type { PaymentType } from '../../../system/database/models';
 
 export class ConfigurationPayment extends Model<InferAttributes<ConfigurationPayment>, InferCreationAttributes<ConfigurationPayment>> {
@@ -96,12 +95,10 @@ ConfigurationPayment.init({
 export function associateConfigurationPayment(models: {
     Company: typeof Company;
     User: typeof User;
-    PaymentAccount: typeof PaymentAccount;
     PaymentType: typeof PaymentType;
 }): void {
     ConfigurationPayment.belongsTo(models.Company, { foreignKey: 'sucursal_id', as: 'company' });
     ConfigurationPayment.belongsTo(models.PaymentType, { foreignKey: 'payment_type_id', as: 'payment_type' });
     ConfigurationPayment.belongsTo(models.User, { foreignKey: 'user_create', as: 'creator' });
     ConfigurationPayment.belongsTo(models.User, { foreignKey: 'user_update', as: 'updater' });
-    ConfigurationPayment.hasMany(models.PaymentAccount, { foreignKey: 'configuration_payment_id', as: 'paymentAccounts' });
 }

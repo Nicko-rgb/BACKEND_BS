@@ -8,11 +8,15 @@ export interface ContextCountryRecord {
     currency_simbol: string;
 }
 
+export type ContextCompanyStatus = 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
+
 export interface ContextCompanyRecord {
     company_id: number;
     parent_company_id: number | null;
     public_id: string;
     name: string;
+    address?: string | null;
+    status?: ContextCompanyStatus | null;
     country?: ContextCountryRecord | null;
     parentCompany?: ContextCompanyRecord | null;
 }
@@ -40,6 +44,9 @@ export interface CompanyContextNode {
 export interface CompanyContextSucursalOut {
     publicId: string;
     name: string;
+    countryId: number | null;
+    address: string | null;
+    status: ContextCompanyStatus | null;
     openTime: string | null;
     closeTime: string | null;
     access: boolean;
@@ -58,6 +65,7 @@ export interface CompanyContextSucursalOut {
 export interface CompanyContextCompanyOut {
     publicId: string;
     name: string;
+    countryId: number | null;
     access: boolean;
     isPrimary: boolean;
     sucursales: CompanyContextSucursalOut[];

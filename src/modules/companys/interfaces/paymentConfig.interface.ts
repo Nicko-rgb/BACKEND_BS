@@ -12,3 +12,11 @@ export interface RegisterMercadoPagoCredentialInput {
     public_key?: string | null;
     environment?: MpEnvironment;
 }
+
+export interface ManualPaymentAccountInput {
+    account_name: string;
+    account_number: string;
+    account_alias?: string | null;
+    remove_qr?: boolean;
+    bank_name?: string | null;
+}

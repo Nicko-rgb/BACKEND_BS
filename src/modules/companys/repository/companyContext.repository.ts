@@ -2,7 +2,7 @@ import { Op } from 'sequelize';
 import { Company, Space } from '../database/models';
 import type { ContextCompanyRecord, ContextSpaceRecord } from '../interfaces/companyContext.interface';
 
-const COMPANY_ATTRIBUTES = ['company_id', 'parent_company_id', 'public_id', 'name'];
+const COMPANY_ATTRIBUTES = ['company_id', 'parent_company_id', 'public_id', 'name', 'address', 'status'];
 const COUNTRY_ATTRIBUTES = ['country_id', 'iso_currency', 'currency', 'currency_simbol'];
 
 /** Incluye las sucursales hermanas como contexto; su acceso se calcula por separado. */

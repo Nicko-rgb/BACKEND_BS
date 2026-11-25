@@ -49,10 +49,12 @@ const normalizeDescription = (value: string | null | undefined): string | null =
 
 // file_url (/uploads/...) → ruta en disco. Best-effort: si el archivo ya no está,
 // se loguea y se sigue con el borrado de la fila.
-const removePhysicalFile = (fileUrl: string | null): void => {
+export const removePhysicalFile = (fileUrl: string | null): void => {
     if (!fileUrl) return;
-    const relative = fileUrl.replace(/^\/uploads\//, '');
-    const diskPath = path.join(__dirname, '..', '..', '..', '..', 'uploads', relative);
+    if (!fileUrl.startsWith('/uploads/')) return;
+    const root = path.resolve(__dirname, '../../../../uploads');
+    const diskPath = path.resolve(root, fileUrl.slice('/uploads/'.length));
+    if (!diskPath.startsWith(root + path.sep)) return;
     try {
         if (fs.existsSync(diskPath)) fs.unlinkSync(diskPath);
     } catch (err) {
@@ -105,8 +107,10 @@ export const createRecord = async (input: CreateRecordInput, transaction?: Trans
     return sequelize.transaction((t) => run(t));
 };
 
-// Borra el físico (best-effort) + la fila, a partir de la instancia ya resuelta.
+// Borra la fila y elimina el físico después del commit; un rollback conserva el archivo.
 export const removeRecord = async (media: Media, transaction?: Transaction) => {
-    removePhysicalFile(media.file_url);
+    const fileUrl = media.file_url;
     await MediaRepository.remove(media, transaction);
+    if (transaction) transaction.afterCommit(() => removePhysicalFile(fileUrl));
+    else removePhysicalFile(fileUrl);
 };

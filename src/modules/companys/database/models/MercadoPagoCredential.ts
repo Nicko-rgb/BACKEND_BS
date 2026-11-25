@@ -88,7 +88,7 @@ MercadoPagoCredential.init({
         type: DataTypes.BOOLEAN,
         allowNull: false,
         defaultValue: true,
-        comment: 'Permite desactivar la credencial sin borrarla (vuelve al fallback de .env)'
+        comment: 'Permite desactivar la credencial sin borrarla'
     },
     connected_at: {
         type: DataTypes.DATE,

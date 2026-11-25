@@ -21,3 +21,12 @@ export const registerMercadoPagoCredentialSchema = Joi.object({
         'any.only': 'El ambiente debe ser SANDBOX o PRODUCTION',
     }),
 });
+
+export const manualPaymentAccountSchema = Joi.object({
+    account_name: Joi.string().trim().max(200).required(),
+    account_number: Joi.string().trim().max(50).required(),
+    account_alias: Joi.string().trim().max(150).allow('', null),
+    qr_url: Joi.forbidden(),
+    remove_qr: Joi.boolean().default(false),
+    bank_name: Joi.string().trim().max(100).allow('', null),
+});
