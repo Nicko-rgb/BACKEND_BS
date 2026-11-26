@@ -8,25 +8,58 @@ import Joi from 'joi';
  * (la usa el Brick en el frontend) y `environment` default SANDBOX.
  */
 export const registerMercadoPagoCredentialSchema = Joi.object({
-    access_token: Joi.string().trim().min(10).max(500).required().messages({
-        'string.empty': 'El access token es requerido',
-        'string.min': 'El access token no parece válido',
-        'string.max': 'El access token no puede superar 500 caracteres',
-        'any.required': 'El access token es requerido',
+    access_token: Joi.string().trim().min(10).required().messages({
+        'string.base': 'Ingrese un token de acceso válido',
+        'string.empty': 'Ingrese el token de acceso',
+        'string.min': 'El token de acceso no parece válido',
+        'any.required': 'Ingrese el token de acceso',
     }),
-    public_key: Joi.string().trim().max(255).allow('', null).messages({
-        'string.max': 'La public key no puede superar 255 caracteres',
+
+    public_key: Joi.string().trim().min(10).required().messages({
+        'string.base': 'Ingrese una clave pública válida',
+        'string.empty': 'Ingrese la clave pública',
+        'string.min': 'La clave pública no parece válida',
+        'any.required': 'Ingrese la clave pública',
     }),
-    environment: Joi.string().valid('SANDBOX', 'PRODUCTION').allow('', null).messages({
-        'any.only': 'El ambiente debe ser SANDBOX o PRODUCTION',
+
+    environment: Joi.string().trim().valid('SANDBOX', 'PRODUCTION').required().messages({
+        'string.base': 'Seleccione un entorno válido',
+        'string.empty': 'Seleccione un entorno',
+        'any.only': 'Seleccione el entorno de pruebas o de producción',
+        'any.required': 'Seleccione un entorno',
     }),
 });
 
 export const manualPaymentAccountSchema = Joi.object({
-    account_name: Joi.string().trim().max(200).required(),
-    account_number: Joi.string().trim().max(50).required(),
-    account_alias: Joi.string().trim().max(150).allow('', null),
-    qr_url: Joi.forbidden(),
-    remove_qr: Joi.boolean().default(false),
-    bank_name: Joi.string().trim().max(100).allow('', null),
+    account_name: Joi.string().trim().max(200).required().messages({
+        'string.base': 'Ingrese un nombre de cuenta válido',
+        'string.empty': 'Ingrese el nombre de la cuenta',
+        'string.max': 'El nombre de la cuenta no puede superar los 200 caracteres',
+        'any.required': 'Ingrese el nombre de la cuenta',
+    }),
+
+    account_number: Joi.string().trim().max(50).required().messages({
+        'string.base': 'Ingrese un número de cuenta válido',
+        'string.empty': 'Ingrese el número de cuenta',
+        'string.max': 'El número de cuenta no puede superar los 50 caracteres',
+        'any.required': 'Ingrese el número de cuenta',
+    }),
+
+    account_alias: Joi.string().trim().max(150).allow('', null).messages({
+        'string.base': 'Ingrese un alias válido',
+        'string.max': 'El alias no puede superar los 150 caracteres',
+    }),
+
+    qr_url: Joi.forbidden().messages({
+        'any.unknown': 'Adjunte una imagen del código QR en lugar de un enlace',
+    }),
+
+    remove_qr: Joi.boolean().default(false).messages({
+        'boolean.base': 'La opción para eliminar el código QR no es válida',
+    }),
+
+    bank_name: Joi.string().trim().max(100).allow('', null).messages({
+        'string.base': 'Ingrese un nombre de banco válido',
+        'string.max': 'El nombre del banco no puede superar los 100 caracteres',
+    }),
 });

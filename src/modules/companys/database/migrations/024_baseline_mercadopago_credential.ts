@@ -34,7 +34,7 @@ const migration: MigrationFile = {
             },
             tenant_id: { type: DataTypes.UUID, allowNull: false },
             access_token_encrypted: { type: DataTypes.TEXT, allowNull: false },
-            public_key: { type: DataTypes.STRING(255), allowNull: true },
+            public_key: { type: DataTypes.TEXT, allowNull: true },
             mp_user_id: { type: DataTypes.STRING(50), allowNull: true },
             refresh_token_encrypted: { type: DataTypes.TEXT, allowNull: true },
             token_expires_at: { type: DataTypes.DATE, allowNull: true },

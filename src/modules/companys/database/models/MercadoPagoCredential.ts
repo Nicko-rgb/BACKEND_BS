@@ -59,7 +59,7 @@ MercadoPagoCredential.init({
         comment: 'Access token de Mercado Pago, encriptado con AES-256-GCM'
     },
     public_key: {
-        type: DataTypes.STRING(255),
+        type: DataTypes.TEXT,
         allowNull: true,
         comment: 'Public key de MP — no es secreta, la usa el frontend para inicializar el Brick de tarjeta'
     },
