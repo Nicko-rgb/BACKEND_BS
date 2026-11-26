@@ -4,7 +4,7 @@ import * as UserCompanyRepository from '../repository/userCompany.repository';
 import * as CompanyRepository from '../../companys/repository/company.repository';
 import * as PermissionRepository from '../../system/repository/permission.repository';
 import { invalidateUserAuthCache } from '../../../shared/utils/authorizationCache';
-import { hasCompanyScope, hasFullCompanyAccess } from '../../../shared/utils/accessScope';
+import { hasFullCompanyAccess, findAccessibleEntityIds, isEntityAccessible } from '../../../shared/utils/accessScope';
 import { SYSTEM_FULL_ACCESS, isAssignablePermission } from '../../system/constants/assignablePermissions';
 import { ForbiddenError, NotFoundError, ValidationError } from '../../../shared/errors/CustomErrors';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
@@ -29,17 +29,18 @@ const assertCanManageUserPermissions = async (granter: AuthenticatedUser, target
     }
 
     const targetId = Number(target.user_id);
-    if ((await UserCompanyRepository.findActiveByUserId(targetId)).some((row) => row.is_owner) && granter.user_id !== targetId) {
+    if (await CompanyRepository.isTenantOwner(targetId) && granter.user_id !== targetId) {
         throw new ForbiddenError('Solo el dueño o system puede gestionar los permisos del dueño.');
     }
-    let targetCompanyIds = await UserCompanyRepository.findActiveCompanyIdsByUserId(targetId);
+    let targetCompanyIds = await UserCompanyRepository.findActiveEntityIdsByUserId(targetId);
     if (targetCompanyIds.length === 0 && target.user_create) {
-        const creatorIds = await UserCompanyRepository.findActiveCompanyIdsByUserId(Number(target.user_create));
+        const creatorIds = await UserCompanyRepository.findActiveEntityIdsByUserId(Number(target.user_create));
         const creatorSucursalIds = await CompanyRepository.findSucursalIdsByParentIds(creatorIds);
         targetCompanyIds = [...creatorIds, ...creatorSucursalIds];
     }
 
-    if (!targetCompanyIds.some((companyId) => hasCompanyScope(granter, companyId))) {
+    const accessibleIds = await findAccessibleEntityIds(granter);
+    if (!targetCompanyIds.some((companyId) => isEntityAccessible(accessibleIds, companyId))) {
         throw new ForbiddenError('No tenés acceso a este usuario');
     }
 };

@@ -9,10 +9,10 @@
  * es null es una empresa (primaria o hermana), si tiene valor es una sucursal.
  * SaaSSubscriptionCompany.is_primary identifica a la titular de la suscripción.
  */
-import { DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional, NonAttribute } from 'sequelize';
+import { DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional, NonAttribute, Op } from 'sequelize';
 import sequelize from '../../../../config/db';
 import { idPublicId } from '../../../../shared/utils/ids';
-import type { User, UserFavorite, UserCompany } from '../../../users/database/models';
+import type { User, UserFavorite, UserCompany, UserSucursal } from '../../../users/database/models';
 import type { Space } from './Space';
 import type { Configuration } from './Configuration';
 import type { ConfigurationPayment } from './ConfigurationPayment';
@@ -41,14 +41,16 @@ export class Company extends Model<InferAttributes<Company>, InferCreationAttrib
     declare description: string | null;
     declare parent_company_id: number | null;
     declare is_enabled: CompanyEnabled | null;
+    declare owner_user_id: number | null;
     declare user_create: number;
     declare user_update: number | null;
     declare readonly created_at: CreationOptional<Date>;
     declare readonly updated_at: CreationOptional<Date>;
 
     // Asociaciones (poblado por include, no columnas propias) ─────────────────
+    declare owner?: NonAttribute<User>;
     declare userAssignments?: NonAttribute<UserCompany[]>;
-    declare ownerAssignments?: NonAttribute<UserCompany[]>;
+    declare sucursalAssignments?: NonAttribute<UserSucursal[]>;
     declare country?: NonAttribute<Country>;
     declare ubigeo?: NonAttribute<Ubigeo>;
     declare subsidiaries?: NonAttribute<Company[]>;
@@ -153,6 +155,12 @@ Company.init({
         allowNull: true,
         comment: "Flag de habilitación — exclusivo de empresa principal, 'A'=Active, 'I'=Inactive, 'P'=Pending (pago SaaS pendiente)"
     },
+    owner_user_id: {
+        type: DataTypes.BIGINT,
+        allowNull: true,
+        references: { model: 'dsg_bss_user', key: 'user_id' },
+        comment: 'Dueño del tenant — único por grupo y declarado en la empresa primaria'
+    },
     user_create: {
         type: DataTypes.BIGINT,
         allowNull: false,
@@ -184,7 +192,10 @@ Company.init({
         { name: 'idx_company_country_id', fields: ['country_id'] },
         { name: 'idx_company_ubigeo_id', fields: ['ubigeo_id'] },
         { name: 'idx_company_parent_company_id', fields: ['parent_company_id'] },
-        { name: 'idx_company_status_enabled', fields: ['status', 'is_enabled'] }
+        { name: 'idx_company_status_enabled', fields: ['status', 'is_enabled'] },
+        // Un solo dueño por tenant — garantizado por índice único parcial (índice parcial,
+        // no el Service). El dueño se declara en la empresa primaria.
+        { unique: true, name: 'unique_company_tenant_owner', fields: ['tenant_id'], where: { owner_user_id: { [Op.ne]: null } } }
     ]
 });
 
@@ -197,6 +208,7 @@ export function associateCompany(models: {
     User: typeof User;
     UserFavorite: typeof UserFavorite;
     UserCompany: typeof UserCompany;
+    UserSucursal: typeof UserSucursal;
     Space: typeof Space;
     Configuration: typeof Configuration;
     ConfigurationPayment: typeof ConfigurationPayment;
@@ -239,12 +251,18 @@ export function associateCompany(models: {
         as: 'favoritedBy'
     });
     Company.hasMany(models.UserCompany, {
-        foreignKey: 'tenant_id', sourceKey: 'tenant_id', constraints: false,
-        scope: { is_owner: true }, as: 'ownerAssignments'
-    });
-    Company.hasMany(models.UserCompany, {
         foreignKey: 'company_id',
         as: 'userAssignments'
+    });
+    // Dueño del tenant (único por grupo, declarado en la empresa primaria) y
+    // asignaciones explícitas a la sucursal (solo si esta fila es una sucursal).
+    Company.belongsTo(models.User, {
+        foreignKey: 'owner_user_id',
+        as: 'owner'
+    });
+    Company.hasMany(models.UserSucursal, {
+        foreignKey: 'sucursal_id',
+        as: 'sucursalAssignments'
     });
     Company.belongsTo(models.User, {
         foreignKey: 'user_create',

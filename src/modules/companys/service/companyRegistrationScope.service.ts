@@ -1,7 +1,7 @@
 import type { Transaction } from 'sequelize';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
 import type { RegisterCompanyInput } from '../interfaces/company.interface';
-import { hasFullCompanyAccess } from '../../../shared/utils/accessScope';
+import { hasFullCompanyAccess, findAccessibleEntityIds } from '../../../shared/utils/accessScope';
 import { idPublicId } from '../../../shared/utils/ids';
 import { BadRequestError, ConflictError, ForbiddenError } from '../../../shared/errors/CustomErrors';
 import * as CompanyRepository from '../repository/company.repository';
@@ -37,7 +37,8 @@ export const resolveRegistrationCoverage = async (
 
     // El permiso habilita el alta; solo scope_level 1 crea un tenant nuevo.
     if (payload.plan) throw new BadRequestError('Una empresa hermana hereda el plan de su grupo; no debe seleccionar otro plan.');
-    const entities = await CompanyRepository.findRegistrationSources(user.company_ids ?? [], transaction);
+    const accessibleIds = await findAccessibleEntityIds(user);
+    const entities = await CompanyRepository.findRegistrationSources(accessibleIds ?? [], transaction);
     const roots = new Map(entities.flatMap((entity) => {
         const root = entity.parent_company_id === null ? entity : entity.parentCompany;
         if (!root || root.parent_company_id !== null || root.tenant_id !== entity.tenant_id) return [];

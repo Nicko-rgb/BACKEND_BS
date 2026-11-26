@@ -1,4 +1,4 @@
-import { Op } from 'sequelize';
+import { Op, literal } from 'sequelize';
 import type { InferAttributes, CreationAttributes, Transaction } from 'sequelize';
 import { User } from '../database/models';
 import { toSequelizePagination } from '../../../shared/utils/paginate';
@@ -42,10 +42,21 @@ export interface UserFilters {
  */
 export const findAll = async (pagination: PaginationQuery, filters: UserFilters = {}) => {
     const { search, role, countryId, companyIds } = filters;
+    // Alcance por entidad: la unión de empresa (user_company) y sucursal (user_sucursal) — la
+    // fila ES la fuente de verdad (ver userCompany.repository.ts). Sin acotar (undefined) = system.
+    const scopeIds = companyIds?.map(Number).join(',');
 
     return User.findAndCountAll({
         where: {
             ...(countryId ? { country_id: countryId } : {}),
+            ...(companyIds ? {
+                user_id: {
+                    [Op.in]: scopeIds
+                        ? literal(`(SELECT user_id FROM dsg_bss_user_company WHERE is_active AND company_id IN (${scopeIds})
+                                   UNION SELECT user_id FROM dsg_bss_user_sucursal WHERE is_active AND sucursal_id IN (${scopeIds}))`)
+                        : [],
+                },
+            } : {}),
             ...(search ? {
                 [Op.or]: [
                     { first_name: { [Op.iLike]: `%${search}%` } },
@@ -55,12 +66,6 @@ export const findAll = async (pagination: PaginationQuery, filters: UserFilters 
             } : {}),
         },
         include: [
-            ...(companyIds ? [{
-                association: 'companyAssignments',
-                attributes: [],
-                required: true,
-                where: { company_id: { [Op.in]: companyIds }, is_active: true },
-            }] : []),
             { association: 'country' },
             {
                 association: 'roleRef',

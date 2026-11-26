@@ -1,14 +1,14 @@
 /**
  * Middleware: resolveAuthorization
  *
- * Autentica, resuelve la autorización vigente y exige al menos uno de los
- * permisos indicados. Sin argumentos solo exige una sesión válida y resuelve
- * el alcance. El acceso a la entidad concreta se valida en el service.
+ * Autentica, resuelve el rol/permisos vigentes y exige al menos uno de los
+ * permisos indicados. Sin argumentos solo exige una sesión válida. El acceso a
+ * la entidad concreta se valida en el service (shared/utils/accessScope).
  *
  * verificarTokenAuth vive en shared/middlewares (mismo directorio).
- * La resolución de permisos/scope lee Role / UserPermission / UserCompany
- * desde modules/auth/service/authorizationResolver.service — shared puede
- * importar de modules sin crear dependencia circular.
+ * La resolución de rol/permisos lee Role / UserPermission desde
+ * modules/auth/service/authorizationResolver.service — shared
+ * puede importar de modules sin crear dependencia circular.
  *
  * Uso:
  *   router.put('/company/:publicId', resolveAuthorization('company.edit'), handler);
@@ -39,7 +39,6 @@ export const resolveAuthorization = (...requiredPerms: string[]) => async (req: 
         req.user.role = resolved.roleKey;
         req.user.scope_level = resolved.scopeLevel;
         req.user.permissions = resolved.permissions;
-        req.user.company_ids = resolved.companyIds;
 
         // system.full_access omite el chequeo de acción, nunca amplía el alcance de datos.
         if (
@@ -47,7 +46,7 @@ export const resolveAuthorization = (...requiredPerms: string[]) => async (req: 
             && !resolved.permissions.includes('system.full_access')
             && !requiredPerms.some((permission) => resolved.permissions.includes(permission))
         ) {
-            throw new ForbiddenError('No tienes los permisos necesarios para esta acción', { required: requiredPerms });
+            throw new ForbiddenError('No tienes los permisos necesarios para esta acción', { required: requiredPerms }, 'PERMISSION_DENIED');
         }
     } catch (error) {
         next(error);

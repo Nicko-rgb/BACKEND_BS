@@ -4,7 +4,7 @@
  *
  * Mismo criterio que la portada de la sucursal (sucursalBanner.service.ts): la
  * autorización real es la PERTENENCIA — el espacio tiene que estar dentro del
- * alcance del usuario (su sucursal en company_ids). La mecánica (validación de
+ * alcance del usuario (acceso a su sucursal, ver accessScope). La mecánica (validación de
  * type, archivo físico, primaria) vive en el core; acá solo se resuelve el
  * espacio y su scope.
  *
@@ -12,7 +12,7 @@
  */
 import * as MediaRepository from '../../system/repository/media.repository';
 import * as MediaCore from '../../system/service/mediaCore.service';
-import { resolveSpaceForUser } from './entityScope.service';
+import { resolveSpaceForUser } from './entityResolver.service';
 import { BadRequestError, ForbiddenError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
 

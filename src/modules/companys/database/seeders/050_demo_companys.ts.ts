@@ -115,6 +115,7 @@ const seedFn = async (systemUserId?: number): Promise<void> => {
             longitude: null,
             description: null,
             is_enabled: 'A',
+            owner_user_id: owner.user_id,
             user_create: systemUserId,
             user_update: null,
         }, transaction);
@@ -122,7 +123,6 @@ const seedFn = async (systemUserId?: number): Promise<void> => {
         await UserCompanyRepository.create({
             user_id: owner.user_id,
             company_id: company.company_id,
-            is_owner: true,
             tenant_id: tenantId,
             is_active: true,
             created_by: systemUserId,
@@ -177,8 +177,18 @@ const seedFn = async (systemUserId?: number): Promise<void> => {
             longitude: '-74.549000',
             description: 'Sucursal de demostración',
             is_enabled: null,
+            owner_user_id: null,
             user_create: systemUserId,
             user_update: null,
+        }, transaction);
+
+        // Auto-grant del dueño a la sucursal — igual que sucursal.service.ts::register.
+        await UserCompanyRepository.createSucursal({
+            user_id: owner.user_id,
+            sucursal_id: sucursal.company_id,
+            tenant_id: tenantId,
+            is_active: true,
+            created_by: systemUserId,
         }, transaction);
 
         // Administrador de la sucursal ────────────────────────────────────────
@@ -203,10 +213,9 @@ const seedFn = async (systemUserId?: number): Promise<void> => {
             user_create: systemUserId,
         }, transaction);
 
-        await UserCompanyRepository.create({
+        await UserCompanyRepository.createSucursal({
             user_id: admin.user_id,
-            company_id: sucursal.company_id,
-            is_owner: false,
+            sucursal_id: sucursal.company_id,
             tenant_id: tenantId,
             is_active: true,
             created_by: systemUserId,

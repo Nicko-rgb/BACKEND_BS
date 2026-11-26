@@ -40,8 +40,8 @@ export const loginAdmin = async ({ email, password }: LoginAdminInput) => {
     const userId = Number(user.user_id);
     const roleId = Number(user.role_id);
 
-    const { permissions, companyIds, scopeLevel } = await resolveAuthorization(userId);
-    const context = await getCompanyContextTree({ scope_level: scopeLevel, company_ids: companyIds, user_id: userId });
+    const { permissions, scopeLevel } = await resolveAuthorization(userId);
+    const context = await getCompanyContextTree({ scope_level: scopeLevel, user_id: userId });
 
     const payload: Pick<AuthenticatedUser, 'user_id' | 'role_id' | 'app'> = {
         user_id: userId,

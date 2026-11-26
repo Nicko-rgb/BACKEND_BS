@@ -2,14 +2,14 @@
  * Portada de sucursal — endpoints finos del módulo companys sobre el core
  * global de media (system/service/mediaCore.service.ts).
  *
- * La ruta exige sucursal.edit y este service valida pertenencia (la sucursal
- * debe estar en el company_ids del usuario). La mecánica (primaria anterior,
+ * La ruta exige sucursal.edit y este service valida pertenencia (el usuario
+ * debe tener acceso a la sucursal, ver accessScope). La mecánica (primaria anterior,
  * físico, validación de type) vive en el core — acá solo se resuelve la
  * sucursal y su scope.
  */
 import * as MediaRepository from '../../system/repository/media.repository';
 import * as MediaCore from '../../system/service/mediaCore.service';
-import { resolveSucursalForUser } from './entityScope.service';
+import { resolveSucursalForUser } from './entityResolver.service';
 import { BadRequestError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
 

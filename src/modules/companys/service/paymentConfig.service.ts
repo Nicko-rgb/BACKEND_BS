@@ -7,7 +7,7 @@ import sequelize from '../../../config/db';
 import { encrypt } from '../../../shared/utils/encryption';
 import { BadRequestError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import * as MercadoPagoCredentialRepository from '../repository/mercadoPagoCredential.repository';
-import { resolveSucursalForUser } from './entityScope.service';
+import { resolveSucursalForUser } from './entityResolver.service';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
 import type { RegisterMercadoPagoCredentialInput } from '../interfaces/paymentConfig.interface';
 

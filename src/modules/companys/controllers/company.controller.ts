@@ -47,7 +47,7 @@ export const registerCompany = async (req: Request, res: Response) => {
 // árbol completo con `access` por nodo. Única fuente de verdad del contexto.
 export const getBranchTree = async (req: Request, res: Response) => {
     const entityPublicId = String(req.params.entityPublicId);
-    const user = req.user as Pick<AuthenticatedUser, 'scope_level' | 'company_ids' | 'user_id'> | undefined;
+    const user = req.user as Pick<AuthenticatedUser, 'scope_level' | 'user_id'> | undefined;
     const tree = await CompanyContextService.getCompanyContextTree(user, entityPublicId);
     return ApiResponse.ok(res, tree, 'Árbol de empresa obtenido');
 };

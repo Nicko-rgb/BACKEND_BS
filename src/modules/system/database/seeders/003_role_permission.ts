@@ -23,7 +23,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
         'user.profile_view',
     ],
     empleado: [
-        // Empresa (solo lectura de las propias, el scope filtra por company_ids)
+        // Empresa (solo lectura de las propias, el scope filtra por asignaciones explícitas)
         'company.view',
 
         // Sucursal

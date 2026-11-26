@@ -10,7 +10,7 @@ import * as CompanyRepository from '../../companys/repository/company.repository
 import * as PlanLimitsService from '../../saas/service/planLimits.service';
 import { applyProfileChanges, assertCountryAvailable } from './user.service';
 import { canAssignRole, isManagedRole } from '../../../shared/utils/roleHierarchy';
-import { hasFullCompanyAccess, hasCompanyScope } from '../../../shared/utils/accessScope';
+import { hasFullCompanyAccess, findAccessibleEntityIds, isEntityAccessible } from '../../../shared/utils/accessScope';
 import { invalidateUserAuthCache } from '../../../shared/utils/authorizationCache';
 import { BadRequestError, ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../../../shared/errors/CustomErrors';
 import type { ManagedRole } from '../../../shared/utils/roleHierarchy';
@@ -23,8 +23,12 @@ import type {
     UpdateManagedUserInput,
 } from '../interfaces/userManage.interface';
 
-interface CompanyAssignment {
-    company_id: number;
+// Asignación de un usuario a una entidad: empresa raíz (super_admin) o sucursal
+// (administrador/empleado). `kind` decide en qué tabla vive la fila — user_company
+// o user_sucursal — y `root_company_id` es la empresa raíz del tenant, para el cupo.
+interface EntityAssignment {
+    entity_id: number;
+    kind: 'company' | 'sucursal';
     tenant_id: string;
     root_company_id: number;
 }
@@ -41,38 +45,40 @@ const resolveRole = (value: string): ManagedRole => {
 
 // Sucursales a asignar (por public_id, lo único expuesto) — todas deben existir y estar
 // dentro del alcance del usuario. La asignación guarda el tenant_id raíz (interno).
-const resolveSucursalAssignments = async (user: AuthenticatedUser, publicIds: string[]): Promise<CompanyAssignment[]> => {
+const resolveSucursalAssignments = async (user: AuthenticatedUser, publicIds: string[]): Promise<EntityAssignment[]> => {
     const sucursales = await CompanyRepository.findSucursalesByPublicIds(publicIds);
     if (sucursales.length !== publicIds.length) {
         throw new BadRequestError('Alguna de las sucursales seleccionadas no existe.');
     }
-    if (sucursales.some((sucursal) => !hasCompanyScope(user, Number(sucursal.company_id)))) {
+    const accessibleIds = await findAccessibleEntityIds(user);
+    if (sucursales.some((sucursal) => !isEntityAccessible(accessibleIds, Number(sucursal.company_id)))) {
         throw new ForbiddenError('No tenés acceso a alguna de las sucursales seleccionadas');
     }
 
     return sucursales.map((sucursal) => ({
-        company_id: Number(sucursal.company_id),
+        entity_id: Number(sucursal.company_id),
+        kind: 'sucursal',
         tenant_id: sucursal.parentCompany!.tenant_id,
         root_company_id: Number(sucursal.parentCompany!.company_id),
     }));
 };
 
-// Empresa a la que se asigna un usuario (sin otorgarle propiedad) — por public_id.
-const resolveCompanyAssignment = async (user: AuthenticatedUser, publicId: string): Promise<CompanyAssignment[]> => {
+// Empresa raíz a la que se asigna un usuario (sin otorgarle propiedad) — por public_id.
+const resolveCompanyAssignment = async (user: AuthenticatedUser, publicId: string): Promise<EntityAssignment[]> => {
     const company = await CompanyRepository.findByPublicId(publicId);
     if (!company) throw new NotFoundError('Empresa no encontrada');
-    if (!hasCompanyScope(user, Number(company.company_id))) throw new ForbiddenError('No tenés acceso a esta empresa');
+    if (!isEntityAccessible(await findAccessibleEntityIds(user), Number(company.company_id))) throw new ForbiddenError('No tenés acceso a esta empresa');
 
-    return [{ company_id: Number(company.company_id), tenant_id: company.tenant_id, root_company_id: Number(company.company_id) }];
+    return [{ entity_id: Number(company.company_id), kind: 'company', tenant_id: company.tenant_id, root_company_id: Number(company.company_id) }];
 };
 
 /**
  * Cupo de usuarios del plan en cada empresa raíz a la que se suma el usuario: cuenta los usuarios
  * distintos de la empresa y sus sucursales, dueño incluido. Si ya pertenece a esa empresa, no suma.
  */
-const assertUserLimit = async (assignments: CompanyAssignment[], transaction: Transaction, existingUserId?: number) => {
+const assertUserLimit = async (assignments: EntityAssignment[], transaction: Transaction, existingUserId?: number) => {
     await PlanLimitsService.lockCompanies(assignments.map((assignment) => assignment.root_company_id), transaction);
-    const currentCompanyIds = existingUserId ? await UserCompanyRepository.findActiveCompanyIdsByUserId(existingUserId, transaction) : [];
+    const currentCompanyIds = existingUserId ? await UserCompanyRepository.findActiveEntityIdsByUserId(existingUserId, transaction) : [];
 
     for (const rootId of new Set(assignments.map((assignment) => assignment.root_company_id))) {
         const companyIds = [rootId, ...await CompanyRepository.findSucursalIdsByParentIds([rootId], transaction)];
@@ -91,15 +97,16 @@ const assertTargetInScope = async (user: AuthenticatedUser, role: ManagedRole, t
     let targetCompanyIds: number[] = [];
     if (role === 'cliente') {
         if (target.user_create) {
-            const creatorIds = await UserCompanyRepository.findActiveCompanyIdsByUserId(Number(target.user_create));
+            const creatorIds = await UserCompanyRepository.findActiveEntityIdsByUserId(Number(target.user_create));
             const creatorSucursalIds = await CompanyRepository.findSucursalIdsByParentIds(creatorIds);
             targetCompanyIds = [...creatorIds, ...creatorSucursalIds];
         }
     } else {
-        targetCompanyIds = await UserCompanyRepository.findActiveCompanyIdsByUserId(Number(target.user_id));
+        targetCompanyIds = await UserCompanyRepository.findActiveEntityIdsByUserId(Number(target.user_id));
     }
 
-    if (!targetCompanyIds.some((companyId) => hasCompanyScope(user, companyId))) {
+    const accessibleIds = await findAccessibleEntityIds(user);
+    if (!targetCompanyIds.some((companyId) => isEntityAccessible(accessibleIds, companyId))) {
         throw new ForbiddenError('No tenés acceso a este usuario');
     }
 };
@@ -111,8 +118,7 @@ const loadTarget = async (user: AuthenticatedUser, role: ManagedRole, publicId: 
     if (!target || target.roleRef?.key !== role) throw new NotFoundError('Usuario no encontrado');
     if (!canAssignRole(user, role)) throw new ForbiddenError('No tenés permisos para gestionar este usuario');
 
-    const memberships = await UserCompanyRepository.findActiveByUserId(Number(target.user_id));
-    if (memberships.some((row) => row.is_owner) && !hasFullCompanyAccess(user) && user.user_id !== Number(target.user_id)) {
+    if (await CompanyRepository.isTenantOwner(Number(target.user_id)) && !hasFullCompanyAccess(user) && user.user_id !== Number(target.user_id)) {
         throw new ForbiddenError('Solo el dueño o system puede gestionar la cuenta del dueño.');
     }
     await assertTargetInScope(user, role, target);
@@ -121,16 +127,13 @@ const loadTarget = async (user: AuthenticatedUser, role: ManagedRole, publicId: 
 
 // Asignaciones activas de un usuario visibles para quien consulta, con public_id y nombre.
 const loadAssignments = async (user: AuthenticatedUser, userId: number): Promise<ManagedAssignment[]> => {
-    const rows = (await UserCompanyRepository.findActiveByUserId(userId))
-        .filter((row) => hasCompanyScope(user, Number(row.company_id)));
+    const accessibleIds = await findAccessibleEntityIds(user);
+    const entityIds = (await UserCompanyRepository.findActiveEntityIdsByUserId(userId))
+        .filter((entityId) => isEntityAccessible(accessibleIds, entityId));
+    if (entityIds.length === 0) return [];
 
-    const companies = await CompanyRepository.findPublicByIds(rows.map((row) => Number(row.company_id)));
-    const companyById = new Map(companies.map((company) => [Number(company.company_id), company]));
-
-    return rows.flatMap((row) => {
-        const company = companyById.get(Number(row.company_id));
-        return company ? [{ publicId: company.public_id, name: company.name, isOwner: row.is_owner }] : [];
-    });
+    const entities = await CompanyRepository.findPublicByIds(entityIds);
+    return entities.map((entity) => ({ publicId: entity.public_id, name: entity.name }));
 };
 
 // ── Operaciones ─────────────────────────────────────────────────────────────────────────────
@@ -142,7 +145,7 @@ export const list = async (query: ListUsersQuery, user: AuthenticatedUser) => {
 
     return UserRepository.findAll(query, {
         search, role, countryId: query.countryId,
-        companyIds: hasFullCompanyAccess(user) ? undefined : (user.company_ids ?? []),
+        companyIds: await findAccessibleEntityIds(user),
     });
 };
 
@@ -173,7 +176,7 @@ export const create = async (roleParam: string, data: CreateManagedUserInput, us
 
     await assertCountryAvailable(data.country_id!);
 
-    let assignments: CompanyAssignment[] = [];
+    let assignments: EntityAssignment[] = [];
     if (SUCURSAL_ROLES.includes(role)) assignments = await resolveSucursalAssignments(user, data.sucursales ?? []);
     if (role === 'super_admin') assignments = await resolveCompanyAssignment(user, data.company_public_id!);
 
@@ -204,14 +207,26 @@ export const create = async (roleParam: string, data: CreateManagedUserInput, us
         }, transaction);
 
         if (assignments.length > 0) {
-            await UserCompanyRepository.bulkCreate(assignments.map((assignment) => ({
-                user_id: newUser.user_id,
-                company_id: assignment.company_id,
-                is_owner: false,
-                tenant_id: assignment.tenant_id,
-                is_active: true,
-                created_by: user.user_id,
-            })), transaction);
+            const companies = assignments.filter((assignment) => assignment.kind === 'company');
+            const sucursales = assignments.filter((assignment) => assignment.kind === 'sucursal');
+            if (companies.length > 0) {
+                await UserCompanyRepository.bulkCreate(companies.map((assignment) => ({
+                    user_id: Number(newUser.user_id),
+                    company_id: assignment.entity_id,
+                    tenant_id: assignment.tenant_id,
+                    is_active: true,
+                    created_by: user.user_id,
+                })), transaction);
+            }
+            if (sucursales.length > 0) {
+                await UserCompanyRepository.bulkCreateSucursales(sucursales.map((assignment) => ({
+                    user_id: Number(newUser.user_id),
+                    sucursal_id: assignment.entity_id,
+                    tenant_id: assignment.tenant_id,
+                    is_active: true,
+                    created_by: user.user_id,
+                })), transaction);
+            }
         }
 
         // Set inicial de permisos = plantilla del rol asignado (después se edita por usuario).
@@ -258,23 +273,21 @@ export const update = async (roleParam: string, publicId: string, data: UpdateMa
     await sequelize.transaction(async (transaction) => {
         const lockedTarget = await UserRepository.lockById(targetId, transaction);
         if (!lockedTarget) throw new NotFoundError('Usuario no encontrado');
-        if (assignments && (await UserCompanyRepository.findActiveByUserId(targetId, transaction)).some((row) => row.is_owner)) {
+        if (assignments && await CompanyRepository.isTenantOwner(targetId, transaction)) {
             throw new ConflictError('La asignación del dueño no se modifica desde la gestión de usuarios.');
         }
         if (assignments) await assertUserLimit(assignments, transaction, targetId);
         await applyProfileChanges(lockedTarget, nextRoleId !== undefined ? { ...profile, role_id: nextRoleId } : profile, transaction);
 
         if (assignments) {
-            const scopeCompanyIds = hasFullCompanyAccess(user) ? undefined : (user.company_ids ?? []);
-            await UserCompanyRepository.destroyByUserId(targetId, scopeCompanyIds, transaction);
-            await UserCompanyRepository.bulkCreate(assignments.map((assignment) => ({
+            const scopeEntityIds = await findAccessibleEntityIds(user);
+            await UserCompanyRepository.replaceSucursales(targetId, assignments.map((assignment) => ({
                 user_id: targetId,
-                company_id: assignment.company_id,
-                is_owner: false,
+                sucursal_id: assignment.entity_id,
                 tenant_id: assignment.tenant_id,
                 is_active: true,
                 created_by: user.user_id,
-            })), transaction);
+            })), scopeEntityIds, transaction);
         }
     });
 

@@ -5,7 +5,6 @@ import type { User } from '../database/models';
 export interface ManagedAssignment {
     publicId: string;
     name: string;
-    isOwner: boolean;
 }
 
 // Detalle de un usuario gestionado — mismo detalle que el perfil más sus asignaciones.

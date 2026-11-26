@@ -54,7 +54,7 @@ const activateTrialFromPreapproval = async (preapprovalId: string): Promise<void
         return;
     }
 
-    const owner = company.ownerAssignments?.[0]?.user;
+    const owner = company.owner;
 
     await sequelize.transaction(async (transaction) => {
         const now = new Date();

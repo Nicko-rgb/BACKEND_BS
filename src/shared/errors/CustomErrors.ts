@@ -55,12 +55,15 @@ export class UnauthorizedError extends Error {
 export class ForbiddenError extends Error {
     statusCode: number;
     details: unknown;
+    /** Código para el cliente: PERMISSION_DENIED (sin permiso) vs ENTITY_SCOPE_DENIED (sin acceso a la entidad). */
+    code: string;
 
-    constructor(message = 'Acceso prohibido', details: unknown = null) {
+    constructor(message = 'Acceso prohibido', details: unknown = null, code = 'PERMISSION_DENIED') {
         super(message);
         this.name = 'ForbiddenError';
         this.statusCode = 403;
         this.details = details;
+        this.code = code;
     }
 }
 

@@ -4,8 +4,9 @@ import type { InferAttributes } from 'sequelize';
 import * as CompanyRepository from '../repository/company.repository';
 import * as CountryRepository from '../../system/repository/country.repository';
 import * as PlanLimitsService from '../../saas/service/planLimits.service';
-import { resolveSucursalForUser } from './entityScope.service';
-import { assertCompanyScope, hasFullCompanyAccess } from '../../../shared/utils/accessScope';
+import * as UserCompanyRepository from '../../users/repository/userCompany.repository';
+import { resolveSucursalForUser } from './entityResolver.service';
+import { assertEntityAccess, findAccessibleEntityIds } from '../../../shared/utils/accessScope';
 import { BadRequestError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
 import type { Company } from '../database/models';
@@ -14,8 +15,9 @@ import type { RegisterSucursalInput, UpdateSucursalInput, SucursalStatusInput } 
 export const listByCompany = async (companyPublicId: string, user: AuthenticatedUser) => {
     const company = await CompanyRepository.findRootIdentityByPublicId(companyPublicId);
     if (!company) throw new NotFoundError('Empresa no encontrada');
-    assertCompanyScope(user, Number(company.company_id), 'No tenés acceso a esta empresa');
-    return CompanyRepository.findBranchesByParentId(Number(company.company_id), hasFullCompanyAccess(user) ? undefined : (user.company_ids ?? []));
+    await assertEntityAccess(user, Number(company.company_id));
+    const accessibleIds = await findAccessibleEntityIds(user);
+    return CompanyRepository.findBranchesByParentId(Number(company.company_id), accessibleIds);
 };
 
 /**
@@ -30,7 +32,7 @@ export const register = async (companyPublicId: string, data: RegisterSucursalIn
     const parent = await CompanyRepository.findByPublicId(companyPublicId);
     if (!parent) throw new NotFoundError('Empresa de sucursal no encontrada');
 
-    assertCompanyScope(user, parent.company_id, 'No tenés acceso a esta empresa');
+    await assertEntityAccess(user, Number(parent.company_id));
 
     const country = await CountryRepository.findById(data.country_id);
     if (!country) throw new BadRequestError('El país seleccionado no existe.');
@@ -43,7 +45,7 @@ export const register = async (companyPublicId: string, data: RegisterSucursalIn
 
         const publicId = idPublicId();
 
-        return CompanyRepository.create({
+        const created = await CompanyRepository.create({
             name: data.name,
             address: data.address,
             document: parent.document,
@@ -64,6 +66,21 @@ export const register = async (companyPublicId: string, data: RegisterSucursalIn
             user_create: user.user_id,
             user_update: null,
         }, transaction);
+
+        // Auto-grant del dueño del tenant a la sucursal recién creada. Quitar su
+        // acceso después es una revocación manual (borrar la fila en user_sucursal).
+        const ownerUserId = await CompanyRepository.findOwnerUserIdByTenantId(parent.tenant_id, transaction);
+        if (ownerUserId != null) {
+            await UserCompanyRepository.createSucursal({
+                user_id: ownerUserId,
+                sucursal_id: Number(created.company_id),
+                tenant_id: parent.tenant_id,
+                is_active: true,
+                created_by: user.user_id,
+            }, transaction);
+        }
+
+        return created;
     });
 
     return CompanyRepository.findSucursalByPublicId(sucursal.public_id) as Promise<Company>;

@@ -2,7 +2,7 @@ import * as CompanyContextRepository from '../repository/companyContext.reposito
 import * as CompanyRepository from '../repository/company.repository';
 import * as SucursalConfigRepository from '../repository/sucursalConfig.repository';
 import { findCompanyMemberships, findPlanByCompanyId } from '../../saas/repository/saasSubscription.repository';
-import { hasCompanyScope } from '../../../shared/utils/accessScope';
+import { findAccessibleEntityIds, isEntityAccessible } from '../../../shared/utils/accessScope';
 import { NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
 import type { ContextCompanyRecord, ContextSpaceRecord } from '../interfaces/companyContext.interface';
@@ -19,8 +19,8 @@ import type {
  *   - Si se pasa: resuelve a la empresa matriz y devuelve su árbol completo.
  *     El acceso del usuario se refleja en el campo `access` de cada nodo
  *     (true/false), sin bloquear la respuesta con 403.
- *   - Si no se pasa: usa los `company_ids` del usuario y devuelve solo las
- *     empresas a las que tiene acceso.
+ *   - Si no se pasa: usa las entidades asignadas al usuario (accessScope) y
+ *     devuelve solo las empresas a las que tiene acceso.
  *
  * Es la única fuente de verdad del árbol: auth lo consume en el login y
  * el front no arma el árbol por su cuenta.
@@ -30,10 +30,14 @@ import type {
  * simplemente devuelve `access: false` en ese nodo.
  */
 export const getCompanyContextTree = async (
-    user?: Pick<AuthenticatedUser, 'scope_level' | 'company_ids' | 'user_id'> | null,
+    user?: Pick<AuthenticatedUser, 'scope_level' | 'user_id'> | null,
     publicId?: string,
 ): Promise<CompanyContextTreeOut> => {
-    const effectiveUser = user ?? { scope_level: null, company_ids: [], user_id: 0 };
+    const effectiveUser = user ?? { scope_level: null, user_id: 0 };
+
+    // Entidades asignadas al usuario (undefined = system, sin restricción) — un solo read.
+    const accessibleIds = await findAccessibleEntityIds(effectiveUser);
+    const entityAccess = (id: number) => isEntityAccessible(accessibleIds, id);
 
     // 1. Resolver tenant_id
     let tenantId: string | null = null;
@@ -55,9 +59,9 @@ export const getCompanyContextTree = async (
             throw new NotFoundError('Empresa o sucursal no encontrada.');
         }
     } else {
-        // Sin publicId: tomar el tenant de la primera empresa del usuario
-        if (effectiveUser.company_ids?.length) {
-            const rows = await CompanyRepository.findByIds([effectiveUser.company_ids[0]]);
+        // Sin publicId: tomar el tenant de la primera entidad asignada al usuario
+        if (accessibleIds?.length) {
+            const rows = await CompanyRepository.findByIds([accessibleIds[0]]);
             if (rows?.[0]) {
                 tenantId = rows[0].tenant_id;
             }
@@ -115,7 +119,7 @@ export const getCompanyContextTree = async (
                 publicId: entity.public_id,
                 name: entity.name,
                 countryId: entity.country?.country_id ?? null,
-                access: hasCompanyScope(effectiveUser, id),
+                access: entityAccess(id),
                 isPrimary: false,
                 sucursales: [],
             });
@@ -123,9 +127,19 @@ export const getCompanyContextTree = async (
         return companiesMap.get(id)!;
     };
 
-    // Empresas principales que están en alcance (o la solicitada por publicId)
+    // Regla de agrupación: la primaria se dibuja si hay acceso a ella o a alguna
+    // sucursal suya, para que el nodo padre siempre exista bajo el cual colgarla.
+    const parentsWithAccessibleChild = new Set<number>();
+    for (const sucursal of sucursales) {
+        if (entityAccess(Number(sucursal.company_id))) {
+            parentsWithAccessibleChild.add(Number(sucursal.parent_company_id));
+        }
+    }
+
+    // Empresas principales en alcance (acceso propio o de una sucursal) o la solicitada por publicId
     for (const entity of principalEntities) {
-        if (publicId || hasCompanyScope(effectiveUser, Number(entity.company_id))) {
+        const id = Number(entity.company_id);
+        if (publicId || entityAccess(id) || parentsWithAccessibleChild.has(id)) {
             addCompany(entity);
         }
     }
@@ -147,7 +161,7 @@ export const getCompanyContextTree = async (
             status: sucursal.status ?? null,
             openTime: schedule?.opening_time ?? null,
             closeTime: schedule?.closing_time ?? null,
-            access: hasCompanyScope(effectiveUser, Number(sucursal.company_id)),
+            access: entityAccess(Number(sucursal.company_id)),
             currency: sucursal.country ? {
                 code: sucursal.country.iso_currency,
                 name: sucursal.country.currency,

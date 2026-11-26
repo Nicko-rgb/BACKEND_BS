@@ -12,7 +12,7 @@ interface LoginAdminResult {
 // Da forma a la respuesta del login — nunca expone el password hash ni el modelo Sequelize crudo.
 // El usuario se expone por `public_id` (UUID), nunca por `user_id` (BIGINT interno) — mismo criterio
 // que el resto de los DTOs del tenant (ver ARQUITECTURA_CAPAS.md). La PK numérica solo se usa
-// internamente, para resolver permisos y company_ids contra la BD.
+// internamente, para resolver permisos y alcance contra la BD.
 // Permisos, alcance y contexto son pistas de UI; los IDs internos quedan en el backend.
 export const toLoginAdminDto = ({ token, user, permissions, scopeLevel, context }: LoginAdminResult) => ({
     token,

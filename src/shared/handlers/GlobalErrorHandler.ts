@@ -24,6 +24,8 @@ import * as Sentry from '@sentry/node';
 interface AppError {
     message: string;
     name?: string;
+    /** Código explícito del error (ej. PERMISSION_DENIED / ENTITY_SCOPE_DENIED) — gana sobre `name`. */
+    code?: string;
     stack?: string;
     statusCode?: number;
     isJoi?: boolean;
@@ -163,7 +165,7 @@ class GlobalErrorHandler {
 
         // Errores personalizados con statusCode
         if (error.statusCode) {
-            const code = error.name || 'CUSTOM_ERROR';
+            const code = error.code || error.name || 'CUSTOM_ERROR';
             return ApiResponse.error(req, res, code, error.message, error.details || null, error.statusCode);
         }
 

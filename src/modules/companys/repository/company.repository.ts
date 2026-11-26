@@ -6,13 +6,11 @@ import type { PaginationQuery } from '../../../shared/types/pagination';
 
 /**
  * Empresas principales (parent_company_id IS NULL — las sucursales no aparecen acá),
- * paginado, con su dueño (`ownerAssignments`: dueño único del grupo, vía
- * `Company.hasMany(UserCompany)` — asociación ya wireada en companys/database/models,
- * no hace falta importar `users` acá). Con `search`, filtra por nombre o documento; con
- * `countryId`/`isEnabled`, filtra exacto por país y estado. Con `companyIds`, acota el
- * resultado a esos ids — usado para que un super_admin sin alcance global solo vea sus
- * propias empresas (ver company.service.ts). `distinct: true` evita que el JOIN con
- * userAssignments infle el `count`.
+ * paginado, con su dueño (`owner`: dueño único del tenant, declarado en la empresa
+ * primaria vía `Company.belongsTo(User, as: 'owner')`). Con `search`, filtra por
+ * nombre o documento; con `countryId`/`isEnabled`, filtra exacto por país y estado.
+ * Con `companyIds`, acota el resultado a esos ids. `distinct: true` evita que el
+ * JOIN con userAssignments infle el `count`.
  */
 export const findAllPrincipal = async (pagination: PaginationQuery, search?: string, companyIds?: number[], countryId?: number, isEnabled?: string) => {
     return Company.findAndCountAll({
@@ -30,12 +28,7 @@ export const findAllPrincipal = async (pagination: PaginationQuery, search?: str
         },
         include: [
             { association: 'country' },
-            {
-                association: 'ownerAssignments',
-                where: { is_active: true },
-                required: false,
-                include: [{ association: 'user', include: [{ association: 'country' }] }],
-            },
+            { association: 'owner', include: [{ association: 'country' }] },
         ],
         order: [['created_at', 'DESC']],
         distinct: true,
@@ -54,8 +47,8 @@ export const findSucursalIdsByParentIds = async (parentIds: number[], transactio
         transaction,
     });
 
-    // company_id es BIGINT — Sequelize lo devuelve como string, ver mismo comentario en
-    // userCompany.repository.ts::findActiveCompanyIdsByUserId.
+    // company_id es BIGINT — Sequelize lo devuelve como string, se normaliza a number
+    // (ver mismo criterio en userCompany.repository.ts).
     return sucursales.map(s => Number(s.company_id));
 };
 
@@ -130,14 +123,37 @@ export const findByIdWithOwner = async (companyId: number) => {
     return Company.findByPk(companyId, {
         include: [
             { association: 'country' },
-            {
-                association: 'ownerAssignments',
-                where: { is_active: true },
-                required: false,
-                include: [{ association: 'user', include: [{ association: 'country' }] }],
-            },
+            { association: 'owner', include: [{ association: 'country' }] },
         ],
     });
+};
+
+/**
+ * Dueño del tenant — único por grupo, declarado en la empresa primaria
+ * (`dsg_bss_company.owner_user_id`). Con su país y rol, para el listado de usuarios
+ * de la empresa y las notificaciones de alta.
+ */
+export const findOwnerByTenantId = async (tenantId: string, transaction?: Transaction) => {
+    return Company.findOne({
+        where: { tenant_id: tenantId, owner_user_id: { [Op.ne]: null } },
+        include: [{ association: 'owner', include: [{ association: 'roleRef' }, { association: 'country' }] }],
+        transaction,
+    });
+};
+
+// user_id del dueño del tenant — null si el grupo todavía no tiene dueño.
+export const findOwnerUserIdByTenantId = async (tenantId: string, transaction?: Transaction): Promise<number | null> => {
+    const company = await Company.findOne({
+        where: { tenant_id: tenantId, owner_user_id: { [Op.ne]: null } },
+        attributes: ['owner_user_id'],
+        transaction,
+    });
+    return company?.owner_user_id != null ? Number(company.owner_user_id) : null;
+};
+
+// ¿El usuario es dueño de algún tenant? — un dueño por tenant, declarado en la empresa primaria.
+export const isTenantOwner = async (userId: number, transaction?: Transaction): Promise<boolean> => {
+    return (await Company.count({ where: { owner_user_id: userId }, transaction })) > 0;
 };
 
 /**

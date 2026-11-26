@@ -11,14 +11,16 @@
 import { User, associateUser } from './User';
 import { UserFavorite, associateUserFavorite } from './UserFavorite';
 import { UserCompany, associateUserCompany } from './UserCompany';
+import { UserSucursal, associateUserSucursal } from './UserSucursal';
 import { UserPermission, associateUserPermission } from './UserPermission';
 import { UserPageTour, associateUserPageTour } from './UserPageTour';
 import { Country, PaymentType, Ubigeo, Media, Role } from '../../../system/database/models';
 
-export { User, UserFavorite, UserCompany, UserPermission, UserPageTour };
+export { User, UserFavorite, UserCompany, UserSucursal, UserPermission, UserPageTour };
 
 associateUser({ UserFavorite, UserCompany, UserPermission, UserPageTour, Country, PaymentType, Ubigeo, Media, Role });
 associateUserFavorite({ User });
 associateUserCompany({ User });
+associateUserSucursal({ User });
 associateUserPermission({ User });
 associateUserPageTour({ User });

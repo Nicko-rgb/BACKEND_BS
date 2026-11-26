@@ -2,23 +2,24 @@
  * authorizationResolver.service.ts
  *
  * Resuelve rol/permisos/scope_level contra BD (con
- * cache Redis invalidable) y company_ids sin cache, en vez de leerlos de un JWT
- * en el login. Por qué: con permisos editables por usuario, si viajaran en el
- * JWT, cambiar un permiso no aplicaría hasta que cada usuario ya logueado
- * renueve su token — inaceptable para "modifico el permiso y quiero que aplique ya".
+ * cache Redis invalidable), en vez de leerlos de un JWT en el login. Por qué: con
+ * permisos editables por usuario, si viajaran en el JWT, cambiar un permiso no
+ * aplicaría hasta que cada usuario ya logueado renueve su token — inaceptable
+ * para "modifico el permiso y quiero que aplique ya".
  *
  * Modelo de autorización:
  *   - permisos efectivos = filas de dsg_bss_user_permissions del usuario (set
  *     completo, sin excepciones). dsg_bss_role_permission es solo la PLANTILLA
  *     que se copia al crear un usuario nuevo — editarla no toca existentes.
  *   - el rol aporta etiqueta, menú y el alcance global de system.
- *   - el dueño super_admin cubre su tenant; administrador y empleado cubren
- *     sus sucursales asignadas y la empresa padre; cada acción exige permiso.
+ *   - el alcance por entidad sale de las tablas de asignación explícita
+ *     (dsg_bss_user_company / dsg_bss_user_sucursal) y se resuelve en
+ *     shared/utils/accessScope, no acá: este resolver solo valida sesión y permiso.
  *
  * Se llama desde dos lugares:
- *   - `resolveAuthorization` (modules/auth/middlewares) — en cada request autenticado.
+ *   - `resolveAuthorization` (shared/middlewares) — en cada request autenticado.
  *   - `auth.service.ts::loginAdmin` — para obtener los permisos y construir el contexto
- *     del frontend. companyIds permanece interno y no se devuelve en el login.
+ *     del frontend.
  *
  * La invalidación de este cache (invalidateRoleAuthCache/invalidateUserAuthCache) vive en
  * shared/utils/authorizationCache.ts, no acá — role.service.ts (system, al editar
@@ -33,7 +34,6 @@ import { ROLE_AUTH_CACHE_PREFIX, USER_AUTH_CACHE_PREFIX } from '../../../shared/
 import * as RoleRepository from '../../system/repository/role.repository';
 import * as UserRepository from '../../users/repository/user.repository';
 import * as UserPermissionRepository from '../../users/repository/userPermission.repository';
-import * as UserCompanyRepository from '../../users/repository/userCompany.repository';
 import { NotFoundError, UnauthorizedError } from '../../../shared/errors/CustomErrors';
 
 const CACHE_TTL_SECONDS = 300;
@@ -43,7 +43,6 @@ export interface ResolvedAuthorization {
     roleKey: string;
     scopeLevel: number | null;
     permissions: string[];
-    companyIds: number[];
 }
 
 interface RoleAuthData {
@@ -88,13 +87,11 @@ export const resolveAuthorization = async (userId: number): Promise<ResolvedAuth
     if (!userData.isEnabled) throw new UnauthorizedError('Usuario deshabilitado');
 
     const roleData = await loadRoleData(userData.roleId);
-    const companyIds = roleData.scopeLevel === 1 ? [] : await UserCompanyRepository.findEffectiveCompanyIdsByUserId(userId, roleData.scopeLevel);
 
     return {
         roleId: userData.roleId,
         roleKey: roleData.key,
         scopeLevel: roleData.scopeLevel,
         permissions: userData.permissionKeys,
-        companyIds,
     };
 };

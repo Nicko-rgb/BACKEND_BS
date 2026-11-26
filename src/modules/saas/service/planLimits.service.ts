@@ -4,7 +4,7 @@ import * as UserCompanyRepository from '../../users/repository/userCompany.repos
 import * as SpaceRepository from '../../companys/repository/space.repository';
 import * as PlanUsageRepository from '../repository/planUsage.repository';
 import { isUnlimitedLimit } from '../utils/planLimits';
-import { assertCompanyScope, hasCompanyScope } from '../../../shared/utils/accessScope';
+import { assertEntityAccess, findAccessibleEntityIds, isEntityAccessible } from '../../../shared/utils/accessScope';
 import { ConflictError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { CompanyPlanSummary, PlanLimitField, PlanFeature } from '../interfaces/plan.interface';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
@@ -70,7 +70,7 @@ export const getPlanUsage = async (companyPublicId: string, user: AuthenticatedU
     if (!root) throw new NotFoundError('Empresa no encontrada');
     const companyId = Number(root.company_id);
 
-    assertCompanyScope(user, companyId, 'No tenés acceso a esta empresa');
+    await assertEntityAccess(user, companyId);
 
     const plan = await getActivePlanForCompany(companyId);
     if (!plan) throw new NotFoundError('La empresa no tiene un plan activo.');
@@ -86,7 +86,7 @@ export const getPlanUsage = async (companyPublicId: string, user: AuthenticatedU
 export const getPlanUsageOverview = async (companyPublicId: string, user: AuthenticatedUser) => {
     const company = await CompanyRepository.findRootIdentityByPublicId(companyPublicId);
     if (!company) throw new NotFoundError('Empresa no encontrada');
-    assertCompanyScope(user, Number(company.company_id), 'No tienes acceso a esta empresa');
+    await assertEntityAccess(user, Number(company.company_id));
 
     const subscription = await SaaSSubscriptionRepository.findByCompanyId(Number(company.company_id));
     if (!subscription?.plan) throw new NotFoundError('La empresa no tiene un plan asociado.');
@@ -95,7 +95,8 @@ export const getPlanUsageOverview = async (companyPublicId: string, user: Authen
         SaaSSubscriptionRepository.findPrimaryCompany(subscription.subscription_id),
         PlanUsageRepository.findCompaniesBySubscriptionId(subscription.subscription_id),
     ]);
-    const visibleCompanies = companies.filter((item) => hasCompanyScope(user, Number(item.companyId)));
+    const accessibleIds = await findAccessibleEntityIds(user);
+    const visibleCompanies = companies.filter((item) => isEntityAccessible(accessibleIds, Number(item.companyId)));
     const branches = await PlanUsageRepository.findBranchUsageByCompanyIds(visibleCompanies.map((item) => Number(item.companyId)));
     const companyUsage = await Promise.all(visibleCompanies.map(async (item) => {
         const companyBranches = branches.filter((branch) => Number(branch.companyId) === Number(item.companyId));

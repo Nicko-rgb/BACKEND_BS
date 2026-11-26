@@ -1,6 +1,6 @@
 import sequelize from '../../../config/db';
 import * as SpaceRepository from '../repository/space.repository';
-import { resolveSpaceForUser, resolveSucursalForUser } from './entityScope.service';
+import { resolveSpaceForUser, resolveSucursalForUser } from './entityResolver.service';
 import * as SurfaceTypeRepository from '../../system/repository/surfaceType.repository';
 import * as SportTypeRepository from '../../system/repository/sportType.repository';
 import * as SportCategoryRepository from '../../system/repository/sportCategory.repository';
@@ -12,7 +12,7 @@ import type { RegisterSpaceInput, UpdateSpaceInput, SpaceUpdateData, SpaceStatus
 
 /**
  * Espacios de una sucursal (por public_id) — con el mismo scope del alta:
- * system entra a cualquiera, otro rol solo si la sucursal está en su company_ids.
+ * system entra a cualquiera, otro rol solo si tiene acceso a la sucursal (accessScope).
  */
 export const listBySucursal = async (sucursalPublicId: string, user: AuthenticatedUser) => {
     const sucursal = await resolveSucursalForUser(sucursalPublicId, user);
@@ -21,8 +21,8 @@ export const listBySucursal = async (sucursalPublicId: string, user: Authenticat
 
 /**
  * Alta de un espacio deportivo bajo una sucursal (por public_id).
- *   - Scope: system entra a cualquiera; otro rol solo si la sucursal está en
- *     su company_ids (mismo criterio que sucursal.service — el permiso lo
+ *   - Scope: system entra a cualquiera; otro rol solo si tiene acceso a la
+ *     sucursal (mismo criterio que sucursal.service — el permiso lo
  *     exige la ruta con space.create, acá se valida a QUÉ sucursal).
  *   - Catálogos: superficie, tipo y categoría deben existir (tipo, además, activo).
  *   - Plan: maxSpaces por sucursal — cuenta los espacios de ESTA sucursal
@@ -72,8 +72,8 @@ export const register = async (sucursalPublicId: string, data: RegisterSpaceInpu
 
 /**
  * Actualización de un espacio deportivo por public_id.
- *   - Scope: system entra a cualquiera; otro rol solo si la sucursal del espacio
- *     está en su company_ids (verifica pertenencia via space.sucursal_id).
+ *   - Scope: system entra a cualquiera; otro rol solo si tiene acceso a la
+ *     sucursal del espacio (verifica pertenencia via space.sucursal_id).
  *   - Catálogos: si se envían IDs nuevos, deben existir (tipo, además, activo).
  *   - No permite cambiar sucursal ni tenant (datos de auditoría: user_update).
  */
@@ -131,7 +131,7 @@ export const update = async (spacePublicId: string, data: UpdateSpaceInput, user
 
 /**
  * Detalle de un espacio deportivo por public_id — valida que la sucursal del espacio
- * esté dentro del alcance del usuario (user.company_ids).
+ * esté dentro del alcance del usuario (accessScope).
  */
 export const spaceById = async (spacePublicId: string, user: AuthenticatedUser) => {
     return resolveSpaceForUser(spacePublicId, user);

@@ -1,13 +1,23 @@
 import type { Company } from '../../companys/database/models';
-import type { UserCompany } from '../database/models';
+import type { User } from '../database/models';
 
 /**
- * Una entrada por usuario con todas las sucursales donde está asignado — en `user_companies`
- * hay una fila por sucursal, así que un mismo usuario puede venir repetido. El nombre sale de
- * `nameByCompanyId`, armado con la empresa y las sucursales ya cargadas.
+ * Una asignación ya normalizada: `entityId` es la empresa raíz o la sucursal a la
+ * que el usuario tiene acceso (user_company / user_sucursal), con el usuario
+ * resuelto. Un mismo usuario viene repetido si está asignado a varias entidades.
+ */
+export interface EntityAssignmentRow {
+    entityId: number;
+    user: User;
+}
+
+/**
+ * Una entrada por usuario con todas las empresas/sucursales donde está asignado.
+ * El nombre y el public_id salen de los mapas armados con la empresa y sus
+ * sucursales ya cargadas.
  */
 const toCompanyUsersDto = (
-    assignments: UserCompany[],
+    assignments: EntityAssignmentRow[],
     nameByCompanyId: Map<number, string>,
     publicByCompanyId: Map<number, string>,
 ) => {
@@ -25,8 +35,7 @@ const toCompanyUsersDto = (
         sucursales: { publicId: string; name: string | null }[];
     }>();
 
-    assignments.forEach((assignment) => {
-        const user = assignment.user;
+    assignments.forEach(({ entityId, user }) => {
         if (!user) return;
 
         const userId = Number(user.user_id);
@@ -52,7 +61,6 @@ const toCompanyUsersDto = (
             });
         }
 
-        const entityId = assignment.is_owner ? nameByCompanyId.keys().next().value! : Number(assignment.company_id);
         byUserId.get(userId)!.sucursales.push({
             publicId: publicByCompanyId.get(entityId)!,
             name: nameByCompanyId.get(entityId) ?? null,
@@ -62,7 +70,7 @@ const toCompanyUsersDto = (
     return [...byUserId.values()];
 };
 
-export const toCompanyAssignmentsDto = (company: Company, assignments: UserCompany[]) => {
+export const toCompanyAssignmentsDto = (company: Company, assignments: EntityAssignmentRow[]) => {
     const entities = [company, ...(company.subsidiaries ?? [])];
     return toCompanyUsersDto(
         assignments,
@@ -70,4 +78,3 @@ export const toCompanyAssignmentsDto = (company: Company, assignments: UserCompa
         new Map(entities.map((entity) => [Number(entity.company_id), entity.public_id])),
     );
 };
-

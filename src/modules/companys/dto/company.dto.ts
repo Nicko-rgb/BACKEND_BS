@@ -16,7 +16,7 @@ const formatUbigeo = (ubigeo?: Ubigeo): string | null => {
  * Objeto de respuesta para frontend para el listado de empresas, incluiye datos basicos
  */
 export const toCompanyListDto = (company: Company, plan: CompanyPlanSummary | null = null) => {
-    const owner = company.ownerAssignments?.[0]?.user ?? null;
+    const owner = company.owner ?? null;
 
     return {
         publicId: company.public_id,

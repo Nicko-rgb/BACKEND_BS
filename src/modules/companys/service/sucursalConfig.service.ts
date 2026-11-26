@@ -1,7 +1,7 @@
 import { idPublicId } from '../../../shared/utils/ids';
 import sequelize from '../../../config/db';
 import * as SucursalConfigRepository from '../repository/sucursalConfig.repository';
-import { resolveSucursalForUser } from './entityScope.service';
+import { resolveSucursalForUser } from './entityResolver.service';
 import { BadRequestError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
 import type { SaveSucursalConfigInput } from '../interfaces/sucursalConfig.interface';

@@ -6,7 +6,7 @@
  * User (users), Company/Space (companys) y Media (system) están todos
  * disponibles a la vez, así que acá se resuelve el lado belongsTo de Media.
  */
-import { User, UserFavorite, UserCompany } from '../../../users/database/models';
+import { User, UserFavorite, UserCompany, UserSucursal } from '../../../users/database/models';
 import { Country, Ubigeo, PaymentType, SurfaceType, SportType, SportCategory, Media, associateMedia } from '../../../system/database/models';
 import { Company, associateCompany } from './Company';
 import { Space, associateSpace } from './Space';
@@ -19,7 +19,7 @@ import { MercadoPagoCredential, associateMercadoPagoCredential } from './Mercado
 
 export { Company, Space, BusinessHour, Configuration, ConfigurationPayment, PaymentAccount, Rating, MercadoPagoCredential };
 
-associateCompany({ User, UserFavorite, UserCompany, Space, Configuration, ConfigurationPayment, Rating, Country, Ubigeo, Media });
+associateCompany({ User, UserFavorite, UserCompany, UserSucursal, Space, Configuration, ConfigurationPayment, Rating, Country, Ubigeo, Media });
 associateSpace({ User, Company, BusinessHour, SurfaceType, SportType, SportCategory, Media });
 associateBusinessHour({ Space });
 associateConfiguration({ Company, User });

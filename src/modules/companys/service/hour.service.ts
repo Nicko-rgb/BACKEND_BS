@@ -2,13 +2,13 @@
  * Horarios de operación del espacio (BusinessHour) — guardado de la semana
  * completa y bloqueo por bloque / por día (is_closed). Mismo criterio que
  * spaceGallery.service.ts: la autorización real es la PERTENENCIA — el espacio
- * tiene que estar dentro del alcance del usuario (su sucursal en company_ids).
+ * tiene que estar dentro del alcance del usuario (acceso a su sucursal, ver accessScope).
  */
 import sequelize from '../../../config/db';
 import type { Transaction } from 'sequelize';
 import * as HourRepository from '../repository/hour.repository';
 import * as SucursalConfigRepository from '../repository/sucursalConfig.repository';
-import { resolveSpaceForUser } from './entityScope.service';
+import { resolveSpaceForUser } from './entityResolver.service';
 import { BadRequestError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
 import type { BusinessHour, Space } from '../database/models';

@@ -12,7 +12,7 @@ import * as UserCompanyRepository from '../../users/repository/userCompany.repos
 import * as UserPermissionRepository from '../../users/repository/userPermission.repository';
 import * as CountryRepository from '../../system/repository/country.repository';
 import * as RoleRepository from '../../system/repository/role.repository';
-import { hasFullCompanyAccess, assertCompanyScope } from '../../../shared/utils/accessScope';
+import { hasFullCompanyAccess, assertEntityAccess, findAccessibleEntityIds } from '../../../shared/utils/accessScope';
 import { BadRequestError, ConflictError, NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
 import type { RegisterCompanyInput, UpdateCompanyInput, ListCompaniesQuery } from '../interfaces/company.interface';
@@ -23,12 +23,12 @@ import type { RegisterCompanyInput, UpdateCompanyInput, ListCompaniesQuery } fro
  * modelos de `saas` sin crear una dependencia circular, ver nota en Company.ts).
  *
  * `company.view` habilita la acción de listar. `system` ve el catálogo global;
- * los demás ven las empresas en `user.company_ids`, resueltas según propiedad
- * o empresa padre de sus asignaciones en cada request. El JWT no contiene el árbol.
+ * los demás ven solo las empresas de sus asignaciones explícitas (accessScope),
+ * resueltas en cada request. El JWT no contiene el árbol.
  */
 export const list = async (query: ListCompaniesQuery, user: AuthenticatedUser) => {
     const search = query.search?.trim() || undefined;
-    const companyIds = hasFullCompanyAccess(user) ? undefined : (user.company_ids ?? []);
+    const companyIds = await findAccessibleEntityIds(user);
 
     const { rows, count } = await CompanyRepository.findAllPrincipal(query, search, companyIds, query.countryId, query.isEnabled);
     const plans = await SaaSSubscriptionRepository.findPlansByCompanyIds(rows.map((row) => row.company_id));
@@ -39,14 +39,14 @@ export const list = async (query: ListCompaniesQuery, user: AuthenticatedUser) =
 /**
  * Detalle de una empresa por `public_id` (lo único expuesto en URLs — nunca `company_id`
  * ni `tenant_id`). Mismo criterio de alcance que `list`: `system` entra a cualquiera,
- * otro rol solo si la empresa está en su `company_ids` (ver accessScope.ts) — el chequeo
+ * otro rol solo si la empresa está en sus asignaciones (ver accessScope.ts) — el chequeo
  * se hace acá a mano porque el param de la URL es el `public_id`, no el `company_id`.
  */
 export const getByPublicId = async (publicId: string, user: AuthenticatedUser) => {
     const company = await CompanyRepository.findByPublicId(publicId);
     if (!company) throw new NotFoundError('Empresa no encontrada');
 
-    assertCompanyScope(user, Number(company.company_id), 'No tenés acceso a esta empresa');
+    await assertEntityAccess(user, Number(company.company_id));
 
     return company;
 };
@@ -62,7 +62,7 @@ export const updateByPublicId = async (publicId: string, data: UpdateCompanyInpu
     const company = await CompanyRepository.findByPublicId(publicId);
     if (!company) throw new NotFoundError('Empresa no encontrada');
 
-    assertCompanyScope(user, Number(company.company_id), 'No tenés acceso a esta empresa');
+    await assertEntityAccess(user, Number(company.company_id));
 
     if (data.country_id !== undefined) {
         const country = await CountryRepository.findById(data.country_id);
@@ -84,8 +84,11 @@ export const updateByPublicId = async (publicId: string, data: UpdateCompanyInpu
 };
 
 /**
- * Alta de primaria: Company + User (dueño) + UserCompany + suscripción.
- * Alta de hermana: Company + vínculo a la suscripción y dueño existentes.
+ * Alta de primaria: Company + User (dueño) + membrecía + suscripción, en una sola
+ * transacción — la empresa primaria queda con `owner_user_id` (dueño único del
+ * tenant) y el dueño con su fila en dsg_bss_user_company.
+ * Alta de hermana: Company + vínculo a la suscripción y dueño existentes, y la fila
+ * del dueño heredado en la nueva empresa raíz.
  * Solo system crea tenant y SaaSSubscription nuevos. Los usuarios acotados crean una
  * hermana en su grupo, con el mismo tenant y suscripción, si permite multiempresa.
  * Todo sucede en una transacción: empresa y dueño habilitados. La suscripción nueva
@@ -126,9 +129,9 @@ export const register = async (payload: RegisterCompanyInput, user: Authenticate
     const { newCompany, newUser, coverage } = await sequelize.transaction(async (transaction) => {
         const coverage = await resolveRegistrationCoverage(payload, user, transaction);
         const { tenantId } = coverage;
-        const inheritedOwner = coverage.subscriptionId !== null
-            ? await UserCompanyRepository.findOwnerByTenantId(tenantId, transaction) : null;
-        if (coverage.subscriptionId !== null && !inheritedOwner?.user) throw new ConflictError('El grupo no tiene un dueño asignado.');
+        const isPrimary = coverage.subscriptionId === null;
+        const inheritedOwner = isPrimary ? null : await CompanyRepository.findOwnerByTenantId(tenantId, transaction);
+        if (!isPrimary && !inheritedOwner?.owner) throw new ConflictError('El grupo no tiene un dueño asignado.');
         const newUser = owner ? await UserRepository.create({
             first_name: owner.first_name,
             last_name: owner.last_name,
@@ -149,7 +152,7 @@ export const register = async (payload: RegisterCompanyInput, user: Authenticate
             preferences: null,
             default_payment_type_id: null,
             user_create: user.user_id,
-        }, transaction) : inheritedOwner!.user!;
+        }, transaction) : inheritedOwner!.owner!;
 
         if (owner) {
             // Set inicial del dueño = plantilla del rol super_admin (después se edita por usuario).
@@ -179,14 +182,17 @@ export const register = async (payload: RegisterCompanyInput, user: Authenticate
             longitude: null,
             description: null,
             is_enabled: 'A',
+            // Dueño único del tenant, declarado solo en la empresa primaria.
+            owner_user_id: isPrimary ? Number(newUser.user_id) : null,
             user_create: user.user_id,
             user_update: null,
         }, transaction);
 
-        if (coverage.subscriptionId === null) await UserCompanyRepository.create({
-            user_id: newUser.user_id,
-            company_id: newCompany.company_id,
-            is_owner: true,
+        // El dueño accede a cada empresa raíz de su grupo: al crear la primaria es el
+        // dueño nuevo, al crear una hermana es el dueño heredado.
+        await UserCompanyRepository.create({
+            user_id: Number(newUser.user_id),
+            company_id: Number(newCompany.company_id),
             tenant_id: tenantId,
             is_active: true,
             created_by: user.user_id,
@@ -207,7 +213,7 @@ export const register = async (payload: RegisterCompanyInput, user: Authenticate
             lead_uuid: null,
         }, transaction)).subscription_id;
 
-        await SaaSSubscriptionRepository.linkToCompany(subscriptionId, newCompany.company_id, coverage.subscriptionId === null, transaction);
+        await SaaSSubscriptionRepository.linkToCompany(subscriptionId, newCompany.company_id, isPrimary, transaction);
 
         return { newCompany, newUser, coverage };
     });

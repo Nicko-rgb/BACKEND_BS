@@ -6,7 +6,7 @@ import * as BookingRepository from '../repository/bookingAdmin.repository';
 import * as PaymentRepository from '../repository/paymentBooking.repository';
 import * as HourRepository from '../../companys/repository/hour.repository';
 import * as ConfigurationRepository from '../../companys/repository/sucursalConfig.repository';
-import { resolveSpaceByIdForUser, resolveSpaceForUser } from '../../companys/service/entityScope.service';
+import { resolveSpaceByIdForUser, resolveSpaceForUser } from '../../companys/service/entityResolver.service';
 import * as UserManageBookingService from '../../users/service/userManageBooking.service';
 import { DAYS_OF_WEEK } from '../../companys/interfaces/hour.interface';
 import { PAYABLE_BOOKING_STATUSES } from '../interfaces/booking.interface';

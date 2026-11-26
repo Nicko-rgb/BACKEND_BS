@@ -1,8 +1,10 @@
 /**
- * Membresía de usuario en una empresa o sucursal.
- * is_owner identifica al único dueño del tenant, asignado a su empresa primaria.
- * El dueño cubre el tenant y el resto cubre la empresa padre de su asignación;
- * el rol y los permisos efectivos viven en User/UserPermission.
+ * Membresía explícita de usuario a una empresa raíz (parent_company_id IS NULL).
+ * Es una de las dos fuentes de verdad del acceso (la otra es `dsg_bss_user_sucursal`):
+ * el alcance efectivo es la unión de las filas activas de ambas tablas, sin herencia
+ * por tenant ni por rol. El dueño del tenant se declara en
+ * `dsg_bss_company.owner_user_id`, no acá; el rol y los permisos efectivos viven en
+ * User/UserPermission.
  */
 import { DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional, NonAttribute } from 'sequelize';
 import sequelize from '../../../../config/db';
@@ -12,7 +14,6 @@ export class UserCompany extends Model<InferAttributes<UserCompany>, InferCreati
     declare user_company_id: CreationOptional<number>;
     declare user_id: number;
     declare company_id: number;
-    declare is_owner: CreationOptional<boolean>;
     declare tenant_id: string;
     declare is_active: CreationOptional<boolean>;
     declare created_by: number | null;
@@ -40,13 +41,7 @@ UserCompany.init({
         type: DataTypes.BIGINT,
         allowNull: false,
         references: { model: 'dsg_bss_company', key: 'company_id' },
-        comment: 'Empresa o sucursal a la que pertenece el usuario'
-    },
-    is_owner: {
-        type: DataTypes.BOOLEAN,
-        allowNull: false,
-        defaultValue: false,
-        comment: 'Dueño único del grupo, asignado exclusivamente a la empresa primaria'
+        comment: 'Empresa raíz a la que pertenece el usuario (parent_company_id IS NULL)'
     },
     tenant_id: {
         type: DataTypes.UUID,
@@ -82,14 +77,13 @@ UserCompany.init({
     createdAt: 'created_at',
     updatedAt: 'updated_at',
     indexes: [
-        // Un usuario solo puede tener una asignación por empresa/sucursal ──────────────
+        // Un usuario solo puede tener una asignación por empresa ────────────────────────
         { unique: true, fields: ['user_id', 'company_id'], name: 'unique_user_company' },
         { fields: ['user_id'], name: 'idx_user_company_user' },
         { fields: ['company_id'], name: 'idx_user_company_company' },
-        { fields: ['tenant_id'], name: 'idx_user_company_tenant' },
-        { unique: true, fields: ['tenant_id'], where: { is_owner: true }, name: 'unique_user_company_tenant_owner' }
+        { fields: ['tenant_id'], name: 'idx_user_company_tenant' }
     ],
-    comment: 'Asignación de usuarios a empresas/sucursales con su rol contextual'
+    comment: 'Asignación de usuarios a empresas raíz (acceso explícito por empresa)'
 });
 
 export function associateUserCompany(models: { User: typeof User }): void {

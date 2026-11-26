@@ -1,6 +1,6 @@
 import * as SaaSSubscriptionRepository from '../repository/saasSubscription.repository';
 import * as CompanyRepository from '../../companys/repository/company.repository';
-import { assertCompanyScope } from '../../../shared/utils/accessScope';
+import { assertEntityAccess } from '../../../shared/utils/accessScope';
 import { NotFoundError } from '../../../shared/errors/CustomErrors';
 import type { AuthenticatedUser } from '../../../shared/types/auth';
 
@@ -21,7 +21,7 @@ export const getSubscription = async (companyPublicId: string, user: Authenticat
     if (!root) throw new NotFoundError('Empresa no encontrada');
     const companyId = Number(root.company_id);
 
-    assertCompanyScope(user, companyId, 'No tienes acceso a esta empresa');
+    await assertEntityAccess(user, companyId);
 
     const subscription = await SaaSSubscriptionRepository.findByCompanyId(companyId);
     if (!subscription) throw new NotFoundError('La empresa no tiene una suscripción asociada.');

@@ -1,113 +1,124 @@
 import { Op, QueryTypes } from 'sequelize';
 import type { CreationAttributes, Transaction } from 'sequelize';
-import { UserCompany } from '../database/models';
+import { UserCompany, UserSucursal } from '../database/models';
 import sequelize from '../../../config/db';
 
-// Crea la asignación usuario-empresa dentro de una transacción — usado por el alta de empresa
-// para dejar al dueño (super_admin) asignado a la empresa recién creada.
+/**
+ * Acceso explícito por entidad. Dos tablas, un mismo concepto:
+ *   - dsg_bss_user_company  → usuario ↔ empresa raíz.
+ *   - dsg_bss_user_sucursal → usuario ↔ sucursal.
+ * Son las dos fuentes de verdad del alcance (sin herencia por rol ni por tenant);
+ * el dueño del tenant se declara en `dsg_bss_company.owner_user_id`, no acá.
+ * Viven en un solo repositorio porque ambas responden a la misma operación:
+ * asignar, revocar y resolver el conjunto de entidades al que llega un usuario.
+ */
+
+// ── Asignaciones ──────────────────────────────────────────────────────────────
+
+// Asigna un usuario a una empresa raíz dentro de una transacción.
 export const create = async (data: CreationAttributes<UserCompany>, transaction: Transaction) => {
     return UserCompany.create(data, { transaction });
 };
 
-// Crea varias asignaciones usuario-empresa/sucursal dentro de una transacción.
+// Asigna un usuario a una sucursal — usado por el alta de sucursal para el auto-grant del dueño.
+export const createSucursal = async (data: CreationAttributes<UserSucursal>, transaction: Transaction) => {
+    return UserSucursal.create(data, { transaction });
+};
+
+// Asignaciones usuario ↔ empresa raíz en lote (alta de un super_admin a su empresa).
 export const bulkCreate = async (rows: CreationAttributes<UserCompany>[], transaction: Transaction) => {
     return UserCompany.bulkCreate(rows, { transaction });
 };
 
-// company_id de las asignaciones activas de un usuario — usado por authorizationResolver para
-// recalcular company_ids en caliente (antes se calculaba una sola vez, en el login).
-export const findActiveCompanyIdsByUserId = async (userId: number, transaction?: Transaction): Promise<number[]> => {
-    const rows = await UserCompany.findAll({
-        where: { user_id: userId, is_active: true },
-        attributes: ['company_id'],
+// Asignaciones usuario ↔ sucursal en lote (alta/edición de administrador/empleado).
+export const bulkCreateSucursales = async (rows: CreationAttributes<UserSucursal>[], transaction: Transaction) => {
+    return UserSucursal.bulkCreate(rows, { transaction });
+};
+
+// Reemplaza las sucursales asignadas a un usuario. Con `scopeEntityIds`, solo toca las
+// asignaciones dentro del alcance de quien edita — las de fuera quedan intactas.
+export const replaceSucursales = async (
+    userId: number,
+    rows: CreationAttributes<UserSucursal>[],
+    scopeEntityIds: number[] | undefined,
+    transaction: Transaction,
+) => {
+    await UserSucursal.destroy({
+        where: { user_id: userId, ...(scopeEntityIds ? { sucursal_id: { [Op.in]: scopeEntityIds } } : {}) },
         transaction,
     });
+    if (rows.length > 0) await UserSucursal.bulkCreate(rows, { transaction });
+};
 
-    return rows.map((row) => Number(row.company_id));
+// ── Lecturas ──────────────────────────────────────────────────────────────────
+
+// Ids de entidad (empresa raíz o sucursal) con asignación activa de un usuario.
+export const findActiveEntityIdsByUserId = async (userId: number, transaction?: Transaction): Promise<number[]> => {
+    const [companies, sucursales] = await Promise.all([
+        UserCompany.findAll({ where: { user_id: userId, is_active: true }, attributes: ['company_id'], transaction }),
+        UserSucursal.findAll({ where: { user_id: userId, is_active: true }, attributes: ['sucursal_id'], transaction }),
+    ]);
+
+    // BIGINT — Sequelize lo devuelve como string, se normaliza a number.
+    return [
+        ...companies.map((row) => Number(row.company_id)),
+        ...sucursales.map((row) => Number(row.sucursal_id)),
+    ];
 };
 
 /**
- * Asignaciones activas de una empresa y sus sucursales, con el usuario y su país —
- * dueño explícito incluido: el detalle de empresa lo muestra también en la
- * lista para gestionar sus permisos desde ahí.
+ * ¿Tiene el usuario una asignación activa sobre esta entidad? Una sola lectura EXISTS:
+ * `company_id` y `sucursal_id` comparten el PK de `dsg_bss_company`, así que el id se
+ * busca en ambas tablas sin conocer el tipo. Chequeo estricto por entidad — sin herencia.
+ */
+export const hasEntityAssignment = async (userId: number, entityId: number, transaction?: Transaction): Promise<boolean> => {
+    const [row] = await sequelize.query<{ has_access: boolean }>(`
+        SELECT EXISTS(
+            SELECT 1 FROM dsg_bss_user_company  WHERE user_id = :userId AND company_id  = :entityId AND is_active
+            UNION ALL
+            SELECT 1 FROM dsg_bss_user_sucursal WHERE user_id = :userId AND sucursal_id = :entityId AND is_active
+        ) AS has_access`, { replacements: { userId, entityId }, type: QueryTypes.SELECT, transaction });
+
+    return row?.has_access === true;
+};
+
+/**
+ * Asignaciones activas de una empresa y sus sucursales, normalizadas a
+ * `{ entityId, user }`: empresa desde `user_company`, sucursal desde
+ * `user_sucursal`. Con el usuario y su país — dueño explícito incluido.
  */
 export const findActiveByCompanyIds = async (companyIds: number[]) => {
     if (companyIds.length === 0) return [];
 
-    return UserCompany.findAll({
-        where: {
-            company_id: { [Op.in]: companyIds },
-            is_active: true,
-        },
-        include: [{ association: 'user', include: [{ association: 'roleRef' }, { association: 'country' }] }],
-        order: [['created_at', 'ASC']],
-    });
+    const include = [{ association: 'user', include: [{ association: 'roleRef' }, { association: 'country' }] }];
+    const [companies, sucursales] = await Promise.all([
+        UserCompany.findAll({
+            where: { company_id: { [Op.in]: companyIds }, is_active: true },
+            include,
+            order: [['created_at', 'ASC']],
+        }),
+        UserSucursal.findAll({
+            where: { sucursal_id: { [Op.in]: companyIds }, is_active: true },
+            include,
+            order: [['created_at', 'ASC']],
+        }),
+    ]);
+
+    return [
+        ...companies.map((row) => ({ entityId: Number(row.company_id), user: row.user! })),
+        ...sucursales.map((row) => ({ entityId: Number(row.sucursal_id), user: row.user! })),
+    ];
 };
 
-// Usuarios distintos de la empresa y sus sucursales, incluyendo al dueño heredado.
+// Usuarios distintos de la empresa y sus sucursales — unión de ambas tablas de acceso.
 export const countActiveUsersByCompanyIds = async (companyIds: number[], transaction?: Transaction): Promise<number> => {
     if (companyIds.length === 0) return 0;
     const [row] = await sequelize.query<{ count: number }>(`
-        SELECT COUNT(DISTINCT uc.user_id)::integer AS count
-        FROM dsg_bss_user_company uc
-        WHERE uc.is_active AND (
-            uc.company_id IN (:companyIds) OR
-            (uc.is_owner AND uc.tenant_id IN (
-                SELECT tenant_id FROM dsg_bss_company WHERE company_id IN (:companyIds)
-            ))
-        )`, { replacements: { companyIds }, type: QueryTypes.SELECT, transaction });
+        SELECT COUNT(DISTINCT user_id)::integer AS count
+        FROM (
+            SELECT user_id FROM dsg_bss_user_company WHERE is_active AND company_id IN (:companyIds)
+            UNION
+            SELECT user_id FROM dsg_bss_user_sucursal WHERE is_active AND sucursal_id IN (:companyIds)
+        ) assigned`, { replacements: { companyIds }, type: QueryTypes.SELECT, transaction });
     return row.count;
-};
-
-// Asignaciones activas de un usuario y propiedad del grupo.
-export const findActiveByUserId = async (userId: number, transaction?: Transaction) => {
-    return UserCompany.findAll({
-        where: { user_id: userId, is_active: true },
-        attributes: ['company_id', 'tenant_id', 'is_owner'],
-        transaction,
-    });
-};
-
-// Borra las asignaciones de un usuario — con `companyIds`, solo las de esas empresas/sucursales.
-export const destroyByUserId = async (userId: number, companyIds: number[] | undefined, transaction: Transaction) => {
-    await UserCompany.destroy({
-        where: {
-            user_id: userId,
-            is_owner: false,
-            ...(companyIds ? { company_id: { [Op.in]: companyIds } } : {}),
-        },
-        transaction,
-    });
-};
-
-
-export const findOwnerByTenantId = async (tenantId: string, transaction?: Transaction) => {
-    return UserCompany.findOne({
-        where: { tenant_id: tenantId, is_owner: true, is_active: true },
-        include: [{ association: 'user', include: [{ association: 'roleRef' }, { association: 'country' }] }],
-        transaction,
-    });
-};
-
-// El dueño cubre su tenant. Una asignación a empresa cubre sus sucursales;
-// una asignación a sucursal cubre esa sucursal y su empresa padre, no sus hermanas.
-export const findEffectiveCompanyIdsByUserId = async (userId: number, scopeLevel: number | null, transaction?: Transaction): Promise<number[]> => {
-    const rows = await sequelize.query<{ company_id: number }>(`
-        WITH assignments AS (
-            SELECT uc.tenant_id, uc.is_owner, c.company_id AS assigned_company_id,
-                   c.parent_company_id AS assigned_parent_id,
-                   COALESCE(c.parent_company_id, c.company_id) AS root_company_id
-            FROM dsg_bss_user_company uc
-            JOIN dsg_bss_company c ON c.company_id = uc.company_id AND c.tenant_id = uc.tenant_id
-            WHERE uc.user_id = :userId AND uc.is_active
-        )
-        SELECT DISTINCT c.company_id FROM dsg_bss_company c
-        JOIN assignments a ON a.tenant_id = c.tenant_id AND (
-            (:ownerScope = true AND a.is_owner)
-            OR c.company_id = a.root_company_id
-            OR (a.assigned_parent_id IS NULL AND c.parent_company_id = a.assigned_company_id)
-            OR c.company_id = a.assigned_company_id
-        )
-    `, { replacements: { userId, ownerScope: scopeLevel === 2 }, type: QueryTypes.SELECT, transaction });
-    return rows.map((row) => Number(row.company_id));
 };
