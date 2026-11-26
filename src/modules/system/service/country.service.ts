@@ -14,9 +14,12 @@ export const list = async () => {
     });
 };
 
-// ── Solo países activos — endpoint público, sin paginar, para selects/lógica de negocio ───
-export const listActive = async () => {
-    return cacheUtility.withCache('system:countries:active', {}, () => CountryRepository.findAllActive());
+// Catálogo sin paginar; separa ambas modalidades en cachés invalidadas por las mutaciones.
+export const listActive = async (includeInactive = false) => {
+    const cacheKey = includeInactive ? 'system:countries:all' : 'system:countries:active';
+    return cacheUtility.withCache(cacheKey, {}, () => includeInactive
+        ? CountryRepository.findAll()
+        : CountryRepository.findAllActive());
 };
 
 // ── Crea un país nuevo — bloqueado si ya existe uno con el mismo código ISO ───

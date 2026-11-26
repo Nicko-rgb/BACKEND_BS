@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import * as CountryService from '../service/country.service';
 import { toCountryDto } from '../dto/country.dto';
 import ApiResponse from '../../../shared/utils/ApiResponse';
+import { BadRequestError } from '../../../shared/errors/CustomErrors';
 
 // Lista todos los países para system, sin paginar
 export const list = async (_req: Request, res: Response) => {
@@ -9,10 +10,14 @@ export const list = async (_req: Request, res: Response) => {
     return ApiResponse.ok(res, rows.map((row) => toCountryDto(row, referencesCount[row.country_id] ?? 0)), 'Países obtenidos exitosamente');
 };
 
-// Lista paises solo activos a toda la app, es público para logica de negocio
-export const listActive = async (_req: Request, res: Response) => {
-    const rows = await CountryService.listActive();
-    return ApiResponse.ok(res, rows.map((row) => toCountryDto(row)), 'Países activos obtenidos exitosamente');
+// Catálogo público: solo activos por defecto, o todos con includeInactive=true.
+export const listActive = async (req: Request, res: Response) => {
+    const { includeInactive } = req.query;
+    if (includeInactive !== undefined && includeInactive !== 'true' && includeInactive !== 'false') {
+        throw new BadRequestError('Parámetro invalido');
+    }
+    const rows = await CountryService.listActive(includeInactive === 'true');
+    return ApiResponse.ok(res, rows.map((row) => toCountryDto(row)), 'Países obtenidos exitosamente');
 };
 
 // Crea nuevo pais

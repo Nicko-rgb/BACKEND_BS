@@ -15,7 +15,7 @@ router.get('/countries', resolveAuthorization('country.manage'), list);
 
 /**
  * @route GET /api/v2/system/countries/active
- * @desc  Lista países activos, sin paginar, para selects/lógica de negocio
+ * @desc  Lista países activos sin paginar; ?includeInactive=true incluye inactivos
  * @access Público
  */
 router.get('/countries/active', listActive);

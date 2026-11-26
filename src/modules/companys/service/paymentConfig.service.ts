@@ -1,4 +1,3 @@
-import { persistAccountQr } from '../../../shared/middlewares/accountQrUpload';
 import { buildFileUrl } from '../../../shared/middlewares/uploadMiddleware';
 import * as MediaCore from '../../system/service/mediaCore.service';
 import { PaymentType } from '../../system/database/models';
@@ -129,21 +128,20 @@ export const getManualAccount = async (publicId: string, typeId: number, user: A
 export const saveManualAccount = async (
     publicId: string, typeId: number, data: ManualPaymentAccountInput, user: AuthenticatedUser, file?: Express.Multer.File,
 ) => {
-    const { sucursal, type } = await resolveManualPayment(publicId, typeId, user);
-    if (!type.is_enabled) throw new BadRequestError('El tipo de pago está deshabilitado');
-    if (type.code.trim().toUpperCase() === 'PLIN' && !/^9\d{8}$/.test(data.account_number)) {
-        throw new BadRequestError('Plin requiere un celular peruano de 9 dígitos que comience con 9');
-    }
-    const fields = {
-        account_name: data.account_name,
-        account_number: data.account_number,
-        account_alias: data.account_alias || null,
-        bank_name: data.bank_name || null,
-        is_active: true,
-    };
-    if (file && data.remove_qr) throw new BadRequestError('No se puede subir y eliminar el QR a la vez');
-    const storedFile = file ? await persistAccountQr(file) : undefined;
     try {
+        const { sucursal, type } = await resolveManualPayment(publicId, typeId, user);
+        if (!type.is_enabled) throw new BadRequestError('El tipo de pago está deshabilitado');
+        if (type.code.trim().toUpperCase() === 'PLIN' && !/^9\d{8}$/.test(data.account_number)) {
+            throw new BadRequestError('Plin requiere un celular peruano de 9 dígitos que comience con 9');
+        }
+        const fields = {
+            account_name: data.account_name,
+            account_number: data.account_number,
+            account_alias: data.account_alias || null,
+            bank_name: data.bank_name || null,
+            is_active: true,
+        };
+        if (file && data.remove_qr) throw new BadRequestError('No se puede subir y eliminar el QR a la vez');
         return await sequelize.transaction(async (transaction) => {
             await PaymentAccountRepository.lockSucursal(sucursal.company_id, transaction);
             const existing = await PaymentAccountRepository.findBySucursalAndType(sucursal.company_id, typeId, transaction);
@@ -153,11 +151,11 @@ export const saveManualAccount = async (
                     ...fields, qr_url: null, sucursal_id: sucursal.company_id, payment_type_id: typeId,
                     tenant_id: sucursal.tenant_id, user_create: user.user_id, user_update: null,
                 }, transaction);
-            if (storedFile) {
+            if (file) {
                 account.qr = await MediaCore.createRecord({
                     medible_id: account.payment_account_id, medible_type: 'PaymentAccount',
                     tenant_id: sucursal.tenant_id, category: 'QR', type: 'IMAGE', is_primary: true,
-                    replacePrevious: true, file: storedFile, user_id: user.user_id,
+                    replacePrevious: true, file, user_id: user.user_id,
                 }, transaction);
                 await PaymentAccountRepository.update(account, { qr_url: account.qr.file_url }, transaction);
             } else if (data.remove_qr) {
@@ -169,7 +167,7 @@ export const saveManualAccount = async (
         });
     } catch (error) {
         // La cuenta y Media se revierten; el nuevo archivo no debe quedar huérfano.
-        if (storedFile) MediaCore.removePhysicalFile(buildFileUrl(storedFile));
+        if (file) MediaCore.removePhysicalFile(buildFileUrl(file));
         throw error;
     }
 };

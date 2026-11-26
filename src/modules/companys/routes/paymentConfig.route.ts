@@ -1,4 +1,4 @@
-import { accountQrUpload } from '../../../shared/middlewares/accountQrUpload';
+import upload from '../../../shared/middlewares/uploadMiddleware';
 import { createRouter } from '../../../shared/utils/createRouter';
 import { resolveAuthorization } from '../../../shared/middlewares/resolveAuthorization';
 import { validateDTO, validatePublicId } from '../../../shared/middlewares/validateDTO';
@@ -46,6 +46,8 @@ router.delete('/:sucursalPublicId/mercadopago-credential',
     disconnectMercadoPagoCredential
 );
 
+// ---------------------------------------------------------------
+
 // Una cuenta manual por sucursal y tipo de pago.
 router.get('/:sucursalPublicId/manual-accounts',
     resolveAuthorization('payment.account_manage'),
@@ -61,7 +63,7 @@ router.get('/:sucursalPublicId/manual-accounts/:paymentTypeId',
 router.put('/:sucursalPublicId/manual-accounts/:paymentTypeId',
     resolveAuthorization('payment.account_manage'),
     validatePublicId('sucursalPublicId'),
-    accountQrUpload,
+    upload.single('account_qr'),
     validateDTO(manualPaymentAccountSchema),
     saveManualAccount
 );

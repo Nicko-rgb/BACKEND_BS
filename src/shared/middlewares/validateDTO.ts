@@ -1,12 +1,14 @@
+import { rm } from 'node:fs/promises';
 import type { Request, Response, NextFunction } from 'express';
 import type { Schema } from 'joi';
 import { publicIdSchema } from '../dto/publicId.schema';
 import { NotFoundError, ValidationError } from '../errors/CustomErrors';
 
 export const validateDTO = (schema: Schema) => {
-    return (req: Request, _res: Response, next: NextFunction): void => {
+    return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
         const { error, value } = schema.validate(req.body, { abortEarly: false, stripUnknown: true });
         if (error) {
+            if (req.file?.path) await rm(req.file.path, { force: true });
             const messages = error.details.map((e) => e.message);
             next(new ValidationError('Datos de entrada inválidos', messages));
             return;
@@ -25,7 +27,7 @@ export const validateDTOByParam = (param: string, schemas: Record<string, Schema
             next(new NotFoundError('Recurso no encontrado'));
             return;
         }
-        validateDTO(schemas[key])(req, res, next);
+        void validateDTO(schemas[key])(req, res, next).catch(next);
     };
 };
 
